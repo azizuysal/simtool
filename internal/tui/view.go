@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
 
@@ -14,6 +15,18 @@ func (m Model) View() string {
 		return ui.ErrorStyle.Render("Error: " + m.err.Error())
 	}
 
+	switch m.viewState {
+	case SimulatorListView:
+		return m.viewSimulatorList()
+	case AppListView:
+		return m.viewAppList()
+	default:
+		return m.viewSimulatorList()
+	}
+}
+
+// viewSimulatorList renders the simulator list view
+func (m Model) viewSimulatorList() string {
 	if len(m.simulators) == 0 {
 		return "Loading simulators..."
 	}
@@ -26,8 +39,8 @@ func (m Model) View() string {
 
 	// Calculate visible range
 	itemsPerScreen := CalculateItemsPerScreen(m.height)
-	startIdx := m.viewport
-	endIdx := m.viewport + itemsPerScreen
+	startIdx := m.simViewport
+	endIdx := m.simViewport + itemsPerScreen
 	if endIdx > len(m.simulators) {
 		endIdx = len(m.simulators)
 	}
@@ -49,7 +62,7 @@ func (m Model) View() string {
 	if m.statusMessage != "" {
 		s.WriteString("\n")
 		statusStyle := ui.FooterStyle.Copy()
-		if strings.Contains(m.statusMessage, "Error") {
+		if strings.Contains(m.statusMessage, "Error") || strings.Contains(m.statusMessage, "No apps installed") {
 			statusStyle = ui.ErrorStyle
 		} else if strings.Contains(m.statusMessage, "successfully") {
 			statusStyle = statusStyle.Foreground(lipgloss.Color("42"))
@@ -67,8 +80,8 @@ func (m Model) View() string {
 	}
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • r: run • q: quit"
-	scrollInfo := ui.FormatScrollInfo(m.viewport, itemsPerScreen, len(m.simulators))
+	footerText := "↑/k: up • ↓/j: down • enter/→: apps • r: run • q: quit"
+	scrollInfo := ui.FormatScrollInfo(m.simViewport, itemsPerScreen, len(m.simulators))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo, 
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
 
@@ -95,7 +108,7 @@ func (m Model) renderSimulatorList(startIdx, endIdx int, contentWidth int) strin
 			appCountText = " • 0 apps"
 		}
 
-		if i == m.cursor {
+		if i == m.simCursor {
 			// Selected item
 			line1 := fmt.Sprintf("▶ %s", sim.Name)
 			line2 := fmt.Sprintf("  %s • %s%s", sim.Runtime, sim.StateDisplay(), appCountText)
@@ -156,4 +169,91 @@ func (m Model) centerContent(content string) string {
 	}
 
 	return result.String()
+}
+
+// viewAppList renders the app list view
+func (m Model) viewAppList() string {
+	if m.loadingApps {
+		return "Loading apps..."
+	}
+	
+	if m.selectedSim == nil {
+		return "No simulator selected"
+	}
+
+	var s strings.Builder
+
+	// Header with simulator name
+	headerText := fmt.Sprintf("%s Apps (%d)", m.selectedSim.Name, len(m.apps))
+	s.WriteString(ui.FormatHeader(headerText, m.width))
+
+	// Calculate visible range
+	itemsPerScreen := CalculateItemsPerScreen(m.height)
+	startIdx := m.appViewport
+	endIdx := m.appViewport + itemsPerScreen
+	if endIdx > len(m.apps) {
+		endIdx = len(m.apps)
+	}
+
+	// Calculate content width
+	contentWidth := m.width - 6
+	if contentWidth < 50 {
+		contentWidth = 50
+	}
+
+	// Build app list content
+	var listContent strings.Builder
+	innerWidth := contentWidth - 4
+
+	if len(m.apps) == 0 {
+		listContent.WriteString(ui.DetailStyle.Render("No apps installed"))
+	} else {
+		for i := startIdx; i < endIdx; i++ {
+			app := m.apps[i]
+
+			// Format app details
+			sizeText := simulator.FormatSize(app.Size)
+			detailText := fmt.Sprintf("%s • %s", app.BundleID, sizeText)
+			if app.Version != "" {
+				detailText = fmt.Sprintf("%s • v%s • %s", app.BundleID, app.Version, sizeText)
+			}
+
+			if i == m.appCursor {
+				// Selected item
+				line1 := fmt.Sprintf("▶ %s", app.Name)
+				line2 := fmt.Sprintf("  %s", detailText)
+
+				// Pad to full width
+				line1 = ui.PadLine(line1, innerWidth)
+				line2 = ui.PadLine(line2, innerWidth)
+
+				listContent.WriteString(ui.SelectedStyle.Render(line1))
+				listContent.WriteString("\n")
+				listContent.WriteString(ui.SelectedStyle.Render(line2))
+			} else {
+				// Non-selected item
+				listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Render(app.Name))
+				listContent.WriteString("\n")
+				listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.DetailStyle).Render(detailText))
+			}
+
+			if i < endIdx-1 {
+				listContent.WriteString("\n\n")
+			}
+		}
+	}
+
+	// Apply border and center
+	borderedList := ui.BorderStyle.Width(contentWidth).Render(listContent.String())
+	s.WriteString(m.centerContent(borderedList))
+
+	s.WriteString("\n\n")
+
+	// Footer
+	footerText := "↑/k: up • ↓/j: down • ←: back • q: quit"
+	scrollInfo := ui.FormatScrollInfo(m.appViewport, itemsPerScreen, len(m.apps))
+	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
+		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
+
+	return s.String()
 }

@@ -15,22 +15,32 @@ func CalculateItemsPerScreen(height int) int {
 func (m *Model) updateViewport() {
 	itemsPerScreen := CalculateItemsPerScreen(m.height)
 
+	switch m.viewState {
+	case SimulatorListView:
+		updateViewportForList(&m.simCursor, &m.simViewport, len(m.simulators), itemsPerScreen)
+	case AppListView:
+		updateViewportForList(&m.appCursor, &m.appViewport, len(m.apps), itemsPerScreen)
+	}
+}
+
+// updateViewportForList updates viewport for any list
+func updateViewportForList(cursor, viewport *int, totalItems, itemsPerScreen int) {
 	// Adjust viewport to keep cursor visible
-	if m.cursor < m.viewport {
-		m.viewport = m.cursor
-	} else if m.cursor >= m.viewport+itemsPerScreen {
-		m.viewport = m.cursor - itemsPerScreen + 1
+	if *cursor < *viewport {
+		*viewport = *cursor
+	} else if *cursor >= *viewport+itemsPerScreen {
+		*viewport = *cursor - itemsPerScreen + 1
 	}
 
 	// Ensure viewport doesn't go beyond bounds
-	maxViewport := len(m.simulators) - itemsPerScreen
+	maxViewport := totalItems - itemsPerScreen
 	if maxViewport < 0 {
 		maxViewport = 0
 	}
-	if m.viewport > maxViewport {
-		m.viewport = maxViewport
+	if *viewport > maxViewport {
+		*viewport = maxViewport
 	}
-	if m.viewport < 0 {
-		m.viewport = 0
+	if *viewport < 0 {
+		*viewport = 0
 	}
 }

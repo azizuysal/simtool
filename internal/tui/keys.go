@@ -11,4 +11,7 @@ const (
 	KeyQuit  = "q"
 	KeyCtrlC = "ctrl+c"
 	KeyRun   = "r"
+	KeyEnter = "enter"
+	KeyRight = "right"
+	KeyLeft  = "left"
 )

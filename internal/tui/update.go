@@ -24,27 +24,54 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fetchSimulatorsMsg:
 		m.simulators = msg.simulators
 		m.err = msg.err
-		if m.cursor >= len(m.simulators) {
-			m.cursor = len(m.simulators) - 1
+		if m.simCursor >= len(m.simulators) {
+			m.simCursor = len(m.simulators) - 1
 		}
-		if m.cursor < 0 && len(m.simulators) > 0 {
-			m.cursor = 0
+		if m.simCursor < 0 && len(m.simulators) > 0 {
+			m.simCursor = 0
 		}
 		m.updateViewport()
+
+	case fetchAppsMsg:
+		m.apps = msg.apps
+		m.loadingApps = false
+		if msg.err != nil {
+			m.statusMessage = fmt.Sprintf("Error loading apps: %v", msg.err)
+			m.viewState = SimulatorListView
+			m.selectedSim = nil
+			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		} else if len(msg.apps) == 0 {
+			m.statusMessage = "No apps installed on this simulator"
+			m.viewState = SimulatorListView
+			m.selectedSim = nil
+			return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		} else {
+			m.appCursor = 0
+			m.appViewport = 0
+			m.updateViewport()
+		}
 
 	case bootSimulatorMsg:
 		m.booting = false
 		if msg.err != nil {
 			m.statusMessage = fmt.Sprintf("Error: %v", msg.err)
+			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
 		} else {
 			m.statusMessage = "Simulator booted successfully!"
-			// Refresh simulators to update status
-			return m, fetchSimulatorsCmd(m.fetcher)
+			// Refresh simulators to update status AND set up clear timer
+			return m, tea.Batch(
+				fetchSimulatorsCmd(m.fetcher),
+				tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+					return clearStatusMsg{}
+				}),
+			)
 		}
-		// Clear status message after 3 seconds
-		return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-			return clearStatusMsg{}
-		})
 
 	case clearStatusMsg:
 		m.statusMessage = ""
@@ -59,29 +86,81 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case KeyCtrlC, KeyQuit:
 		return m, tea.Quit
 
-	case KeyUp, KeyK:
-		if m.cursor > 0 {
-			m.cursor--
+	case KeyLeft:
+		if m.viewState == AppListView {
+			m.viewState = SimulatorListView
+			m.apps = nil
+			m.selectedSim = nil
 			m.updateViewport()
+		}
+
+	case KeyEnter, KeyRight:
+		if m.viewState == SimulatorListView && len(m.simulators) > 0 {
+			sim := m.simulators[m.simCursor]
+			m.selectedSim = &sim
+			m.viewState = AppListView
+			m.loadingApps = true
+			return m, m.fetchAppsCmd(sim)
+		}
+
+	case KeyUp, KeyK:
+		// Clear status message on navigation
+		m.statusMessage = ""
+		switch m.viewState {
+		case SimulatorListView:
+			if m.simCursor > 0 {
+				m.simCursor--
+				m.updateViewport()
+			}
+		case AppListView:
+			if m.appCursor > 0 {
+				m.appCursor--
+				m.updateViewport()
+			}
 		}
 
 	case KeyDown, KeyJ:
-		if m.cursor < len(m.simulators)-1 {
-			m.cursor++
-			m.updateViewport()
+		// Clear status message on navigation
+		m.statusMessage = ""
+		switch m.viewState {
+		case SimulatorListView:
+			if m.simCursor < len(m.simulators)-1 {
+				m.simCursor++
+				m.updateViewport()
+			}
+		case AppListView:
+			if m.appCursor < len(m.apps)-1 {
+				m.appCursor++
+				m.updateViewport()
+			}
 		}
 
 	case KeyHome:
-		m.cursor = 0
-		m.viewport = 0
+		// Clear status message on navigation
+		m.statusMessage = ""
+		switch m.viewState {
+		case SimulatorListView:
+			m.simCursor = 0
+			m.simViewport = 0
+		case AppListView:
+			m.appCursor = 0
+			m.appViewport = 0
+		}
 
 	case KeyEnd:
-		m.cursor = len(m.simulators) - 1
+		// Clear status message on navigation
+		m.statusMessage = ""
+		switch m.viewState {
+		case SimulatorListView:
+			m.simCursor = len(m.simulators) - 1
+		case AppListView:
+			m.appCursor = len(m.apps) - 1
+		}
 		m.updateViewport()
 
 	case KeyRun:
-		if len(m.simulators) > 0 && m.cursor < len(m.simulators) {
-			sim := m.simulators[m.cursor]
+		if m.viewState == SimulatorListView && len(m.simulators) > 0 {
+			sim := m.simulators[m.simCursor]
 			if !sim.IsRunning() && !m.booting {
 				m.booting = true
 				m.statusMessage = fmt.Sprintf("Booting %s...", sim.Name)

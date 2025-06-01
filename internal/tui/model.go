@@ -5,17 +5,36 @@ import (
 	"simtool/internal/simulator"
 )
 
+// ViewState represents the current view
+type ViewState int
+
+const (
+	SimulatorListView ViewState = iota
+	AppListView
+)
+
 // Model represents the application state
 type Model struct {
-	simulators    []simulator.Item
-	cursor        int
+	// Common state
+	viewState     ViewState
 	err           error
 	height        int
 	width         int
-	viewport      int // The index of the first visible item
-	fetcher       simulator.Fetcher
 	statusMessage string
+	fetcher       simulator.Fetcher
+	
+	// Simulator list state
+	simulators    []simulator.Item
+	simCursor     int
+	simViewport   int
 	booting       bool
+	
+	// App list state
+	selectedSim   *simulator.Item
+	apps          []simulator.App
+	appCursor     int
+	appViewport   int
+	loadingApps   bool
 }
 
 // New creates a new Model with the given fetcher
@@ -55,5 +74,19 @@ func (m Model) bootSimulatorCmd(udid string) tea.Cmd {
 	return func() tea.Msg {
 		err := m.fetcher.Boot(udid)
 		return bootSimulatorMsg{udid: udid, err: err}
+	}
+}
+
+// fetchAppsMsg is sent when apps are fetched
+type fetchAppsMsg struct {
+	apps []simulator.App
+	err  error
+}
+
+// fetchAppsCmd fetches apps for a simulator
+func (m Model) fetchAppsCmd(sim simulator.Item) tea.Cmd {
+	return func() tea.Msg {
+		apps, err := simulator.GetAppsForSimulator(sim.UDID, sim.IsRunning())
+		return fetchAppsMsg{apps: apps, err: err}
 	}
 }
