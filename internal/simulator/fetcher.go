@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"sort"
 	"strings"
 )
 
@@ -46,6 +47,11 @@ func (f *SimctlFetcher) Fetch() ([]Item, error) {
 			}
 		}
 	}
+
+	// Sort simulators by name
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Name < items[j].Name
+	})
 
 	return items, nil
 }
