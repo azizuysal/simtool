@@ -19,7 +19,10 @@ go.work
 go.work.sum
 
 # Binary output
-simtool
+/simtool
+simtool-*
+# Don't ignore the cmd directory
+!cmd/
 
 # Debug files
 debug.log
