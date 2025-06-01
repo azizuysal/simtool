@@ -75,6 +75,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case clearStatusMsg:
 		m.statusMessage = ""
+
+	case tickMsg:
+		// Periodically refresh simulator status
+		return m, tea.Batch(
+			fetchSimulatorsCmd(m.fetcher),
+			tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+				return tickMsg(t)
+			}),
+		)
 	}
 
 	return m, nil

@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"time"
+	
 	tea "github.com/charmbracelet/bubbletea"
 	"simtool/internal/simulator"
 )
@@ -46,7 +48,12 @@ func New(fetcher simulator.Fetcher) Model {
 
 // Init initializes the model
 func (m Model) Init() tea.Cmd {
-	return fetchSimulatorsCmd(m.fetcher)
+	return tea.Batch(
+		fetchSimulatorsCmd(m.fetcher),
+		tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+			return tickMsg(t)
+		}),
+	)
 }
 
 // fetchSimulatorsMsg is sent when simulators are fetched
@@ -82,6 +89,9 @@ type fetchAppsMsg struct {
 	apps []simulator.App
 	err  error
 }
+
+// tickMsg is sent periodically to refresh simulator status
+type tickMsg time.Time
 
 // fetchAppsCmd fetches apps for a simulator
 func (m Model) fetchAppsCmd(sim simulator.Item) tea.Cmd {
