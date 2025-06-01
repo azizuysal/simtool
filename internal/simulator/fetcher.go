@@ -3,6 +3,7 @@ package simulator
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -87,32 +88,56 @@ func (f *SimctlFetcher) openSimulatorApp() error {
 
 // getAppCount returns the number of installed apps on a simulator
 func (f *SimctlFetcher) getAppCount(udid string) int {
-	// Only count apps for booted simulators
+	// First try to get apps using listapps (works for booted simulators)
 	cmd := exec.Command("xcrun", "simctl", "listapps", udid)
 	output, err := cmd.Output()
-	if err != nil {
-		// If error (e.g., simulator not booted), return -1 to indicate unknown
-		return -1
-	}
-
-	// Parse the plist-style output
-	outputStr := string(output)
-	lines := strings.Split(outputStr, "\n")
-	
-	userAppCount := 0
-	for _, line := range lines {
-		// Look for CFBundleIdentifier lines
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "CFBundleIdentifier = ") {
-			bundleID := strings.Trim(strings.TrimPrefix(line, "CFBundleIdentifier = "), `";`)
-			// Count non-Apple apps
-			if !strings.HasPrefix(bundleID, "com.apple.") {
-				userAppCount++
+	if err == nil {
+		// Parse the plist-style output
+		outputStr := string(output)
+		lines := strings.Split(outputStr, "\n")
+		
+		userAppCount := 0
+		for _, line := range lines {
+			// Look for CFBundleIdentifier lines
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "CFBundleIdentifier = ") {
+				bundleID := strings.Trim(strings.TrimPrefix(line, "CFBundleIdentifier = "), `";`)
+				// Count non-Apple apps
+				if !strings.HasPrefix(bundleID, "com.apple.") {
+					userAppCount++
+				}
 			}
 		}
+		return userAppCount
 	}
 
-	return userAppCount
+	// If listapps fails (simulator not booted), check the data directory
+	return f.getAppCountFromDataDir(udid)
+}
+
+// getAppCountFromDataDir counts apps by checking the simulator's data directory
+func (f *SimctlFetcher) getAppCountFromDataDir(udid string) int {
+	// Build the path to the simulator's app bundle directory
+	homeDir := os.Getenv("HOME")
+	devicePath := fmt.Sprintf("%s/Library/Developer/CoreSimulator/Devices/%s/data/Containers/Bundle/Application", homeDir, udid)
+	
+	// Check if the directory exists
+	entries, err := os.ReadDir(devicePath)
+	if err != nil {
+		return 0
+	}
+	
+	// Count the directories (each represents an installed app)
+	appCount := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			// Each directory contains an app bundle
+			// We could check for .app directories inside, but counting dirs is sufficient
+			appCount++
+		}
+	}
+	
+	return appCount
 }
 
 // formatRuntime converts runtime identifier to user-friendly format

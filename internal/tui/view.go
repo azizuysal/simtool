@@ -90,8 +90,8 @@ func (m Model) renderSimulatorList(startIdx, endIdx int, contentWidth int) strin
 			if sim.AppCount > 1 {
 				appCountText += "s"
 			}
-		} else if sim.AppCount == 0 && sim.IsRunning() {
-			// Only show "0 apps" if simulator is running (we know for sure)
+		} else if sim.AppCount == 0 {
+			// Show "0 apps" for both running and non-running simulators
 			appCountText = " • 0 apps"
 		}
 
