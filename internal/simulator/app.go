@@ -47,13 +47,17 @@ func getAppsFromListApps(udid string) ([]App, error) {
 		line = strings.TrimSpace(line)
 		
 		// Start of a new app entry
-		if strings.HasPrefix(line, `"`) && strings.HasSuffix(line, `" = {`) {
-			bundleID := strings.Trim(strings.TrimSuffix(line, " = {"), `"`)
-			if !strings.HasPrefix(bundleID, "com.apple.") {
-				currentApp = App{BundleID: bundleID}
-				inApp = true
-			} else {
-				inApp = false
+		if strings.HasPrefix(line, `"`) && strings.Contains(line, " = ") && strings.HasSuffix(line, "{") {
+			// Extract bundle ID from lines like: "com.example.app" =     {
+			parts := strings.SplitN(line, " = ", 2)
+			if len(parts) == 2 {
+				bundleID := strings.Trim(parts[0], `"`)
+				if !strings.HasPrefix(bundleID, "com.apple.") {
+					currentApp = App{BundleID: bundleID}
+					inApp = true
+				} else {
+					inApp = false
+				}
 			}
 		} else if inApp {
 			if strings.HasPrefix(line, "CFBundleDisplayName = ") {
@@ -61,7 +65,9 @@ func getAppsFromListApps(udid string) ([]App, error) {
 			} else if strings.HasPrefix(line, "CFBundleShortVersionString = ") {
 				currentApp.Version = strings.Trim(strings.TrimPrefix(line, "CFBundleShortVersionString = "), `";`)
 			} else if strings.HasPrefix(line, "Path = ") {
-				currentApp.Path = strings.Trim(strings.TrimPrefix(line, "Path = "), `";`)
+				// Path values are not quoted in the output
+				currentApp.Path = strings.TrimSpace(strings.TrimPrefix(line, "Path = "))
+				currentApp.Path = strings.TrimSuffix(currentApp.Path, ";")
 			} else if strings.HasPrefix(line, "DataContainer = ") {
 				currentApp.Container = strings.Trim(strings.TrimPrefix(line, "DataContainer = "), `";`)
 			} else if line == "};" && currentApp.BundleID != "" {
