@@ -53,9 +53,12 @@ func (m Model) viewSimulatorList() string {
 
 	// Build list content
 	listContent := m.renderSimulatorList(startIdx, endIdx, contentWidth)
+	
+	// Pad content to fill the screen height
+	paddedContent := m.padContentToHeight(listContent, itemsPerScreen)
 
 	// Apply border and center
-	borderedList := ui.BorderStyle.Width(contentWidth).Render(listContent)
+	borderedList := ui.BorderStyle.Width(contentWidth).Render(paddedContent)
 	s.WriteString(m.centerContent(borderedList))
 
 	// Status message
@@ -242,9 +245,12 @@ func (m Model) viewAppList() string {
 			}
 		}
 	}
+	
+	// Pad content to fill the screen height
+	paddedContent := m.padContentToHeight(listContent.String(), itemsPerScreen)
 
 	// Apply border and center
-	borderedList := ui.BorderStyle.Width(contentWidth).Render(listContent.String())
+	borderedList := ui.BorderStyle.Width(contentWidth).Render(paddedContent)
 	s.WriteString(m.centerContent(borderedList))
 
 	s.WriteString("\n\n")
@@ -256,4 +262,31 @@ func (m Model) viewAppList() string {
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
 
 	return s.String()
+}
+
+// padContentToHeight pads content to fill the expected height
+func (m Model) padContentToHeight(content string, itemsPerScreen int) string {
+	lines := strings.Split(content, "\n")
+	currentLines := len(lines)
+	
+	// Calculate expected lines: itemsPerScreen * 3 (2 lines per item + 1 blank line)
+	// Subtract 1 because the last item doesn't have a trailing blank line
+	expectedLines := itemsPerScreen * 3 - 1
+	if itemsPerScreen > 0 && expectedLines < 2 {
+		expectedLines = 2 // Minimum of 2 lines
+	}
+	
+	// If content is already at or above expected height, return as is
+	if currentLines >= expectedLines {
+		return content
+	}
+	
+	// Add empty lines to reach expected height
+	var result strings.Builder
+	result.WriteString(content)
+	for i := currentLines; i < expectedLines; i++ {
+		result.WriteString("\n")
+	}
+	
+	return result.String()
 }
