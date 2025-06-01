@@ -12,7 +12,8 @@ type Simulator struct {
 // Item represents a simulator with its runtime information
 type Item struct {
 	Simulator
-	Runtime string
+	Runtime  string
+	AppCount int
 }
 
 // DevicesByRuntime maps runtime identifiers to simulators

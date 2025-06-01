@@ -40,9 +40,11 @@ func (f *SimctlFetcher) Fetch() ([]Item, error) {
 		runtimeName := formatRuntime(runtime)
 		for _, sim := range sims {
 			if sim.IsAvailable {
+				appCount := f.getAppCount(sim.UDID)
 				items = append(items, Item{
 					Simulator: sim,
 					Runtime:   runtimeName,
+					AppCount:  appCount,
 				})
 			}
 		}
@@ -81,6 +83,36 @@ func (f *SimctlFetcher) openSimulatorApp() error {
 		return fmt.Errorf("failed to open Simulator app: %w", err)
 	}
 	return nil
+}
+
+// getAppCount returns the number of installed apps on a simulator
+func (f *SimctlFetcher) getAppCount(udid string) int {
+	// Only count apps for booted simulators
+	cmd := exec.Command("xcrun", "simctl", "listapps", udid)
+	output, err := cmd.Output()
+	if err != nil {
+		// If error (e.g., simulator not booted), return -1 to indicate unknown
+		return -1
+	}
+
+	// Parse the plist-style output
+	outputStr := string(output)
+	lines := strings.Split(outputStr, "\n")
+	
+	userAppCount := 0
+	for _, line := range lines {
+		// Look for CFBundleIdentifier lines
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "CFBundleIdentifier = ") {
+			bundleID := strings.Trim(strings.TrimPrefix(line, "CFBundleIdentifier = "), `";`)
+			// Count non-Apple apps
+			if !strings.HasPrefix(bundleID, "com.apple.") {
+				userAppCount++
+			}
+		}
+	}
+
+	return userAppCount
 }
 
 // formatRuntime converts runtime identifier to user-friendly format

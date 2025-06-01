@@ -83,10 +83,22 @@ func (m Model) renderSimulatorList(startIdx, endIdx int, contentWidth int) strin
 	for i := startIdx; i < endIdx; i++ {
 		sim := m.simulators[i]
 
+		// Format app count text
+		appCountText := ""
+		if sim.AppCount > 0 {
+			appCountText = fmt.Sprintf(" • %d app", sim.AppCount)
+			if sim.AppCount > 1 {
+				appCountText += "s"
+			}
+		} else if sim.AppCount == 0 && sim.IsRunning() {
+			// Only show "0 apps" if simulator is running (we know for sure)
+			appCountText = " • 0 apps"
+		}
+
 		if i == m.cursor {
 			// Selected item
 			line1 := fmt.Sprintf("▶ %s", sim.Name)
-			line2 := fmt.Sprintf("  %s • %s", sim.Runtime, sim.StateDisplay())
+			line2 := fmt.Sprintf("  %s • %s%s", sim.Runtime, sim.StateDisplay(), appCountText)
 
 			// Pad to full width
 			line1 = ui.PadLine(line1, innerWidth)
@@ -108,7 +120,7 @@ func (m Model) renderSimulatorList(startIdx, endIdx int, contentWidth int) strin
 
 			listContent.WriteString(nameStyle.Render(sim.Name))
 			listContent.WriteString("\n")
-			listContent.WriteString(detailStyle.Render(sim.Runtime + " • " + sim.StateDisplay()))
+			listContent.WriteString(detailStyle.Render(sim.Runtime + " • " + sim.StateDisplay() + appCountText))
 		}
 
 		if i < endIdx-1 {
