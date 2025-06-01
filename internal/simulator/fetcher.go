@@ -10,6 +10,7 @@ import (
 // Fetcher is responsible for fetching simulator information
 type Fetcher interface {
 	Fetch() ([]Item, error)
+	Boot(udid string) error
 }
 
 // SimctlFetcher fetches simulators using xcrun simctl
@@ -47,6 +48,33 @@ func (f *SimctlFetcher) Fetch() ([]Item, error) {
 	}
 
 	return items, nil
+}
+
+// Boot starts the simulator with the given UDID
+func (f *SimctlFetcher) Boot(udid string) error {
+	// First boot the simulator
+	cmd := exec.Command("xcrun", "simctl", "boot", udid)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if already booted
+		if strings.Contains(string(output), "Unable to boot device in current state: Booted") {
+			// If already booted, just open the Simulator app
+			return f.openSimulatorApp()
+		}
+		return fmt.Errorf("failed to boot simulator: %s", string(output))
+	}
+	
+	// Open the Simulator app to show the UI
+	return f.openSimulatorApp()
+}
+
+// openSimulatorApp opens the Simulator application
+func (f *SimctlFetcher) openSimulatorApp() error {
+	cmd := exec.Command("open", "-a", "Simulator")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to open Simulator app: %w", err)
+	}
+	return nil
 }
 
 // formatRuntime converts runtime identifier to user-friendly format

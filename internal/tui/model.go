@@ -7,13 +7,15 @@ import (
 
 // Model represents the application state
 type Model struct {
-	simulators []simulator.Item
-	cursor     int
-	err        error
-	height     int
-	width      int
-	viewport   int // The index of the first visible item
-	fetcher    simulator.Fetcher
+	simulators    []simulator.Item
+	cursor        int
+	err           error
+	height        int
+	width         int
+	viewport      int // The index of the first visible item
+	fetcher       simulator.Fetcher
+	statusMessage string
+	booting       bool
 }
 
 // New creates a new Model with the given fetcher
@@ -39,5 +41,19 @@ func fetchSimulatorsCmd(fetcher simulator.Fetcher) tea.Cmd {
 	return func() tea.Msg {
 		sims, err := fetcher.Fetch()
 		return fetchSimulatorsMsg{simulators: sims, err: err}
+	}
+}
+
+// bootSimulatorMsg is sent when a simulator boot is attempted
+type bootSimulatorMsg struct {
+	udid string
+	err  error
+}
+
+// bootSimulatorCmd boots a simulator asynchronously
+func (m Model) bootSimulatorCmd(udid string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.fetcher.Boot(udid)
+		return bootSimulatorMsg{udid: udid, err: err}
 	}
 }

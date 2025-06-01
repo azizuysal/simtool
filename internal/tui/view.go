@@ -45,9 +45,29 @@ func (m Model) View() string {
 	borderedList := ui.BorderStyle.Width(contentWidth).Render(listContent)
 	s.WriteString(m.centerContent(borderedList))
 
+	// Status message
+	if m.statusMessage != "" {
+		s.WriteString("\n")
+		statusStyle := ui.FooterStyle.Copy()
+		if strings.Contains(m.statusMessage, "Error") {
+			statusStyle = ui.ErrorStyle
+		} else if strings.Contains(m.statusMessage, "successfully") {
+			statusStyle = statusStyle.Foreground(lipgloss.Color("42"))
+		}
+		
+		// Center the status message
+		if m.width > lipgloss.Width(m.statusMessage) {
+			leftPadding := (m.width - lipgloss.Width(m.statusMessage)) / 2
+			s.WriteString(strings.Repeat(" ", leftPadding))
+		}
+		s.WriteString(statusStyle.Render(m.statusMessage))
+		s.WriteString("\n")
+	} else {
+		s.WriteString("\n\n")
+	}
+
 	// Footer
-	s.WriteString("\n\n")
-	footerText := "↑/k: up • ↓/j: down • q: quit"
+	footerText := "↑/k: up • ↓/j: down • r: run • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.viewport, itemsPerScreen, len(m.simulators))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo, 
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
