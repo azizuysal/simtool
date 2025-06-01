@@ -78,7 +78,9 @@ The application follows clean architecture principles with clear separation of c
 
 1. **internal/simulator**: Core business logic
    - Defines simulator types and interfaces
-   - Handles fetching simulators via `xcrun simctl`
+   - Fetches simulators via `xcrun simctl list devices --json`
+   - Boots simulators and opens Simulator.app
+   - Counts installed apps (via listapps for running, data directory for shutdown)
    - Formats runtime information
 
 2. **internal/tui**: Terminal UI logic (Bubble Tea MVU pattern)
@@ -106,10 +108,13 @@ The application follows clean architecture principles with clear separation of c
 
 ## Features
 
-- Lists all available iOS simulators with runtime version
+- Lists all iOS simulators sorted alphabetically by name
+- Shows installed app count for each simulator (both running and shutdown)
+- Boot simulators with 'r' key (opens Simulator.app)
 - Navigate with arrow keys (↑/↓) or vim keys (j/k)
 - Visual indication of running simulators (green text)
 - Selected simulator highlighted with gray background
+- Status messages for boot operations
 - Rounded border UI with proper centering
 - Smooth viewport scrolling for long lists
 - Press 'q' or Ctrl+C to quit

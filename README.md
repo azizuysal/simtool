@@ -4,9 +4,10 @@ A terminal UI application for managing iOS simulators on macOS.
 
 ## Features
 
-- List all available iOS simulators
-- View simulator status (Running/Not Running)
-- Navigate with arrow keys or vim-style keys (j/k)
+- List all available iOS simulators sorted alphabetically
+- View simulator status and installed app count
+- Boot simulators directly from the UI
+- Navigate with arrow keys or vim-style keys
 - Smooth scrolling for long lists
 - Clean, modern UI with rounded borders
 
@@ -43,9 +44,16 @@ simtool
 
 - `↑` / `k` - Move up
 - `↓` / `j` - Move down
+- `r` - Run (boot) selected simulator
 - `Home` - Jump to first simulator
 - `End` - Jump to last simulator
 - `q` / `Ctrl+C` - Quit
+
+### Display Information
+
+Each simulator shows:
+- **Line 1**: Simulator name
+- **Line 2**: iOS version • Running/Not Running • Number of installed apps
 
 ## Development
 
