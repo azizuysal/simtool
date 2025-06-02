@@ -112,7 +112,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case KeyCtrlC, KeyQuit:
 		return m, tea.Quit
 
-	case KeyLeft:
+	case KeyLeft, KeyH:
 		switch m.viewState {
 		case AppListView:
 			m.viewState = SimulatorListView
@@ -127,7 +127,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 
-	case KeyEnter, KeyRight:
+	case KeyRight, KeyL:
 		switch m.viewState {
 		case SimulatorListView:
 			if len(m.simulators) > 0 {
@@ -218,7 +218,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.updateViewport()
 
-	case KeyRun:
+	case KeySpace:
 		if m.viewState == SimulatorListView && len(m.simulators) > 0 {
 			sim := m.simulators[m.simCursor]
 			if !sim.IsRunning() && !m.booting {

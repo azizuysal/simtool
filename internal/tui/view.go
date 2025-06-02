@@ -85,7 +85,7 @@ func (m Model) viewSimulatorList() string {
 	}
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • enter/→: apps • r: run • q: quit"
+	footerText := "↑/k: up • ↓/j: down • →/l: apps • space: run • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.simViewport, itemsPerScreen, len(m.simulators))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo, 
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
@@ -258,7 +258,7 @@ func (m Model) viewAppList() string {
 	s.WriteString("\n\n")
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • enter/→: files • ←: back • q: quit"
+	footerText := "↑/k: up • ↓/j: down • →/l: files • ←/h: back • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.appViewport, itemsPerScreen, len(m.apps))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
@@ -397,7 +397,7 @@ func (m Model) viewFileList() string {
 	s.WriteString("\n\n")
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • ←: back • q: quit"
+	footerText := "↑/k: up • ↓/j: down • ←/h: back • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.fileViewport, itemsPerScreen, len(m.files))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
