@@ -99,7 +99,8 @@ func (m Model) viewFileContent() string {
 		
 		// Display hex dump with viewport
 		if m.fileContent.BinaryData != nil {
-			hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, int64(m.contentOffset))
+			// Use the actual file offset from the loaded chunk
+			hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, m.fileContent.BinaryOffset)
 			
 			// Calculate visible range for hex dump
 			visibleLines := contentHeight - 4 // Account for info header
@@ -161,16 +162,31 @@ func (m Model) viewFileContent() string {
 			}
 		case simulator.FileTypeBinary:
 			if m.fileContent.BinaryData != nil {
-				hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, int64(m.contentOffset))
-				if len(hexLines) > 0 {
+				if m.fileContent.TotalSize > 0 {
 					hasContent = true
+					// Calculate total lines based on file size (16 bytes per line)
+					totalLines = int((m.fileContent.TotalSize + 15) / 16)
+					
+					// Calculate the absolute line position in the file
+					// BinaryOffset tells us where this chunk starts in the file
+					chunkStartLine := int(m.fileContent.BinaryOffset / 16)
+					
+					// The actual lines we're showing
 					visibleLines := contentHeight - 4
-					startLine = m.contentViewport + 1
-					endLine = m.contentViewport + visibleLines
-					if endLine > len(hexLines) {
-						endLine = len(hexLines)
+					startLine = chunkStartLine + m.contentViewport + 1
+					endLine = startLine + visibleLines - 1
+					
+					// Don't exceed the actual data we have
+					hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, m.fileContent.BinaryOffset)
+					maxEndLine := chunkStartLine + len(hexLines)
+					if endLine > maxEndLine {
+						endLine = maxEndLine
 					}
-					totalLines = len(hexLines)
+					
+					// Don't exceed total lines in file
+					if endLine > totalLines {
+						endLine = totalLines
+					}
 				}
 			}
 		}

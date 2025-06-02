@@ -144,6 +144,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		}
 		m.fileContent = msg.content
+		// For binary files, update the content offset to match the loaded chunk
+		if m.fileContent.Type == simulator.FileTypeBinary {
+			m.contentOffset = int(m.fileContent.BinaryOffset / 16)
+		}
 		m.updateViewport()
 	}
 
@@ -279,6 +283,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				case simulator.FileTypeBinary:
 					if m.contentViewport > 0 {
 						m.contentViewport--
+					} else if m.contentOffset > 0 {
+						// Need to load previous chunk
+						newOffset := m.contentOffset - 256 // Go back 256 lines (4KB)
+						if newOffset < 0 {
+							newOffset = 0
+						}
+						m.contentOffset = newOffset
+						m.loadingContent = true
+						// Load with line offset (offset / 16)
+						return m, m.fetchFileContentCmd(m.viewingFile.Path, int(newOffset/16))
 					}
 				}
 			}
@@ -316,15 +330,28 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.contentViewport++
 					}
 				case simulator.FileTypeBinary:
-					// Allow scrolling through binary files
-					hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, int64(m.contentOffset))
+					// Allow scrolling through binary files with lazy loading
+					hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, m.fileContent.BinaryOffset)
 					itemsPerScreen := CalculateItemsPerScreen(m.height) - 5 // Account for header
 					maxViewport := len(hexLines) - itemsPerScreen
 					if maxViewport < 0 {
 						maxViewport = 0
 					}
+					
 					if m.contentViewport < maxViewport {
 						m.contentViewport++
+					} else {
+						// Check if we need to load more data
+						currentEndByte := m.fileContent.BinaryOffset + int64(len(m.fileContent.BinaryData))
+						if currentEndByte < m.fileContent.TotalSize {
+							// Load next chunk
+							newOffset := m.contentOffset + len(hexLines)
+							m.contentOffset = newOffset
+							m.contentViewport = 0 // Reset viewport for new chunk
+							m.loadingContent = true
+							// Load with line offset (total lines from start)
+							return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
+						}
 					}
 				}
 			}

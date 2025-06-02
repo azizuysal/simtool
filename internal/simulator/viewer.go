@@ -29,7 +29,9 @@ type FileContent struct {
 	Lines       []string // For text files
 	TotalLines  int      // Total number of lines in the file
 	ImageInfo   *ImageInfo
-	BinaryData  []byte   // For hex view (limited chunk)
+	BinaryData  []byte   // For hex view (current chunk)
+	BinaryOffset int64   // Offset of the current chunk in the file
+	TotalSize   int64    // Total size of the file (for binary files)
 	Error       error
 }
 
@@ -140,9 +142,36 @@ func ReadFileContent(path string, startLine, maxLines int) (*FileContent, error)
 		content.Error = err
 		
 	case FileTypeBinary:
-		data, err := readBinaryFile(path, 0, 1024) // Read first 1KB for hex view
-		content.BinaryData = data
-		content.Error = err
+		// For binary files, implement lazy loading
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			content.Error = err
+			return content, err
+		}
+		
+		content.TotalSize = fileInfo.Size()
+		
+		// Calculate the offset based on startLine (each line = 16 bytes)
+		offset := int64(startLine * 16)
+		
+		// Read a chunk of data (8KB) starting from the offset
+		const chunkSize = 8192 // 8KB chunks
+		readSize := chunkSize
+		
+		// Don't read past the end of the file
+		if offset+int64(readSize) > fileInfo.Size() {
+			readSize = int(fileInfo.Size() - offset)
+		}
+		
+		if readSize > 0 {
+			data, err := readBinaryFile(path, offset, readSize)
+			content.BinaryData = data
+			content.BinaryOffset = offset
+			content.Error = err
+		} else {
+			content.BinaryData = []byte{}
+			content.BinaryOffset = offset
+		}
 	}
 	
 	return content, content.Error
@@ -235,6 +264,7 @@ func readBinaryFile(path string, offset int64, size int) ([]byte, error) {
 		return nil, err
 	}
 	
+	// Return only the bytes actually read, not the full buffer
 	return data[:n], nil
 }
 
