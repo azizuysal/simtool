@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -96,11 +97,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
 				return clearStatusMsg{}
 			})
-		} else {
-			m.fileCursor = 0
-			m.fileViewport = 0
-			m.updateViewport()
 		}
+		// Always reset cursor and viewport when loading new files
+		m.fileCursor = 0
+		m.fileViewport = 0
+		m.updateViewport()
 	}
 
 	return m, nil
@@ -120,11 +121,26 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.selectedSim = nil
 			m.updateViewport()
 		case FileListView:
-			m.viewState = AppListView
-			m.files = nil
-			m.selectedApp = nil
-			m.currentPath = ""
-			m.updateViewport()
+			if len(m.breadcrumbs) > 0 {
+				// Go up one directory level
+				m.breadcrumbs = m.breadcrumbs[:len(m.breadcrumbs)-1]
+				newPath := m.basePath
+				if len(m.breadcrumbs) > 0 {
+					newPath = filepath.Join(append([]string{m.basePath}, m.breadcrumbs...)...)
+				}
+				m.currentPath = newPath
+				m.loadingFiles = true
+				return m, m.fetchFilesCmd(newPath)
+			} else {
+				// At root level, go back to app list
+				m.viewState = AppListView
+				m.files = nil
+				m.selectedApp = nil
+				m.currentPath = ""
+				m.basePath = ""
+				m.breadcrumbs = nil
+				m.updateViewport()
+			}
 		}
 
 	case KeyRight, KeyL:
@@ -144,7 +160,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.viewState = FileListView
 				m.loadingFiles = true
 				m.currentPath = app.Container
+				m.basePath = app.Container
+				m.breadcrumbs = []string{}
 				return m, m.fetchFilesCmd(app.Container)
+			}
+		case FileListView:
+			if len(m.files) > 0 {
+				file := m.files[m.fileCursor]
+				if file.IsDirectory {
+					// Drill into the directory
+					m.breadcrumbs = append(m.breadcrumbs, file.Name)
+					m.currentPath = file.Path
+					m.loadingFiles = true
+					return m, m.fetchFilesCmd(file.Path)
+				}
 			}
 		}
 

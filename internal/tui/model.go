@@ -46,6 +46,8 @@ type Model struct {
 	fileViewport  int
 	loadingFiles  bool
 	currentPath   string
+	basePath      string   // The app's container path
+	breadcrumbs   []string // Path components from base to current
 }
 
 // New creates a new Model with the given fetcher

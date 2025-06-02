@@ -336,6 +336,14 @@ func (m Model) viewFileList() string {
 	}
 	listContent.WriteString(ui.DetailStyle.Render(appDetails))
 	listContent.WriteString("\n\n")
+	
+	// Show breadcrumbs if not at root
+	if len(m.breadcrumbs) > 0 {
+		breadcrumbPath := "/ " + strings.Join(m.breadcrumbs, " / ")
+		listContent.WriteString(ui.DetailStyle.Copy().Foreground(lipgloss.Color("33")).Render(breadcrumbPath))
+		listContent.WriteString("\n\n")
+	}
+	
 	listContent.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
 	listContent.WriteString("\n\n")
 
@@ -397,7 +405,7 @@ func (m Model) viewFileList() string {
 	s.WriteString("\n\n")
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • ←/h: back • q: quit"
+	footerText := "↑/k: up • ↓/j: down • →/l: enter folder • ←/h: back • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.fileViewport, itemsPerScreen, len(m.files))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
