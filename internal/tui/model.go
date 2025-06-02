@@ -13,6 +13,7 @@ type ViewState int
 const (
 	SimulatorListView ViewState = iota
 	AppListView
+	FileListView
 )
 
 // Model represents the application state
@@ -37,6 +38,14 @@ type Model struct {
 	appCursor     int
 	appViewport   int
 	loadingApps   bool
+	
+	// File list state
+	selectedApp   *simulator.App
+	files         []simulator.FileInfo
+	fileCursor    int
+	fileViewport  int
+	loadingFiles  bool
+	currentPath   string
 }
 
 // New creates a new Model with the given fetcher
@@ -98,5 +107,19 @@ func (m Model) fetchAppsCmd(sim simulator.Item) tea.Cmd {
 	return func() tea.Msg {
 		apps, err := simulator.GetAppsForSimulator(sim.UDID, sim.IsRunning())
 		return fetchAppsMsg{apps: apps, err: err}
+	}
+}
+
+// fetchFilesMsg is sent when files are fetched
+type fetchFilesMsg struct {
+	files []simulator.FileInfo
+	err   error
+}
+
+// fetchFilesCmd fetches files for an app container
+func (m Model) fetchFilesCmd(containerPath string) tea.Cmd {
+	return func() tea.Msg {
+		files, err := simulator.GetFilesForContainer(containerPath)
+		return fetchFilesMsg{files: files, err: err}
 	}
 }

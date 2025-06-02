@@ -20,6 +20,8 @@ func (m *Model) updateViewport() {
 		updateViewportForList(&m.simCursor, &m.simViewport, len(m.simulators), itemsPerScreen)
 	case AppListView:
 		updateViewportForList(&m.appCursor, &m.appViewport, len(m.apps), itemsPerScreen)
+	case FileListView:
+		updateViewportForList(&m.fileCursor, &m.fileViewport, len(m.files), itemsPerScreen)
 	}
 }
 

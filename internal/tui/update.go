@@ -84,6 +84,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return tickMsg(t)
 			}),
 		)
+		
+	case fetchFilesMsg:
+		m.files = msg.files
+		m.loadingFiles = false
+		if msg.err != nil {
+			m.statusMessage = fmt.Sprintf("Error loading files: %v", msg.err)
+			m.viewState = AppListView
+			m.selectedApp = nil
+			m.currentPath = ""
+			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		} else {
+			m.fileCursor = 0
+			m.fileViewport = 0
+			m.updateViewport()
+		}
 	}
 
 	return m, nil
@@ -96,20 +113,39 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case KeyLeft:
-		if m.viewState == AppListView {
+		switch m.viewState {
+		case AppListView:
 			m.viewState = SimulatorListView
 			m.apps = nil
 			m.selectedSim = nil
 			m.updateViewport()
+		case FileListView:
+			m.viewState = AppListView
+			m.files = nil
+			m.selectedApp = nil
+			m.currentPath = ""
+			m.updateViewport()
 		}
 
 	case KeyEnter, KeyRight:
-		if m.viewState == SimulatorListView && len(m.simulators) > 0 {
-			sim := m.simulators[m.simCursor]
-			m.selectedSim = &sim
-			m.viewState = AppListView
-			m.loadingApps = true
-			return m, m.fetchAppsCmd(sim)
+		switch m.viewState {
+		case SimulatorListView:
+			if len(m.simulators) > 0 {
+				sim := m.simulators[m.simCursor]
+				m.selectedSim = &sim
+				m.viewState = AppListView
+				m.loadingApps = true
+				return m, m.fetchAppsCmd(sim)
+			}
+		case AppListView:
+			if len(m.apps) > 0 {
+				app := m.apps[m.appCursor]
+				m.selectedApp = &app
+				m.viewState = FileListView
+				m.loadingFiles = true
+				m.currentPath = app.Container
+				return m, m.fetchFilesCmd(app.Container)
+			}
 		}
 
 	case KeyUp, KeyK:
@@ -124,6 +160,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case AppListView:
 			if m.appCursor > 0 {
 				m.appCursor--
+				m.updateViewport()
+			}
+		case FileListView:
+			if m.fileCursor > 0 {
+				m.fileCursor--
 				m.updateViewport()
 			}
 		}
@@ -142,6 +183,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.appCursor++
 				m.updateViewport()
 			}
+		case FileListView:
+			if m.fileCursor < len(m.files)-1 {
+				m.fileCursor++
+				m.updateViewport()
+			}
 		}
 
 	case KeyHome:
@@ -154,6 +200,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case AppListView:
 			m.appCursor = 0
 			m.appViewport = 0
+		case FileListView:
+			m.fileCursor = 0
+			m.fileViewport = 0
 		}
 
 	case KeyEnd:
@@ -164,6 +213,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.simCursor = len(m.simulators) - 1
 		case AppListView:
 			m.appCursor = len(m.apps) - 1
+		case FileListView:
+			m.fileCursor = len(m.files) - 1
 		}
 		m.updateViewport()
 

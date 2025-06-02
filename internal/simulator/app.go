@@ -137,6 +137,15 @@ func getAppsFromDataDir(udid string) ([]App, error) {
 					}
 					
 					app.Size = calculateDirSize(app.Path)
+					
+					// For non-running simulators, we need to find the data container
+					// It's in a different location based on the bundle ID
+					dataPath := fmt.Sprintf("%s/Library/Developer/CoreSimulator/Devices/%s/data/Containers/Data/Application", homeDir, udid)
+					if app.BundleID != "" && app.BundleID != "Unknown" {
+						// Try to find the data container for this app
+						app.Container = findDataContainer(dataPath, app.BundleID)
+					}
+					
 					apps = append(apps, app)
 					break
 				}
@@ -204,6 +213,41 @@ func calculateDirSize(path string) int64 {
 		return nil
 	})
 	return size
+}
+
+// findDataContainer finds the data container for an app by its bundle ID
+func findDataContainer(dataPath string, bundleID string) string {
+	entries, err := os.ReadDir(dataPath)
+	if err != nil {
+		return ""
+	}
+	
+	for _, entry := range entries {
+		if entry.IsDir() {
+			containerPath := filepath.Join(dataPath, entry.Name())
+			// Check if .com.apple.mobile_container_manager.metadata.plist exists
+			metadataPath := filepath.Join(containerPath, ".com.apple.mobile_container_manager.metadata.plist")
+			
+			// Try to read the metadata to verify this is the right container
+			cmd := exec.Command("plutil", "-convert", "json", "-o", "-", metadataPath)
+			output, err := cmd.Output()
+			if err != nil {
+				continue
+			}
+			
+			var metadata map[string]interface{}
+			if err := json.Unmarshal(output, &metadata); err != nil {
+				continue
+			}
+			
+			// Check if this container belongs to our app
+			if identifier, ok := metadata["MCMMetadataIdentifier"].(string); ok && identifier == bundleID {
+				return containerPath
+			}
+		}
+	}
+	
+	return ""
 }
 
 // FormatSize formats bytes into human readable format

@@ -20,6 +20,8 @@ func (m Model) View() string {
 		return m.viewSimulatorList()
 	case AppListView:
 		return m.viewAppList()
+	case FileListView:
+		return m.viewFileList()
 	default:
 		return m.viewSimulatorList()
 	}
@@ -256,7 +258,7 @@ func (m Model) viewAppList() string {
 	s.WriteString("\n\n")
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • ←: back • q: quit"
+	footerText := "↑/k: up • ↓/j: down • enter/→: files • ←: back • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.appViewport, itemsPerScreen, len(m.apps))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
@@ -289,4 +291,116 @@ func (m Model) padContentToHeight(content string, itemsPerScreen int) string {
 	}
 	
 	return result.String()
+}
+
+// viewFileList renders the file list view
+func (m Model) viewFileList() string {
+	if m.loadingFiles {
+		return "Loading files..."
+	}
+	
+	if m.selectedApp == nil {
+		return "No app selected"
+	}
+
+	var s strings.Builder
+
+	// Header with app name
+	headerText := fmt.Sprintf("%s Files", m.selectedApp.Name)
+	s.WriteString(ui.FormatHeader(headerText, m.width))
+
+	// Calculate visible range
+	itemsPerScreen := CalculateItemsPerScreen(m.height)
+	startIdx := m.fileViewport
+	endIdx := m.fileViewport + itemsPerScreen
+	if endIdx > len(m.files) {
+		endIdx = len(m.files)
+	}
+
+	// Calculate content width
+	contentWidth := m.width - 6
+	if contentWidth < 50 {
+		contentWidth = 50
+	}
+
+	// Build file list content
+	var listContent strings.Builder
+	innerWidth := contentWidth - 4
+	
+	// Show app info at the top
+	listContent.WriteString(ui.NameStyle.Render(m.selectedApp.Name))
+	listContent.WriteString("\n")
+	appDetails := fmt.Sprintf("%s • v%s • %s", m.selectedApp.BundleID, m.selectedApp.Version, simulator.FormatSize(m.selectedApp.Size))
+	if m.selectedApp.Version == "" {
+		appDetails = fmt.Sprintf("%s • %s", m.selectedApp.BundleID, simulator.FormatSize(m.selectedApp.Size))
+	}
+	listContent.WriteString(ui.DetailStyle.Render(appDetails))
+	listContent.WriteString("\n\n")
+	listContent.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+	listContent.WriteString("\n\n")
+
+	if len(m.files) == 0 {
+		listContent.WriteString(ui.DetailStyle.Render("No files in container"))
+	} else {
+		for i := startIdx; i < endIdx; i++ {
+			file := m.files[i]
+
+			// Format file name with directory indicator
+			fileName := file.Name
+			if file.IsDirectory {
+				fileName = fileName + "/"
+			}
+
+			// Format file details
+			sizeText := simulator.FormatSize(file.Size)
+			createdText := simulator.FormatFileDate(file.CreatedAt)
+			modifiedText := simulator.FormatFileDate(file.ModifiedAt)
+			detailText := fmt.Sprintf("%s • Created %s • Modified %s", sizeText, createdText, modifiedText)
+
+			if i == m.fileCursor {
+				// Selected item
+				line1 := fmt.Sprintf("▶ %s", fileName)
+				line2 := fmt.Sprintf("  %s", detailText)
+
+				// Pad to full width
+				line1 = ui.PadLine(line1, innerWidth)
+				line2 = ui.PadLine(line2, innerWidth)
+
+				listContent.WriteString(ui.SelectedStyle.Render(line1))
+				listContent.WriteString("\n")
+				listContent.WriteString(ui.SelectedStyle.Render(line2))
+			} else {
+				// Non-selected item
+				if file.IsDirectory {
+					listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Foreground(lipgloss.Color("33")).Render(fileName))
+				} else {
+					listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Render(fileName))
+				}
+				listContent.WriteString("\n")
+				listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.DetailStyle).Render(detailText))
+			}
+
+			if i < endIdx-1 {
+				listContent.WriteString("\n\n")
+			}
+		}
+	}
+	
+	// Pad content to fill the screen height, accounting for app info header
+	// Subtract 4 lines for app info and separator
+	paddedContent := m.padContentToHeight(listContent.String(), itemsPerScreen)
+
+	// Apply border and center
+	borderedList := ui.BorderStyle.Width(contentWidth).Render(paddedContent)
+	s.WriteString(m.centerContent(borderedList))
+
+	s.WriteString("\n\n")
+
+	// Footer
+	footerText := "↑/k: up • ↓/j: down • ←: back • q: quit"
+	scrollInfo := ui.FormatScrollInfo(m.fileViewport, itemsPerScreen, len(m.files))
+	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
+		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
+
+	return s.String()
 }
