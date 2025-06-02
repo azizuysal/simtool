@@ -85,8 +85,24 @@ func (m Model) viewFileContent() string {
 			listContent.WriteString(fmt.Sprintf("Format: %s\n", info.Format))
 			listContent.WriteString(fmt.Sprintf("Dimensions: %d × %d pixels\n", info.Width, info.Height))
 			listContent.WriteString(fmt.Sprintf("File size: %s", simulator.FormatSize(info.Size)))
-			listContent.WriteString("\n\n")
-			listContent.WriteString(ui.DetailStyle.Render("(Full image preview not available in terminal)"))
+			
+			// Show preview if available
+			if info.Preview != nil && len(info.Preview.Rows) > 0 {
+				listContent.WriteString("\n\n")
+				listContent.WriteString(ui.DetailStyle.Render("Preview:"))
+				listContent.WriteString("\n\n")
+				
+				// Add the preview rows
+				for i, row := range info.Preview.Rows {
+					listContent.WriteString(row)
+					if i < len(info.Preview.Rows)-1 {
+						listContent.WriteString("\n")
+					}
+				}
+			} else {
+				listContent.WriteString("\n\n")
+				listContent.WriteString(ui.DetailStyle.Render("(Preview generation failed)"))
+			}
 		}
 		
 	case simulator.FileTypeBinary:
@@ -127,6 +143,21 @@ func (m Model) viewFileContent() string {
 	lines := strings.Split(content, "\n")
 	currentLineCount := len(lines)
 	
+	// For images, we need to handle viewport scrolling if the preview is too large
+	if m.fileContent.Type == simulator.FileTypeImage && currentLineCount > contentHeight {
+		// Apply viewport scrolling for large image previews
+		startLine := m.contentViewport
+		endLine := startLine + contentHeight
+		if endLine > currentLineCount {
+			endLine = currentLineCount
+		}
+		
+		// Extract only the visible lines
+		visibleLines := lines[startLine:endLine]
+		content = strings.Join(visibleLines, "\n")
+		currentLineCount = len(visibleLines)
+	}
+	
 	// Only pad if we have fewer lines than the content area can hold
 	if currentLineCount < contentHeight {
 		var paddedBuilder strings.Builder
@@ -159,6 +190,18 @@ func (m Model) viewFileContent() string {
 				startLine = m.contentOffset + m.contentViewport + 1
 				endLine = m.contentOffset + m.contentViewport + len(m.fileContent.Lines)
 				totalLines = m.fileContent.TotalLines
+			}
+		case simulator.FileTypeImage:
+			if m.fileContent.ImageInfo != nil && m.fileContent.ImageInfo.Preview != nil {
+				hasContent = true
+				// Calculate total lines (metadata + preview)
+				totalLines = 8 + len(m.fileContent.ImageInfo.Preview.Rows)
+				visibleLines := contentHeight - 4
+				startLine = m.contentViewport + 1
+				endLine = m.contentViewport + visibleLines
+				if endLine > totalLines {
+					endLine = totalLines
+				}
 			}
 		case simulator.FileTypeBinary:
 			if m.fileContent.BinaryData != nil {

@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
+	
+	_ "golang.org/x/image/webp" // Add WebP support
 )
 
 // FileType represents the type of file for viewing
@@ -37,10 +39,18 @@ type FileContent struct {
 
 // ImageInfo contains metadata about an image file
 type ImageInfo struct {
-	Format string
+	Format  string
+	Width   int
+	Height  int
+	Size    int64
+	Preview *ImagePreview
+}
+
+// ImagePreview contains the terminal-renderable preview
+type ImagePreview struct {
 	Width  int
 	Height int
-	Size   int64
+	Rows   []string // Pre-rendered rows with ANSI colors
 }
 
 // DetectFileType determines the type of file based on content and extension
@@ -141,7 +151,7 @@ func ReadFileContent(path string, startLine, maxLines int) (*FileContent, error)
 		content.Error = err
 		
 	case FileTypeImage:
-		info, err := readImageInfo(path)
+		info, err := readImageInfo(path, maxLines) // Pass maxLines for preview size
 		content.ImageInfo = info
 		content.Error = err
 		
@@ -219,8 +229,8 @@ func readTextFile(path string, startLine, maxLines int) ([]string, int, error) {
 	return lines, totalLines, nil
 }
 
-// readImageInfo reads image metadata
-func readImageInfo(path string) (*ImageInfo, error) {
+// readImageInfo reads image metadata and generates preview
+func readImageInfo(path string, maxPreviewHeight int) (*ImageInfo, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -239,12 +249,33 @@ func readImageInfo(path string) (*ImageInfo, error) {
 		return nil, fmt.Errorf("not a valid image: %w", err)
 	}
 	
-	return &ImageInfo{
+	info := &ImageInfo{
 		Format: format,
 		Width:  config.Width,
 		Height: config.Height,
 		Size:   stat.Size(),
-	}, nil
+	}
+	
+	// Generate preview if requested
+	if maxPreviewHeight > 15 { // Only generate preview if we have reasonable space
+		// Reset file position
+		file.Seek(0, 0)
+		
+		// Decode full image for preview
+		img, _, err := image.Decode(file)
+		if err == nil {
+			// Calculate available space
+			// Reserve space: ~8 lines for metadata, 4 for padding/borders
+			availableHeight := maxPreviewHeight - 12
+			if availableHeight > 0 {
+				// Width is typically 2-3x height in terminals
+				maxWidth := availableHeight * 3
+				info.Preview = generateImagePreview(img, maxWidth, availableHeight)
+			}
+		}
+	}
+	
+	return info, nil
 }
 
 // readBinaryFile reads a chunk of binary file
@@ -318,4 +349,95 @@ func GetSyntaxHighlightedLine(line string, fileExt string) string {
 	// For now, just return the line as-is
 	// In a full implementation, this would apply syntax highlighting based on file type
 	return line
+}
+
+// generateImagePreview creates a terminal-renderable preview of an image
+func generateImagePreview(img image.Image, maxWidth, maxHeight int) *ImagePreview {
+	bounds := img.Bounds()
+	imgWidth := bounds.Dx()
+	imgHeight := bounds.Dy()
+	
+	// Calculate target dimensions maintaining aspect ratio
+	// We use half-blocks, so each character can show 2 vertical pixels
+	aspectRatio := float64(imgWidth) / float64(imgHeight)
+	
+	// Target dimensions in characters (height will use half-blocks for 2x resolution)
+	var targetWidth, targetHeight int
+	
+	// Account for half-blocks: actual pixel height is 2x character height
+	effectiveMaxHeight := maxHeight * 2
+	
+	if aspectRatio > float64(maxWidth)/float64(effectiveMaxHeight) {
+		// Width-constrained
+		targetWidth = maxWidth
+		targetHeight = int(float64(maxWidth) / aspectRatio)
+	} else {
+		// Height-constrained
+		targetHeight = effectiveMaxHeight
+		targetWidth = int(float64(effectiveMaxHeight) * aspectRatio)
+	}
+	
+	// Ensure even height for half-blocks
+	if targetHeight%2 != 0 {
+		targetHeight--
+	}
+	
+	// Character dimensions
+	charHeight := targetHeight / 2
+	charWidth := targetWidth
+	
+	// Create preview
+	preview := &ImagePreview{
+		Width:  charWidth,
+		Height: charHeight,
+		Rows:   make([]string, charHeight),
+	}
+	
+	// Scale factors
+	xScale := float64(imgWidth) / float64(targetWidth)
+	yScale := float64(imgHeight) / float64(targetHeight)
+	
+	// Process each row
+	for row := 0; row < charHeight; row++ {
+		var rowStr strings.Builder
+		
+		for col := 0; col < charWidth; col++ {
+			// Sample two pixels for half-block (upper and lower)
+			y1 := int(float64(row*2) * yScale)
+			y2 := int(float64(row*2+1) * yScale)
+			x := int(float64(col) * xScale)
+			
+			// Bounds checking
+			if x >= imgWidth {
+				x = imgWidth - 1
+			}
+			if y1 >= imgHeight {
+				y1 = imgHeight - 1
+			}
+			if y2 >= imgHeight {
+				y2 = imgHeight - 1
+			}
+			
+			// Get colors
+			c1 := img.At(x, y1)
+			c2 := img.At(x, y2)
+			
+			// Convert to RGB
+			r1, g1, b1, _ := c1.RGBA()
+			r2, g2, b2, _ := c2.RGBA()
+			
+			// Convert to 8-bit color
+			r1, g1, b1 = r1>>8, g1>>8, b1>>8
+			r2, g2, b2 = r2>>8, g2>>8, b2>>8
+			
+			// Generate ANSI escape sequences
+			// Upper half block with foreground color
+			// Lower half block with background color
+			rowStr.WriteString(fmt.Sprintf("\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm▀\x1b[0m", r1, g1, b1, r2, g2, b2))
+		}
+		
+		preview.Rows[row] = rowStr.String()
+	}
+	
+	return preview
 }

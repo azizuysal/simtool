@@ -280,6 +280,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if m.contentViewport > 0 {
 						m.contentViewport--
 					}
+				case simulator.FileTypeImage:
+					if m.contentViewport > 0 {
+						m.contentViewport--
+					}
 				case simulator.FileTypeBinary:
 					if m.contentViewport > 0 {
 						m.contentViewport--
@@ -328,6 +332,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 					if m.contentViewport < maxViewport {
 						m.contentViewport++
+					}
+				case simulator.FileTypeImage:
+					// For images, calculate based on total content lines
+					if m.fileContent.ImageInfo != nil && m.fileContent.ImageInfo.Preview != nil {
+						// Calculate total lines (metadata + preview)
+						totalLines := 8 + len(m.fileContent.ImageInfo.Preview.Rows) // ~8 lines for metadata
+						itemsPerScreen := CalculateItemsPerScreen(m.height) - 5
+						maxViewport := totalLines - itemsPerScreen
+						if maxViewport < 0 {
+							maxViewport = 0
+						}
+						if m.contentViewport < maxViewport {
+							m.contentViewport++
+						}
 					}
 				case simulator.FileTypeBinary:
 					// Allow scrolling through binary files with lazy loading
