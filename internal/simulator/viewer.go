@@ -48,34 +48,17 @@ func DetectFileType(path string) FileType {
 	// First check by extension
 	ext := strings.ToLower(filepath.Ext(path))
 	
-	// Common text file extensions
-	textExts := map[string]bool{
-		".txt": true, ".md": true, ".log": true, ".json": true,
-		".xml": true, ".yaml": true, ".yml": true, ".toml": true,
-		".go": true, ".js": true, ".ts": true, ".py": true,
-		".java": true, ".c": true, ".cpp": true, ".h": true,
-		".swift": true, ".m": true, ".mm": true, ".rb": true,
-		".sh": true, ".bash": true, ".zsh": true, ".fish": true,
-		".css": true, ".html": true, ".htm": true, ".vue": true,
-		".jsx": true, ".tsx": true, ".rs": true, ".plist": true,
-		".gitignore": true, ".env": true, ".conf": true, ".ini": true,
-	}
-	
 	// Image file extensions
 	imageExts := map[string]bool{
 		".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
 		".bmp": true, ".webp": true, ".ico": true, ".svg": true,
 	}
 	
-	if textExts[ext] {
-		return FileTypeText
-	}
-	
 	if imageExts[ext] {
 		return FileTypeImage
 	}
 	
-	// For files without extension or unknown extensions, check content
+	// For all files (including those with text-like extensions), check content
 	file, err := os.Open(path)
 	if err != nil {
 		return FileTypeBinary
@@ -91,7 +74,23 @@ func DetectFileType(path string) FileType {
 	
 	// Check if the content is valid UTF-8 and mostly printable
 	if isTextContent(buffer[:n]) {
-		return FileTypeText
+		// Common text file extensions
+		textExts := map[string]bool{
+			".txt": true, ".md": true, ".log": true, ".json": true,
+			".xml": true, ".yaml": true, ".yml": true, ".toml": true,
+			".go": true, ".js": true, ".ts": true, ".py": true,
+			".java": true, ".c": true, ".cpp": true, ".h": true,
+			".swift": true, ".m": true, ".mm": true, ".rb": true,
+			".sh": true, ".bash": true, ".zsh": true, ".fish": true,
+			".css": true, ".html": true, ".htm": true, ".vue": true,
+			".jsx": true, ".tsx": true, ".rs": true, ".plist": true,
+			".gitignore": true, ".env": true, ".conf": true, ".ini": true,
+		}
+		
+		// If it has a known text extension or no extension, treat as text
+		if textExts[ext] || ext == "" {
+			return FileTypeText
+		}
 	}
 	
 	return FileTypeBinary
@@ -101,6 +100,11 @@ func DetectFileType(path string) FileType {
 func isTextContent(data []byte) bool {
 	if len(data) == 0 {
 		return true
+	}
+	
+	// Check for binary plist magic bytes
+	if len(data) >= 6 && string(data[:6]) == "bplist" {
+		return false
 	}
 	
 	// Check if it's valid UTF-8
