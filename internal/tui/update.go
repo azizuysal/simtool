@@ -98,9 +98,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return clearStatusMsg{}
 			})
 		}
-		// Always reset cursor and viewport when loading new files
-		m.fileCursor = 0
-		m.fileViewport = 0
+		// Restore cursor position if we've been here before
+		if m.cursorMemory != nil {
+			if cursor, ok := m.cursorMemory[m.currentPath]; ok {
+				m.fileCursor = cursor
+				// Ensure cursor is within bounds
+				if m.fileCursor >= len(m.files) {
+					m.fileCursor = len(m.files) - 1
+				}
+				if m.fileCursor < 0 {
+					m.fileCursor = 0
+				}
+			} else {
+				m.fileCursor = 0
+			}
+			
+			if viewport, ok := m.viewportMemory[m.currentPath]; ok {
+				m.fileViewport = viewport
+			} else {
+				m.fileViewport = 0
+			}
+		} else {
+			m.fileCursor = 0
+			m.fileViewport = 0
+		}
 		m.updateViewport()
 	}
 
@@ -139,6 +160,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.currentPath = ""
 				m.basePath = ""
 				m.breadcrumbs = nil
+				m.cursorMemory = nil
+				m.viewportMemory = nil
 				m.updateViewport()
 			}
 		}
@@ -162,12 +185,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.currentPath = app.Container
 				m.basePath = app.Container
 				m.breadcrumbs = []string{}
+				m.cursorMemory = make(map[string]int)
+				m.viewportMemory = make(map[string]int)
 				return m, m.fetchFilesCmd(app.Container)
 			}
 		case FileListView:
 			if len(m.files) > 0 {
 				file := m.files[m.fileCursor]
 				if file.IsDirectory {
+					// Save current cursor position before drilling in
+					if m.cursorMemory == nil {
+						m.cursorMemory = make(map[string]int)
+						m.viewportMemory = make(map[string]int)
+					}
+					m.cursorMemory[m.currentPath] = m.fileCursor
+					m.viewportMemory[m.currentPath] = m.fileViewport
+					
 					// Drill into the directory
 					m.breadcrumbs = append(m.breadcrumbs, file.Name)
 					m.currentPath = file.Path
