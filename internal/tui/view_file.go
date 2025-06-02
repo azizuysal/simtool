@@ -1,0 +1,196 @@
+package tui
+
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+	"simtool/internal/simulator"
+	"simtool/internal/ui"
+)
+
+// viewFileContent renders the file viewer
+func (m Model) viewFileContent() string {
+	if m.loadingContent {
+		return "Loading file..."
+	}
+	
+	if m.viewingFile == nil || m.fileContent == nil {
+		return "No file selected"
+	}
+
+	var s strings.Builder
+
+	// Header with file name
+	headerText := filepath.Base(m.viewingFile.Path)
+	s.WriteString(ui.FormatHeader(headerText, m.width))
+
+	// Calculate content area dimensions
+	contentHeight := m.height - 8 // Header, footer, borders
+	contentWidth := m.width - 6
+	if contentWidth < 50 {
+		contentWidth = 50
+	}
+
+	// Build content based on file type
+	var listContent strings.Builder
+	innerWidth := contentWidth - 4
+
+	switch m.fileContent.Type {
+	case simulator.FileTypeText:
+		// Show file info
+		info := fmt.Sprintf("Text file • %d lines • %s", 
+			m.fileContent.TotalLines, 
+			simulator.FormatSize(m.viewingFile.Size))
+		listContent.WriteString(ui.DetailStyle.Render(info))
+		listContent.WriteString("\n")
+		listContent.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+		listContent.WriteString("\n\n")
+		
+		// Display text content with line numbers
+		visibleLines := contentHeight - 4 // Account for info header
+		startLine := m.contentViewport
+		endLine := startLine + visibleLines
+		if endLine > len(m.fileContent.Lines) {
+			endLine = len(m.fileContent.Lines)
+		}
+		
+		maxLineNumWidth := len(fmt.Sprintf("%d", m.contentOffset + endLine))
+		
+		lineCount := 0
+		for i := startLine; i < endLine && i < len(m.fileContent.Lines); i++ {
+			if lineCount > 0 {
+				listContent.WriteString("\n")
+			}
+			lineNum := m.contentOffset + i + 1
+			lineNumStr := fmt.Sprintf("%*d", maxLineNumWidth, lineNum)
+			listContent.WriteString(ui.DetailStyle.Render(lineNumStr + " │ "))
+			
+			// Truncate very long lines for display
+			line := m.fileContent.Lines[i]
+			if len(line) > innerWidth - maxLineNumWidth - 4 {
+				line = line[:innerWidth-maxLineNumWidth-7] + "..."
+			}
+			listContent.WriteString(line)
+			lineCount++
+		}
+		
+	case simulator.FileTypeImage:
+		// Show image metadata
+		if m.fileContent.ImageInfo != nil {
+			info := m.fileContent.ImageInfo
+			listContent.WriteString(ui.NameStyle.Render("Image Information"))
+			listContent.WriteString("\n\n")
+			listContent.WriteString(fmt.Sprintf("Format: %s\n", info.Format))
+			listContent.WriteString(fmt.Sprintf("Dimensions: %d × %d pixels\n", info.Width, info.Height))
+			listContent.WriteString(fmt.Sprintf("File size: %s", simulator.FormatSize(info.Size)))
+			listContent.WriteString("\n\n")
+			listContent.WriteString(ui.DetailStyle.Render("(Full image preview not available in terminal)"))
+		}
+		
+	case simulator.FileTypeBinary:
+		// Show hex dump
+		info := fmt.Sprintf("Binary file • %s", simulator.FormatSize(m.viewingFile.Size))
+		listContent.WriteString(ui.DetailStyle.Render(info))
+		listContent.WriteString("\n")
+		listContent.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+		listContent.WriteString("\n\n")
+		
+		// Display hex dump with viewport
+		if m.fileContent.BinaryData != nil {
+			hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, int64(m.contentOffset))
+			
+			// Calculate visible range for hex dump
+			visibleLines := contentHeight - 4 // Account for info header
+			startLine := m.contentViewport
+			endLine := startLine + visibleLines
+			if endLine > len(hexLines) {
+				endLine = len(hexLines)
+			}
+			
+			// Only show visible lines
+			lineCount := 0
+			for i := startLine; i < endLine && i < len(hexLines); i++ {
+				if lineCount > 0 {
+					listContent.WriteString("\n")
+				}
+				listContent.WriteString(ui.DetailStyle.Copy().Foreground(lipgloss.Color("245")).Render(hexLines[i]))
+				lineCount++
+			}
+		}
+	}
+	
+	// For file content, we need to ensure consistent height without adding extra padding at the bottom
+	content := listContent.String()
+	lines := strings.Split(content, "\n")
+	currentLineCount := len(lines)
+	
+	// Only pad if we have fewer lines than the content area can hold
+	if currentLineCount < contentHeight {
+		var paddedBuilder strings.Builder
+		paddedBuilder.WriteString(content)
+		// Add empty lines to reach the desired height
+		for i := currentLineCount; i < contentHeight; i++ {
+			paddedBuilder.WriteString("\n")
+		}
+		content = paddedBuilder.String()
+	}
+
+	// Apply border and center
+	borderedList := ui.BorderStyle.Width(contentWidth).Render(content)
+	s.WriteString(m.centerContent(borderedList))
+
+	s.WriteString("\n\n")
+
+	// Footer
+	footerText := "↑/k: scroll up • ↓/j: scroll down • ←/h: back • q: quit"
+	
+	// Add scroll indicator with arrows
+	if m.fileContent != nil {
+		var startLine, endLine, totalLines int
+		var hasContent bool
+		
+		switch m.fileContent.Type {
+		case simulator.FileTypeText:
+			if m.fileContent.TotalLines > 0 {
+				hasContent = true
+				startLine = m.contentOffset + m.contentViewport + 1
+				endLine = m.contentOffset + m.contentViewport + len(m.fileContent.Lines)
+				totalLines = m.fileContent.TotalLines
+			}
+		case simulator.FileTypeBinary:
+			if m.fileContent.BinaryData != nil {
+				hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, int64(m.contentOffset))
+				if len(hexLines) > 0 {
+					hasContent = true
+					visibleLines := contentHeight - 4
+					startLine = m.contentViewport + 1
+					endLine = m.contentViewport + visibleLines
+					if endLine > len(hexLines) {
+						endLine = len(hexLines)
+					}
+					totalLines = len(hexLines)
+				}
+			}
+		}
+		
+		if hasContent {
+			// Add scroll indicators with arrows
+			if m.contentViewport > 0 && endLine < totalLines {
+				footerText += fmt.Sprintf(" (%d-%d of %d) ↑↓", startLine, endLine, totalLines)
+			} else if m.contentViewport > 0 {
+				footerText += fmt.Sprintf(" (%d-%d of %d) ↑", startLine, endLine, totalLines)
+			} else if endLine < totalLines {
+				footerText += fmt.Sprintf(" (%d-%d of %d) ↓", startLine, endLine, totalLines)
+			} else {
+				footerText += fmt.Sprintf(" (%d-%d of %d)", startLine, endLine, totalLines)
+			}
+		}
+	}
+	
+	s.WriteString(ui.FormatFooter(footerText,
+		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
+
+	return s.String()
+}

@@ -22,6 +22,8 @@ func (m Model) View() string {
 		return m.viewAppList()
 	case FileListView:
 		return m.viewFileList()
+	case FileViewerView:
+		return m.viewFileContent()
 	default:
 		return m.viewSimulatorList()
 	}
@@ -405,8 +407,13 @@ func (m Model) viewFileList() string {
 	s.WriteString("\n\n")
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • →/l: enter"
-	if len(m.files) > 0 && m.files[m.fileCursor].IsDirectory {
+	footerText := "↑/k: up • ↓/j: down"
+	if len(m.files) > 0 {
+		if m.files[m.fileCursor].IsDirectory {
+			footerText += " • →/l: enter"
+		} else {
+			footerText += " • →/l: view file"
+		}
 		footerText += " • space: open in Finder"
 	}
 	footerText += " • ←/h: back • q: quit"
@@ -416,3 +423,4 @@ func (m Model) viewFileList() string {
 
 	return s.String()
 }
+

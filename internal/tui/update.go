@@ -6,6 +6,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"simtool/internal/simulator"
 )
 
 // clearStatusMsg is sent to clear the status message
@@ -131,6 +132,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fileViewport = 0
 		}
 		m.updateViewport()
+		
+	case fetchFileContentMsg:
+		m.loadingContent = false
+		if msg.err != nil {
+			m.statusMessage = fmt.Sprintf("Error loading file: %v", msg.err)
+			m.viewState = FileListView
+			m.viewingFile = nil
+			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		}
+		m.fileContent = msg.content
+		m.updateViewport()
 	}
 
 	return m, nil
@@ -148,6 +162,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.viewState = SimulatorListView
 			m.apps = nil
 			m.selectedSim = nil
+			m.updateViewport()
+		case FileViewerView:
+			m.viewState = FileListView
+			m.viewingFile = nil
+			m.fileContent = nil
+			m.contentOffset = 0
+			m.contentViewport = 0
 			m.updateViewport()
 		case FileListView:
 			if len(m.breadcrumbs) > 0 {
@@ -173,6 +194,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.updateViewport()
 			}
 		}
+		
+	case KeyEnter:
+		// Enter key no longer used for viewing files
 
 	case KeyRight, KeyL:
 		switch m.viewState {
@@ -214,6 +238,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.currentPath = file.Path
 					m.loadingFiles = true
 					return m, m.fetchFilesCmd(file.Path)
+				} else {
+					// View the file
+					m.viewingFile = &file
+					m.viewState = FileViewerView
+					m.loadingContent = true
+					m.contentOffset = 0
+					m.contentViewport = 0
+					return m, m.fetchFileContentCmd(file.Path, 0)
 				}
 			}
 		}
@@ -237,6 +269,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.fileCursor--
 				m.updateViewport()
 			}
+		case FileViewerView:
+			if m.fileContent != nil {
+				switch m.fileContent.Type {
+				case simulator.FileTypeText:
+					if m.contentViewport > 0 {
+						m.contentViewport--
+					}
+				case simulator.FileTypeBinary:
+					if m.contentViewport > 0 {
+						m.contentViewport--
+					}
+				}
+			}
 		}
 
 	case KeyDown, KeyJ:
@@ -257,6 +302,31 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.fileCursor < len(m.files)-1 {
 				m.fileCursor++
 				m.updateViewport()
+			}
+		case FileViewerView:
+			if m.fileContent != nil {
+				switch m.fileContent.Type {
+				case simulator.FileTypeText:
+					itemsPerScreen := CalculateItemsPerScreen(m.height) - 5 // Account for header
+					maxViewport := len(m.fileContent.Lines) - itemsPerScreen
+					if maxViewport < 0 {
+						maxViewport = 0
+					}
+					if m.contentViewport < maxViewport {
+						m.contentViewport++
+					}
+				case simulator.FileTypeBinary:
+					// Allow scrolling through binary files
+					hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, int64(m.contentOffset))
+					itemsPerScreen := CalculateItemsPerScreen(m.height) - 5 // Account for header
+					maxViewport := len(hexLines) - itemsPerScreen
+					if maxViewport < 0 {
+						maxViewport = 0
+					}
+					if m.contentViewport < maxViewport {
+						m.contentViewport++
+					}
+				}
 			}
 		}
 
@@ -315,10 +385,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case FileListView:
 			if len(m.files) > 0 {
 				file := m.files[m.fileCursor]
-				if file.IsDirectory {
-					// Open the folder in Finder
-					return m, m.openInFinderCmd(file.Path)
-				}
+				// Open in Finder - for files, this will reveal them in their containing folder
+				return m, m.openInFinderCmd(file.Path)
 			}
 		}
 	}

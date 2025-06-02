@@ -15,6 +15,7 @@ const (
 	SimulatorListView ViewState = iota
 	AppListView
 	FileListView
+	FileViewerView
 )
 
 // Model represents the application state
@@ -51,6 +52,13 @@ type Model struct {
 	breadcrumbs   []string            // Path components from base to current
 	cursorMemory  map[string]int      // Remember cursor position for each path
 	viewportMemory map[string]int     // Remember viewport position for each path
+	
+	// File viewer state
+	viewingFile   *simulator.FileInfo
+	fileContent   *simulator.FileContent
+	contentOffset int                 // Line offset for text files, byte offset for binary
+	contentViewport int               // Viewport position within file content
+	loadingContent bool
 }
 
 // New creates a new Model with the given fetcher
@@ -147,5 +155,19 @@ func (m Model) openInFinderCmd(path string) tea.Cmd {
 		cmd := exec.Command("open", "-R", cleanPath)
 		err := cmd.Run()
 		return openInFinderMsg{err: err}
+	}
+}
+
+// fetchFileContentMsg is sent when file content is fetched
+type fetchFileContentMsg struct {
+	content *simulator.FileContent
+	err     error
+}
+
+// fetchFileContentCmd fetches the content of a file for viewing
+func (m Model) fetchFileContentCmd(path string, offset int) tea.Cmd {
+	return func() tea.Msg {
+		content, err := simulator.ReadFileContent(path, offset, 50) // 50 lines per page for text
+		return fetchFileContentMsg{content: content, err: err}
 	}
 }
