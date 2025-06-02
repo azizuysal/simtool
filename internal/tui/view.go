@@ -258,7 +258,7 @@ func (m Model) viewAppList() string {
 	s.WriteString("\n\n")
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • →/l: files • ←/h: back • q: quit"
+	footerText := "↑/k: up • ↓/j: down • →/l: files • space: open in Finder • ←/h: back • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.appViewport, itemsPerScreen, len(m.apps))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
@@ -339,7 +339,7 @@ func (m Model) viewFileList() string {
 	
 	// Show breadcrumbs if not at root
 	if len(m.breadcrumbs) > 0 {
-		breadcrumbPath := "/ " + strings.Join(m.breadcrumbs, " / ")
+		breadcrumbPath := strings.Join(m.breadcrumbs, "/") + "/"
 		listContent.WriteString(ui.DetailStyle.Copy().Foreground(lipgloss.Color("33")).Render(breadcrumbPath))
 		listContent.WriteString("\n\n")
 	}
@@ -348,7 +348,7 @@ func (m Model) viewFileList() string {
 	listContent.WriteString("\n\n")
 
 	if len(m.files) == 0 {
-		listContent.WriteString(ui.DetailStyle.Render("No files in container"))
+		listContent.WriteString(ui.DetailStyle.Render("No files in folder"))
 	} else {
 		for i := startIdx; i < endIdx; i++ {
 			file := m.files[i]
@@ -405,7 +405,11 @@ func (m Model) viewFileList() string {
 	s.WriteString("\n\n")
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • →/l: enter folder • ←/h: back • q: quit"
+	footerText := "↑/k: up • ↓/j: down • →/l: enter"
+	if len(m.files) > 0 && m.files[m.fileCursor].IsDirectory {
+		footerText += " • space: open in Finder"
+	}
+	footerText += " • ←/h: back • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.fileViewport, itemsPerScreen, len(m.files))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))

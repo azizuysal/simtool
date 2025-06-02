@@ -77,6 +77,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearStatusMsg:
 		m.statusMessage = ""
 
+	case openInFinderMsg:
+		if msg.err != nil {
+			m.statusMessage = fmt.Sprintf("Error opening in Finder: %v", msg.err)
+			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		}
+
 	case tickMsg:
 		// Periodically refresh simulator status
 		return m, tea.Batch(
@@ -281,17 +289,36 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.updateViewport()
 
 	case KeySpace:
-		if m.viewState == SimulatorListView && len(m.simulators) > 0 {
-			sim := m.simulators[m.simCursor]
-			if !sim.IsRunning() && !m.booting {
-				m.booting = true
-				m.statusMessage = fmt.Sprintf("Booting %s...", sim.Name)
-				return m, m.bootSimulatorCmd(sim.UDID)
-			} else if sim.IsRunning() {
-				m.statusMessage = "Simulator is already running"
-				return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-					return clearStatusMsg{}
-				})
+		switch m.viewState {
+		case SimulatorListView:
+			if len(m.simulators) > 0 {
+				sim := m.simulators[m.simCursor]
+				if !sim.IsRunning() && !m.booting {
+					m.booting = true
+					m.statusMessage = fmt.Sprintf("Booting %s...", sim.Name)
+					return m, m.bootSimulatorCmd(sim.UDID)
+				} else if sim.IsRunning() {
+					m.statusMessage = "Simulator is already running"
+					return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+						return clearStatusMsg{}
+					})
+				}
+			}
+		case AppListView:
+			if len(m.apps) > 0 {
+				app := m.apps[m.appCursor]
+				if app.Container != "" {
+					// Open the app's container in Finder
+					return m, m.openInFinderCmd(app.Container)
+				}
+			}
+		case FileListView:
+			if len(m.files) > 0 {
+				file := m.files[m.fileCursor]
+				if file.IsDirectory {
+					// Open the folder in Finder
+					return m, m.openInFinderCmd(file.Path)
+				}
 			}
 		}
 	}

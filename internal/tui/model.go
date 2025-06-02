@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os/exec"
 	"time"
 	
 	tea "github.com/charmbracelet/bubbletea"
@@ -125,5 +126,26 @@ func (m Model) fetchFilesCmd(containerPath string) tea.Cmd {
 	return func() tea.Msg {
 		files, err := simulator.GetFilesForContainer(containerPath)
 		return fetchFilesMsg{files: files, err: err}
+	}
+}
+
+// openInFinderMsg is sent when attempting to open in Finder
+type openInFinderMsg struct {
+	err error
+}
+
+// openInFinderCmd opens a path in Finder
+func (m Model) openInFinderCmd(path string) tea.Cmd {
+	return func() tea.Msg {
+		// Remove file:// prefix if present
+		cleanPath := path
+		if len(path) > 7 && path[:7] == "file://" {
+			cleanPath = path[7:]
+		}
+		
+		// Use open command to reveal in Finder
+		cmd := exec.Command("open", "-R", cleanPath)
+		err := cmd.Run()
+		return openInFinderMsg{err: err}
 	}
 }
