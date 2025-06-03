@@ -123,25 +123,40 @@ func DetectFileType(path string) FileType {
 	
 	// Check if the content is valid UTF-8 and mostly printable
 	if isTextContent(buffer[:n]) {
-		// Common text file extensions
-		textExts := map[string]bool{
-			".txt": true, ".md": true, ".log": true, ".json": true,
-			".xml": true, ".yaml": true, ".yml": true, ".toml": true,
-			".go": true, ".js": true, ".ts": true, ".py": true,
-			".java": true, ".c": true, ".cpp": true, ".h": true,
-			".swift": true, ".m": true, ".mm": true, ".rb": true,
-			".sh": true, ".bash": true, ".zsh": true, ".fish": true,
-			".css": true, ".html": true, ".htm": true, ".vue": true,
-			".jsx": true, ".tsx": true, ".rs": true, ".plist": true,
-			".gitignore": true, ".env": true, ".conf": true, ".ini": true,
-			".podspec": true, ".gemspec": true, ".rake": true, ".gemfile": true,
-			".podfile": true, ".brewfile": true, ".rakefile": true,
-		}
-		
-		// If it has a known text extension or no extension, treat as text
-		if textExts[ext] || ext == "" {
-			return FileTypeText
-		}
+		return FileTypeText
+	}
+	
+	// If content check fails, check for known binary extensions
+	binaryExts := map[string]bool{
+		".exe": true, ".dll": true, ".so": true, ".dylib": true,
+		".bin": true, ".dat": true, ".db": true, ".sqlite": true,
+		".o": true, ".a": true, ".lib": true, ".obj": true,
+		".class": true, ".jar": true, ".dex": true,
+		".pyc": true, ".pyo": true, ".wasm": true,
+	}
+	
+	if binaryExts[ext] {
+		return FileTypeBinary
+	}
+	
+	// For unknown extensions with non-text content, still check common text extensions
+	// This helps with files that might have encoding issues in the first 512 bytes
+	textExts := map[string]bool{
+		".txt": true, ".md": true, ".log": true, ".json": true,
+		".xml": true, ".yaml": true, ".yml": true, ".toml": true,
+		".go": true, ".js": true, ".ts": true, ".py": true,
+		".java": true, ".c": true, ".cpp": true, ".h": true,
+		".swift": true, ".m": true, ".mm": true, ".rb": true,
+		".sh": true, ".bash": true, ".zsh": true, ".fish": true,
+		".css": true, ".html": true, ".htm": true, ".vue": true,
+		".jsx": true, ".tsx": true, ".rs": true, ".plist": true,
+		".gitignore": true, ".env": true, ".conf": true, ".ini": true,
+		".podspec": true, ".gemspec": true, ".rake": true, ".gemfile": true,
+		".podfile": true, ".brewfile": true, ".rakefile": true,
+	}
+	
+	if textExts[ext] || ext == "" {
+		return FileTypeText
 	}
 	
 	return FileTypeBinary
