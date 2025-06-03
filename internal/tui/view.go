@@ -15,18 +15,22 @@ func (m Model) View() string {
 		return ui.ErrorStyle.Render("Error: " + m.err.Error())
 	}
 
+	// Ensure consistent rendering by always returning the same structure
+	var content string
 	switch m.viewState {
 	case SimulatorListView:
-		return m.viewSimulatorList()
+		content = m.viewSimulatorList()
 	case AppListView:
-		return m.viewAppList()
+		content = m.viewAppList()
 	case FileListView:
-		return m.viewFileList()
+		content = m.viewFileList()
 	case FileViewerView:
-		return m.viewFileContent()
+		content = m.viewFileContent()
 	default:
-		return m.viewSimulatorList()
+		content = m.viewSimulatorList()
 	}
+	
+	return content
 }
 
 // viewSimulatorList renders the simulator list view

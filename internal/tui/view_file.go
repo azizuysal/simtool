@@ -12,19 +12,43 @@ import (
 
 // viewFileContent renders the file viewer
 func (m Model) viewFileContent() string {
+	var s strings.Builder
+	
+	// Always render header, even when loading
+	if m.viewingFile != nil {
+		headerText := filepath.Base(m.viewingFile.Path)
+		s.WriteString(ui.FormatHeader(headerText, m.width))
+	} else {
+		s.WriteString(ui.FormatHeader("File Viewer", m.width))
+	}
+	
 	if m.loadingContent {
-		return "Loading file..."
+		// Render a properly formatted loading message
+		contentWidth := m.width - 6
+		if contentWidth < 50 {
+			contentWidth = 50
+		}
+		loadingMsg := "Loading file..."
+		borderedContent := ui.BorderStyle.Width(contentWidth).Render(loadingMsg)
+		s.WriteString(m.centerContent(borderedContent))
+		s.WriteString("\n\n")
+		s.WriteString(ui.FormatFooter("Please wait...", contentWidth, m.width))
+		return s.String()
 	}
 	
 	if m.viewingFile == nil || m.fileContent == nil {
-		return "No file selected"
+		// Render a properly formatted error message
+		contentWidth := m.width - 6
+		if contentWidth < 50 {
+			contentWidth = 50
+		}
+		errorMsg := "No file selected"
+		borderedContent := ui.BorderStyle.Width(contentWidth).Render(errorMsg)
+		s.WriteString(m.centerContent(borderedContent))
+		s.WriteString("\n\n")
+		s.WriteString(ui.FormatFooter("←/h: back • q: quit", contentWidth, m.width))
+		return s.String()
 	}
-
-	var s strings.Builder
-
-	// Header with file name
-	headerText := filepath.Base(m.viewingFile.Path)
-	s.WriteString(ui.FormatHeader(headerText, m.width))
 
 	// Calculate content area dimensions
 	contentHeight := m.height - 8 // Header, footer, borders
@@ -163,7 +187,8 @@ func (m Model) viewFileContent() string {
 		var paddedBuilder strings.Builder
 		paddedBuilder.WriteString(content)
 		// Add empty lines to reach the desired height
-		for i := currentLineCount; i < contentHeight; i++ {
+		// Subtract 1 to avoid extra blank line at the bottom
+		for i := currentLineCount; i < contentHeight - 1; i++ {
 			paddedBuilder.WriteString("\n")
 		}
 		content = paddedBuilder.String()
