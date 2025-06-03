@@ -83,7 +83,7 @@ simtool
 - **Text files**: Line numbers with syntax-highlighted content, lazy-loaded in chunks
 - **Images**: Metadata box and terminal-based preview
 - **Binary files**: Hex dump with ASCII representation
-- **ZIP archives**: List of files with sizes, compression ratios, and timestamps
+- **ZIP archives**: Tree view with file/folder counts and overall compression ratio
 
 ## Development
 

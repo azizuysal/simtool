@@ -134,8 +134,10 @@ The application follows clean architecture principles with clear separation of c
 - View file contents with syntax highlighting for text files
 - Display images with terminal-based previews
 - View binary files in hex dump format
+- View ZIP archives as tree structure
 - Open files and folders in Finder
 - Lazy loading for large files
+- Smart file type detection based on content and extension
 - Press 'q' or Ctrl+C to quit
 
 ## Key Dependencies
