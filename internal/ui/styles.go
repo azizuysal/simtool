@@ -62,4 +62,9 @@ var (
 	// FooterStyle is used for the footer
 	FooterStyle = lipgloss.NewStyle().
 		Faint(true)
+
+	// FolderStyle is used for folders/directories
+	FolderStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("87")).
+		Bold(true)
 )

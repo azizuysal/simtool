@@ -92,6 +92,7 @@ The application follows clean architecture principles with clear separation of c
    - Provides syntax highlighting for code files using chroma
    - Generates terminal-based image previews
    - Formats hex dumps for binary files
+   - Displays ZIP archive contents with file listings
 
 2. **internal/tui**: Terminal UI logic (Bubble Tea MVU pattern)
    - Model: Application state (simulators, apps, files, cursor, viewport)

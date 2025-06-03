@@ -307,6 +307,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						// Load with line offset (offset / 16)
 						return m, m.fetchFileContentCmd(m.viewingFile.Path, int(newOffset/16))
 					}
+				case simulator.FileTypeArchive:
+					// Allow scrolling through archive entries
+					if m.fileContent.ArchiveInfo != nil && m.contentViewport > 0 {
+						m.contentViewport--
+					}
 				}
 			}
 		}
@@ -387,7 +392,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 							// Load with line offset (total lines from start)
 							return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
 						}
-					}
+						}
+					case simulator.FileTypeArchive:
+						// Allow scrolling through archive entries (now 1 line per entry)
+						if m.fileContent.ArchiveInfo != nil {
+							itemsPerScreen := CalculateItemsPerScreen(m.height) - 3 // Header takes 3 lines
+							maxViewport := len(m.fileContent.ArchiveInfo.Entries) - itemsPerScreen
+							if maxViewport < 0 {
+								maxViewport = 0
+							}
+							if m.contentViewport < maxViewport {
+								m.contentViewport++
+							}
+						}
 				}
 			}
 		}

@@ -3,12 +3,90 @@ package tui
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
+
+// treeNode represents a node in the file tree
+type treeNode struct {
+	name     string
+	isDir    bool
+	children map[string]*treeNode
+}
+
+// buildTreeFromPaths builds a tree structure from flat paths
+func buildTreeFromPaths(entries []simulator.ArchiveEntry) *treeNode {
+	root := &treeNode{
+		name:     "",
+		isDir:    true,
+		children: make(map[string]*treeNode),
+	}
+	
+	for _, entry := range entries {
+		parts := strings.Split(entry.Name, "/")
+		current := root
+		
+		for i, part := range parts {
+			if part == "" {
+				continue
+			}
+			
+			if _, exists := current.children[part]; !exists {
+				isDir := i < len(parts)-1 || entry.IsDir
+				current.children[part] = &treeNode{
+					name:     part,
+					isDir:    isDir,
+					children: make(map[string]*treeNode),
+				}
+			}
+			current = current.children[part]
+		}
+	}
+	
+	return root
+}
+
+// renderTree renders a tree node with proper box drawing characters
+func renderTree(node *treeNode, prefix string, isLast bool, lines *[]string) {
+	if node.name != "" {
+		var line string
+		if isLast {
+			line = prefix + "└── "
+		} else {
+			line = prefix + "├── "
+		}
+		
+		name := node.name
+		if node.isDir {
+			name = name + "/"
+		}
+		*lines = append(*lines, line + name)
+	}
+	
+	// Sort children for consistent output
+	childNames := make([]string, 0, len(node.children))
+	for name := range node.children {
+		childNames = append(childNames, name)
+	}
+	sort.Strings(childNames)
+	
+	for i, childName := range childNames {
+		child := node.children[childName]
+		childPrefix := prefix
+		if node.name != "" {
+			if isLast {
+				childPrefix += "    "
+			} else {
+				childPrefix += "│   "
+			}
+		}
+		renderTree(child, childPrefix, i == len(childNames)-1, lines)
+	}
+}
 
 // viewFileContent renders the file viewer
 func (m Model) viewFileContent() string {
@@ -227,6 +305,74 @@ func (m Model) viewFileContent() string {
 				lineCount++
 			}
 		}
+			
+	case simulator.FileTypeArchive:
+		// Show archive contents
+		if m.fileContent.ArchiveInfo != nil {
+			archInfo := m.fileContent.ArchiveInfo
+			
+			// Build info string with file/folder counts and compression ratio
+			var infoStr string
+			if archInfo.TotalSize > 0 {
+				ratio := float64(archInfo.CompressedSize) / float64(archInfo.TotalSize) * 100
+				infoStr = fmt.Sprintf("%s Archive • %d files, %d folders • %.1f%% compression",
+					archInfo.Format, archInfo.FileCount, archInfo.FolderCount, ratio)
+			} else {
+				infoStr = fmt.Sprintf("%s Archive • %d files, %d folders",
+					archInfo.Format, archInfo.FileCount, archInfo.FolderCount)
+			}
+			
+			listContent.WriteString(ui.DetailStyle.Render(infoStr))
+			listContent.WriteString("\n")
+			listContent.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+			listContent.WriteString("\n\n")
+			
+			// Build tree structure
+			tree := buildTreeFromPaths(archInfo.Entries)
+			
+			// Render tree to lines
+			var treeLines []string
+			// Render root's children directly
+			childNames := make([]string, 0, len(tree.children))
+			for name := range tree.children {
+				childNames = append(childNames, name)
+			}
+			sort.Strings(childNames)
+			
+			for i, childName := range childNames {
+				child := tree.children[childName]
+				renderTree(child, "", i == len(childNames)-1, &treeLines)
+			}
+			
+			// Calculate visible range
+			headerLines := 3 // Info + separator + blank line
+			// Reserve one line for padding above the title
+			availableLines := contentHeight - headerLines - 1
+			startIdx := m.contentViewport
+			endIdx := startIdx + availableLines
+			
+			if endIdx > len(treeLines) {
+				endIdx = len(treeLines)
+			}
+			
+			// Display visible tree lines
+			linesWritten := 0
+			for i := startIdx; i < endIdx; i++ {
+				if i < len(treeLines) {
+					if i > startIdx {
+						listContent.WriteString("\n")
+					}
+					listContent.WriteString(treeLines[i])
+					linesWritten++
+				}
+			}
+			
+			// If we didn't fill all available lines (e.g., at the bottom of the list),
+			// add empty lines to maintain consistent height
+			for i := linesWritten; i < availableLines; i++ {
+				listContent.WriteString("\n")
+			}
+		}
 	}
 	
 	// For file content, we need to ensure consistent height without adding extra padding at the bottom
@@ -254,7 +400,7 @@ func (m Model) viewFileContent() string {
 		var paddedBuilder strings.Builder
 		paddedBuilder.WriteString(content)
 		// Add empty lines to reach the desired height
-		// Subtract 1 to avoid extra blank line at the bottom
+		// Subtract 1 to leave room for proper spacing
 		for i := currentLineCount; i < contentHeight - 1; i++ {
 			paddedBuilder.WriteString("\n")
 		}

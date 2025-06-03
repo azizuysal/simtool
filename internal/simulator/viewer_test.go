@@ -347,6 +347,45 @@ func TestGetSyntaxHighlightedLine(t *testing.T) {
 	}
 }
 
+func TestDetectFileTypeForArchives(t *testing.T) {
+	tests := []struct {
+		filename string
+		expected FileType
+	}{
+		{"test.zip", FileTypeArchive},
+		{"test.jar", FileTypeArchive},
+		{"test.war", FileTypeArchive},
+		{"test.ear", FileTypeArchive},
+		{"test.ipa", FileTypeArchive},
+		{"test.apk", FileTypeArchive},
+		{"test.aar", FileTypeArchive},
+		{"test.txt", FileTypeText},
+		{"test.go", FileTypeText},
+		{"test.bin", FileTypeBinary},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.filename, func(t *testing.T) {
+			// Create a temporary file with the given name
+			tmpDir := t.TempDir()
+			tmpFile := filepath.Join(tmpDir, tt.filename)
+			
+			// For archives, write a valid ZIP header
+			if tt.expected == FileTypeArchive {
+				// ZIP file signature: "PK\x03\x04"
+				os.WriteFile(tmpFile, []byte("PK\x03\x04"), 0644)
+			} else {
+				os.WriteFile(tmpFile, []byte("test content"), 0644)
+			}
+			
+			result := DetectFileType(tmpFile)
+			if result != tt.expected {
+				t.Errorf("DetectFileType(%s) = %v, want %v", tt.filename, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestDetectFileTypeWithContent(t *testing.T) {
 	// Create temporary files with different content
 	tmpDir := t.TempDir()

@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 	
 	"github.com/alecthomas/chroma/v2"
@@ -29,6 +31,7 @@ const (
 	FileTypeText FileType = iota
 	FileTypeImage
 	FileTypeBinary
+	FileTypeArchive
 )
 
 // FileContent represents the content of a file prepared for viewing
@@ -40,6 +43,7 @@ type FileContent struct {
 	BinaryData  []byte   // For hex view (current chunk)
 	BinaryOffset int64   // Offset of the current chunk in the file
 	TotalSize   int64    // Total size of the file (for binary files)
+	ArchiveInfo *ArchiveInfo // For archive files
 	Error       error
 }
 
@@ -59,6 +63,25 @@ type ImagePreview struct {
 	Rows   []string // Pre-rendered rows with ANSI colors
 }
 
+// ArchiveInfo contains information about an archive file
+type ArchiveInfo struct {
+	Format         string
+	Entries        []ArchiveEntry
+	FileCount      int
+	FolderCount    int
+	TotalSize      int64
+	CompressedSize int64
+}
+
+// ArchiveEntry represents a single file or directory in an archive
+type ArchiveEntry struct {
+	Name         string
+	Size         int64
+	CompressedSize int64
+	ModTime      time.Time
+	IsDir        bool
+}
+
 // DetectFileType determines the type of file based on content and extension
 func DetectFileType(path string) FileType {
 	// First check by extension
@@ -72,6 +95,16 @@ func DetectFileType(path string) FileType {
 	
 	if imageExts[ext] {
 		return FileTypeImage
+	}
+	
+	// Archive file extensions
+	archiveExts := map[string]bool{
+		".zip": true, ".jar": true, ".war": true, ".ear": true,
+		".ipa": true, ".apk": true, ".aar": true,
+	}
+	
+	if archiveExts[ext] {
+		return FileTypeArchive
 	}
 	
 	// For all files (including those with text-like extensions), check content
@@ -192,6 +225,11 @@ func ReadFileContent(path string, startLine, maxLines int) (*FileContent, error)
 			content.BinaryData = []byte{}
 			content.BinaryOffset = offset
 		}
+		
+	case FileTypeArchive:
+		info, err := readArchiveInfo(path)
+		content.ArchiveInfo = info
+		content.Error = err
 	}
 	
 	return content, content.Error
@@ -435,6 +473,43 @@ func getLexerForExtension(fileExt string) chroma.Lexer {
 	}
 	
 	return lexer
+}
+
+// readArchiveInfo reads information about an archive file
+func readArchiveInfo(path string) (*ArchiveInfo, error) {
+	// Open the ZIP file
+	reader, err := zip.OpenReader(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open archive: %v", err)
+	}
+	defer reader.Close()
+	
+	info := &ArchiveInfo{
+		Format:  "ZIP",
+		Entries: make([]ArchiveEntry, 0, len(reader.File)),
+	}
+	
+	// Read all entries and calculate statistics
+	for _, file := range reader.File {
+		entry := ArchiveEntry{
+			Name:           file.Name,
+			Size:           int64(file.UncompressedSize64),
+			CompressedSize: int64(file.CompressedSize64),
+			ModTime:        file.Modified,
+			IsDir:          file.FileInfo().IsDir(),
+		}
+		info.Entries = append(info.Entries, entry)
+		
+		if entry.IsDir {
+			info.FolderCount++
+		} else {
+			info.FileCount++
+			info.TotalSize += entry.Size
+			info.CompressedSize += entry.CompressedSize
+		}
+	}
+	
+	return info, nil
 }
 
 // generateImagePreview creates a terminal-renderable preview of an image
