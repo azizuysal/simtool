@@ -7,6 +7,12 @@ A terminal UI application for managing iOS simulators on macOS.
 - List all available iOS simulators sorted alphabetically
 - View simulator status and installed app count
 - Boot simulators directly from the UI
+- Browse apps installed on simulators
+- Navigate app data container files
+- View file contents with syntax highlighting
+- Display images with terminal-based previews
+- View binary files in hex dump format
+- Open files and folders in Finder
 - Navigate with arrow keys or vim-style keys
 - Smooth scrolling for long lists
 - Clean, modern UI with rounded borders
@@ -42,18 +48,37 @@ simtool
 
 ### Keyboard Shortcuts
 
+#### Navigation
 - `↑` / `k` - Move up
 - `↓` / `j` - Move down
-- `r` - Run (boot) selected simulator
-- `Home` - Jump to first simulator
-- `End` - Jump to last simulator
+- `→` / `l` - Enter/view (apps, files, or file content)
+- `←` / `h` - Go back
+- `Home` - Jump to first item
+- `End` - Jump to last item
 - `q` / `Ctrl+C` - Quit
+
+#### Actions
+- `space` - Boot simulator (in simulator list) or open in Finder (in app/file lists)
+- `→` / `l` - View apps (simulator list), view files (app list), or view file content (file list)
 
 ### Display Information
 
-Each simulator shows:
+#### Simulator List
 - **Line 1**: Simulator name
 - **Line 2**: iOS version • Running/Not Running • Number of installed apps
+
+#### App List
+- **Line 1**: App name
+- **Line 2**: Bundle ID • Version • Size
+
+#### File Browser
+- **Line 1**: File/folder name (folders end with /)
+- **Line 2**: Size • Created date • Modified date
+
+#### File Viewer
+- **Text files**: Line numbers with content, lazy-loaded in chunks
+- **Images**: Metadata box and terminal-based preview
+- **Binary files**: Hex dump with ASCII representation
 
 ## Development
 

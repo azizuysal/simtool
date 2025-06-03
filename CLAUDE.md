@@ -14,11 +14,17 @@ simtool/
 ├── internal/
 │   ├── simulator/      # Simulator types and fetching logic
 │   │   ├── simulator.go   # Core types and interfaces
-│   │   └── fetcher.go     # xcrun simctl integration
+│   │   ├── fetcher.go     # xcrun simctl integration
+│   │   ├── app.go         # App information and listing
+│   │   ├── files.go       # File browsing and operations
+│   │   ├── files_darwin.go # macOS-specific file operations
+│   │   ├── files_other.go  # Stub for other platforms
+│   │   └── viewer.go      # File content viewing
 │   ├── tui/           # Terminal UI components
 │   │   ├── model.go       # Bubble Tea model
 │   │   ├── update.go      # Message handling
 │   │   ├── view.go        # Rendering logic
+│   │   ├── view_file.go   # File viewer rendering
 │   │   ├── viewport.go    # Scrolling logic
 │   │   └── keys.go        # Key bindings
 │   └── ui/            # UI styles and formatting
@@ -80,14 +86,18 @@ The application follows clean architecture principles with clear separation of c
    - Defines simulator types and interfaces
    - Fetches simulators via `xcrun simctl list devices --json`
    - Boots simulators and opens Simulator.app
-   - Counts installed apps (via listapps for running, data directory for shutdown)
-   - Formats runtime information
+   - Lists and manages installed apps
+   - Browses app container files and directories
+   - Reads file content with lazy loading for large files
+   - Generates terminal-based image previews
+   - Formats hex dumps for binary files
 
 2. **internal/tui**: Terminal UI logic (Bubble Tea MVU pattern)
-   - Model: Application state (simulators, cursor, viewport)
+   - Model: Application state (simulators, apps, files, cursor, viewport)
    - Update: Handles messages and state updates
-   - View: Renders the UI
-   - Viewport: Manages scrolling logic
+   - View: Renders simulator list, app list, file browser, and file viewer
+   - Viewport: Manages scrolling logic for all views
+   - Lazy loading for text files and dynamic chunk loading
 
 3. **internal/ui**: UI styling and formatting
    - Centralized Lipgloss styles
@@ -110,13 +120,20 @@ The application follows clean architecture principles with clear separation of c
 
 - Lists all iOS simulators sorted alphabetically by name
 - Shows installed app count for each simulator (both running and shutdown)
-- Boot simulators with 'r' key (opens Simulator.app)
+- Boot simulators with 'space' key (opens Simulator.app)
 - Navigate with arrow keys (↑/↓) or vim keys (j/k)
 - Visual indication of running simulators (green text)
 - Selected simulator highlighted with gray background
 - Status messages for boot operations
 - Rounded border UI with proper centering
 - Smooth viewport scrolling for long lists
+- Browse apps installed on each simulator
+- Navigate app data container files
+- View file contents with syntax highlighting for text files
+- Display images with terminal-based previews
+- View binary files in hex dump format
+- Open files and folders in Finder
+- Lazy loading for large files
 - Press 'q' or Ctrl+C to quit
 
 ## Key Dependencies
