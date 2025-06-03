@@ -1,6 +1,8 @@
 package simulator
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -200,5 +202,180 @@ func TestFileContentStructure(t *testing.T) {
 
 	if imageContent.ImageInfo.Width != 800 {
 		t.Errorf("Expected width 800, got %d", imageContent.ImageInfo.Width)
+	}
+}
+
+func TestIsTextContent(t *testing.T) {
+	tests := []struct {
+		name     string
+		data     []byte
+		expected bool
+	}{
+		{
+			name:     "pure ASCII text",
+			data:     []byte("Hello, World!\nThis is a test."),
+			expected: true,
+		},
+		{
+			name:     "UTF-8 text",
+			data:     []byte("Hello, 世界! 🌍"),
+			expected: false, // Current implementation only considers ASCII printable
+		},
+		{
+			name:     "text with some control chars",
+			data:     []byte("Line 1\nLine 2\tTabbed\rCarriage return"),
+			expected: true,
+		},
+		{
+			name:     "binary data",
+			data:     []byte{0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD},
+			expected: false,
+		},
+		{
+			name:     "mostly binary with some text",
+			data:     append([]byte("Hello"), []byte{0x00, 0x01, 0x02, 0x03, 0xFF}...),
+			expected: false,
+		},
+		{
+			name:     "empty data",
+			data:     []byte{},
+			expected: true,
+		},
+		{
+			name:     "just newlines",
+			data:     []byte("\n\n\n"),
+			expected: true,
+		},
+		{
+			name:     "high threshold of non-text",
+			data:     func() []byte {
+				// Create data that's just under 30% non-text
+				data := make([]byte, 100)
+				for i := 0; i < 70; i++ {
+					data[i] = 'A'
+				}
+				for i := 70; i < 100; i++ {
+					data[i] = 0x00
+				}
+				return data
+			}(),
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isTextContent(tt.data)
+			if result != tt.expected {
+				t.Errorf("isTextContent() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetSyntaxHighlightedLine(t *testing.T) {
+	tests := []struct {
+		name     string
+		line     string
+		ext      string
+		expected string
+	}{
+		{
+			name:     "go file",
+			line:     "func main() { fmt.Println(\"Hello\") }",
+			ext:      ".go",
+			expected: "func main() { fmt.Println(\"Hello\") }",
+		},
+		{
+			name:     "javascript file",
+			line:     "console.log('test');",
+			ext:      ".js",
+			expected: "console.log('test');",
+		},
+		{
+			name:     "unknown extension",
+			line:     "some text",
+			ext:      ".xyz",
+			expected: "some text",
+		},
+		{
+			name:     "empty line",
+			line:     "",
+			ext:      ".go",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetSyntaxHighlightedLine(tt.line, tt.ext)
+			// For now, the function just returns the line as-is
+			if result != tt.expected {
+				t.Errorf("GetSyntaxHighlightedLine() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDetectFileTypeWithContent(t *testing.T) {
+	// Create temporary files with different content
+	tmpDir := t.TempDir()
+
+	// Create a text file with .bin extension to test content detection
+	binTextFile := filepath.Join(tmpDir, "text.bin")
+	os.WriteFile(binTextFile, []byte("This is actually a text file"), 0644)
+
+	// Create a binary file with .txt extension
+	txtBinaryFile := filepath.Join(tmpDir, "binary.txt")
+	os.WriteFile(txtBinaryFile, []byte{0x00, 0x01, 0x02, 0x03, 0xFF}, 0644)
+
+	// Create an empty file
+	emptyFile := filepath.Join(tmpDir, "empty.dat")
+	os.WriteFile(emptyFile, []byte{}, 0644)
+
+	tests := []struct {
+		name     string
+		path     string
+		expected FileType
+	}{
+		{
+			name:     "text content with binary extension",
+			path:     binTextFile,
+			expected: FileTypeBinary, // DetectFileType checks extension first, then content
+		},
+		{
+			name:     "binary content with text extension",
+			path:     txtBinaryFile,
+			expected: FileTypeBinary,
+		},
+		{
+			name:     "empty file",
+			path:     emptyFile,
+			expected: FileTypeBinary, // Empty .dat files default to binary
+		},
+		{
+			name:     "image by extension without file",
+			path:     "/nonexistent/image.gif",
+			expected: FileTypeImage,
+		},
+		{
+			name:     "svg image",
+			path:     "/nonexistent/diagram.svg",
+			expected: FileTypeImage,
+		},
+		{
+			name:     "webp image",
+			path:     "/nonexistent/photo.webp",
+			expected: FileTypeImage,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DetectFileType(tt.path)
+			if result != tt.expected {
+				t.Errorf("DetectFileType(%s) = %v, want %v", tt.path, result, tt.expected)
+			}
+		})
 	}
 }

@@ -1,5 +1,9 @@
 # SimTool
 
+![Coverage](https://img.shields.io/badge/coverage-37%25-orange)
+[![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/simtool)](https://goreportcard.com/report/github.com/yourusername/simtool)
+[![Build Status](https://github.com/yourusername/simtool/workflows/Tests/badge.svg)](https://github.com/yourusername/simtool/actions)
+
 A terminal UI application for managing iOS simulators on macOS.
 
 ## Features

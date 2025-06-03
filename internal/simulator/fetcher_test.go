@@ -60,14 +60,27 @@ func TestParseSimulatorJSON(t *testing.T) {
 			wantLen: 2,
 			wantErr: false,
 			check: func(t *testing.T, items []Item) {
-				if items[0].UDID != "12345" {
-					t.Errorf("Expected first UDID to be 12345, got %s", items[0].UDID)
+				// Items might be in any order, so check both exist
+				var found12345, found67890 bool
+				for _, item := range items {
+					if item.UDID == "12345" {
+						found12345 = true
+						if item.Runtime != "iOS 17.0" {
+							t.Errorf("Expected runtime for UDID 12345 to be iOS 17.0, got %s", item.Runtime)
+						}
+					}
+					if item.UDID == "67890" {
+						found67890 = true
+						if item.Runtime != "iOS 16.4" {
+							t.Errorf("Expected runtime for UDID 67890 to be iOS 16.4, got %s", item.Runtime)
+						}
+					}
 				}
-				if items[0].Runtime != "iOS 17.0" {
-					t.Errorf("Expected first runtime to be iOS 17.0, got %s", items[0].Runtime)
+				if !found12345 {
+					t.Error("UDID 12345 not found in results")
 				}
-				if items[1].UDID != "67890" {
-					t.Errorf("Expected second UDID to be 67890, got %s", items[1].UDID)
+				if !found67890 {
+					t.Error("UDID 67890 not found in results")
 				}
 			},
 		},

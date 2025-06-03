@@ -1,5 +1,7 @@
 package simulator
 
+import "fmt"
+
 // Simulator represents an iOS simulator device
 type Simulator struct {
 	UDID                 string `json:"udid"`
@@ -40,3 +42,8 @@ func (s *Simulator) StateDisplay() string {
 		return s.State
 	}
 }
+
+// Common errors
+var (
+	ErrSimulatorNotFound = fmt.Errorf("simulator not found")
+)

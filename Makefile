@@ -1,4 +1,4 @@
-.PHONY: build run clean test lint install
+.PHONY: build run clean test lint install coverage coverage-html
 
 # Binary name
 BINARY_NAME=simtool
@@ -43,3 +43,15 @@ deps:
 build-all:
 	GOOS=darwin GOARCH=amd64 go build -o $(BINARY_NAME)-darwin-amd64 $(MAIN_PATH)
 	GOOS=darwin GOARCH=arm64 go build -o $(BINARY_NAME)-darwin-arm64 $(MAIN_PATH)
+
+# Run tests with coverage
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+	@echo ""
+	@echo "To update the README badge, run: ./scripts/coverage-badge.sh"
+
+# Generate HTML coverage report
+coverage-html: coverage
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
