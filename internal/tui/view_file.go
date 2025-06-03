@@ -50,6 +50,94 @@ func (m Model) viewFileContent() string {
 		return s.String()
 	}
 
+	// SPECIAL CASE: Handle images separately to preserve ANSI codes
+	if m.fileContent.Type == simulator.FileTypeImage && 
+		m.fileContent.ImageInfo != nil && 
+		m.fileContent.ImageInfo.Preview != nil && 
+		len(m.fileContent.ImageInfo.Preview.Rows) > 0 {
+		
+		// Metadata box
+		metaContent := fmt.Sprintf("Image Information\n\nFormat: %s\nDimensions: %d × %d pixels\nFile size: %s",
+			m.fileContent.ImageInfo.Format,
+			m.fileContent.ImageInfo.Width, 
+			m.fileContent.ImageInfo.Height,
+			simulator.FormatSize(m.fileContent.ImageInfo.Size))
+		
+		// Calculate content width
+		contentWidth := m.width - 6
+		if contentWidth < 50 {
+			contentWidth = 50
+		}
+		
+		metaBorder := ui.BorderStyle.Width(contentWidth).Render(metaContent)
+		s.WriteString(m.centerContent(metaBorder))
+		s.WriteString("\n\n") // Add spacing between boxes
+		
+		// Build preview content in a box
+		var previewContent strings.Builder
+		
+		// Count lines used so far
+		currentContent := s.String()
+		linesUsed := strings.Count(currentContent, "\n") + 1
+		
+		// Calculate remaining space for preview box
+		// Reserve lines for: border (2), footer (2), spacing (2)
+		availableForPreview := m.height - linesUsed - 6
+		if availableForPreview < 10 {
+			availableForPreview = 10 // Minimum preview size
+		}
+		
+		// Calculate inner dimensions for the preview
+		innerWidth := contentWidth - 4 // Account for border padding
+		innerHeight := availableForPreview - 1 // Account for top/bottom border (adjusted for images)
+		
+		// Add preview rows with padding
+		previewRows := m.fileContent.ImageInfo.Preview.Rows
+		maxRows := len(previewRows)
+		if maxRows > innerHeight {
+			maxRows = innerHeight
+		}
+		
+		// Add top padding if preview is smaller than available space
+		topPadding := (innerHeight - maxRows) / 2
+		for i := 0; i < topPadding; i++ {
+			previewContent.WriteString("\n")
+		}
+		
+		// Add preview rows with left padding to center them
+		for i := 0; i < maxRows; i++ {
+			row := previewRows[i]
+			// Calculate padding for centering (preview width should be less than innerWidth)
+			previewWidth := m.fileContent.ImageInfo.Preview.Width
+			leftPadding := 0
+			if innerWidth > previewWidth {
+				leftPadding = (innerWidth - previewWidth) / 2
+			}
+			if leftPadding > 0 {
+				previewContent.WriteString(strings.Repeat(" ", leftPadding))
+			}
+			previewContent.WriteString(row)
+			if i < maxRows-1 || i+topPadding < innerHeight-1 {
+				previewContent.WriteString("\n")
+			}
+		}
+		
+		// Add bottom padding
+		currentLines := topPadding + maxRows
+		for i := currentLines; i < innerHeight; i++ {
+			previewContent.WriteString("\n")
+		}
+		
+		// Apply border to preview
+		previewBorder := ui.BorderStyle.Width(contentWidth).Render(previewContent.String())
+		s.WriteString(m.centerContent(previewBorder))
+		
+		s.WriteString("\n\n")
+		s.WriteString(ui.FormatFooter("←/h: back • q: quit", contentWidth, m.width))
+		
+		return s.String()
+	}
+
 	// Calculate content area dimensions
 	contentHeight := m.height - 8 // Header, footer, borders
 	contentWidth := m.width - 6
@@ -101,33 +189,9 @@ func (m Model) viewFileContent() string {
 		}
 		
 	case simulator.FileTypeImage:
-		// Show image metadata
-		if m.fileContent.ImageInfo != nil {
-			info := m.fileContent.ImageInfo
-			listContent.WriteString(ui.NameStyle.Render("Image Information"))
-			listContent.WriteString("\n\n")
-			listContent.WriteString(fmt.Sprintf("Format: %s\n", info.Format))
-			listContent.WriteString(fmt.Sprintf("Dimensions: %d × %d pixels\n", info.Width, info.Height))
-			listContent.WriteString(fmt.Sprintf("File size: %s", simulator.FormatSize(info.Size)))
-			
-			// Show preview if available
-			if info.Preview != nil && len(info.Preview.Rows) > 0 {
-				listContent.WriteString("\n\n")
-				listContent.WriteString(ui.DetailStyle.Render("Preview:"))
-				listContent.WriteString("\n\n")
-				
-				// Add the preview rows
-				for i, row := range info.Preview.Rows {
-					listContent.WriteString(row)
-					if i < len(info.Preview.Rows)-1 {
-						listContent.WriteString("\n")
-					}
-				}
-			} else {
-				listContent.WriteString("\n\n")
-				listContent.WriteString(ui.DetailStyle.Render("(Preview generation failed)"))
-			}
-		}
+		// This case should not be reached due to early return above
+		// But include it for completeness
+		listContent.WriteString("Image file")
 		
 	case simulator.FileTypeBinary:
 		// Show hex dump
@@ -195,8 +259,24 @@ func (m Model) viewFileContent() string {
 	}
 
 	// Apply border and center
-	borderedList := ui.BorderStyle.Width(contentWidth).Render(content)
-	s.WriteString(m.centerContent(borderedList))
+	var borderedList string
+	// Special handling for images to preserve ANSI codes
+	if m.fileContent.Type == simulator.FileTypeImage && 
+		m.fileContent.ImageInfo != nil && 
+		m.fileContent.ImageInfo.Preview != nil &&
+		len(m.fileContent.ImageInfo.Preview.Rows) > 0 {
+		// For images, use a simpler border without padding to preserve ANSI codes
+		simpleBorder := lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			Width(contentWidth)
+		borderedList = simpleBorder.Render(content)
+		s.WriteString(m.centerContent(borderedList))
+	} else {
+		// Use normal border for text and binary files
+		borderedList = ui.BorderStyle.Width(contentWidth).Render(content)
+		s.WriteString(m.centerContent(borderedList))
+	}
 
 	s.WriteString("\n\n")
 
