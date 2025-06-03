@@ -279,6 +279,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				case simulator.FileTypeText:
 					if m.contentViewport > 0 {
 						m.contentViewport--
+					} else if m.contentOffset > 0 {
+						// Need to load previous chunk
+						newOffset := m.contentOffset - 200 // Go back 200 lines
+						if newOffset < 0 {
+							newOffset = 0
+						}
+						m.contentOffset = newOffset
+						m.loadingContent = true
+						return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
 					}
 				case simulator.FileTypeImage:
 					if m.contentViewport > 0 {
@@ -330,8 +339,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if maxViewport < 0 {
 						maxViewport = 0
 					}
+					
 					if m.contentViewport < maxViewport {
 						m.contentViewport++
+					} else if m.contentOffset + len(m.fileContent.Lines) < m.fileContent.TotalLines {
+						// Need to load more content
+						newOffset := m.contentOffset + len(m.fileContent.Lines)
+						m.contentOffset = newOffset
+						m.contentViewport = 0 // Reset viewport for new chunk
+						m.loadingContent = true
+						return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
 					}
 				case simulator.FileTypeImage:
 					// For images, calculate based on total content lines

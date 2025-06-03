@@ -167,7 +167,7 @@ type fetchFileContentMsg struct {
 // fetchFileContentCmd fetches the content of a file for viewing
 func (m Model) fetchFileContentCmd(path string, offset int) tea.Cmd {
 	return func() tea.Msg {
-		content, err := simulator.ReadFileContent(path, offset, 50) // 50 lines per page for text
+		content, err := simulator.ReadFileContent(path, offset, 500) // 500 lines per page for text
 		return fetchFileContentMsg{content: content, err: err}
 	}
 }

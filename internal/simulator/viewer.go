@@ -204,8 +204,8 @@ func readTextFile(path string, startLine, maxLines int) ([]string, int, error) {
 	currentLine := 0
 	totalLines := 0
 	
-	// Set a reasonable buffer size for long lines
-	const maxScanTokenSize = 256 * 1024 // 256KB
+	// Set a larger buffer size for very long lines (common in minified files)
+	const maxScanTokenSize = 1024 * 1024 // 1MB
 	buf := make([]byte, maxScanTokenSize)
 	scanner.Buffer(buf, maxScanTokenSize)
 	
@@ -214,8 +214,8 @@ func readTextFile(path string, startLine, maxLines int) ([]string, int, error) {
 		if currentLine >= startLine && len(lines) < maxLines {
 			line := scanner.Text()
 			// Truncate very long lines for display
-			if len(line) > 500 {
-				line = line[:500] + "..."
+			if len(line) > 2000 {
+				line = line[:2000] + "..."
 			}
 			lines = append(lines, line)
 		}
