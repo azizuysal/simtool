@@ -21,7 +21,17 @@ func (m *Model) updateViewport() {
 	case AppListView:
 		updateViewportForList(&m.appCursor, &m.appViewport, len(m.apps), itemsPerScreen)
 	case FileListView:
-		updateViewportForList(&m.fileCursor, &m.fileViewport, len(m.files), itemsPerScreen)
+		// For file list, account for header content
+		headerLines := 6 // App name (1) + app details (1) + spacing (2) + separator (2)
+		if len(m.breadcrumbs) > 0 {
+			headerLines += 2 // Breadcrumb line + spacing
+		}
+		availableHeight := m.height - 8 - headerLines
+		actualFileItems := availableHeight / 3
+		if actualFileItems < 1 {
+			actualFileItems = 1
+		}
+		updateViewportForList(&m.fileCursor, &m.fileViewport, len(m.files), actualFileItems)
 	}
 }
 

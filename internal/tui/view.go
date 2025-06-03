@@ -312,9 +312,25 @@ func (m Model) viewFileList() string {
 	s.WriteString(ui.FormatHeader(headerText, m.width))
 
 	// Calculate visible range
+	// Use the full height for padding calculations
 	itemsPerScreen := CalculateItemsPerScreen(m.height)
+	
+	// But for file list viewport, we need to account for the extra header content
+	// Calculate how many files can actually fit given the header space
+	headerLines := 6 // App name (1) + app details (1) + spacing (2) + separator (2)
+	if len(m.breadcrumbs) > 0 {
+		headerLines += 2 // Breadcrumb line + spacing
+	}
+	
+	// Calculate actual space for files
+	availableHeight := m.height - 8 - headerLines // 8 is the standard reserved space
+	actualFileItems := availableHeight / 3 // Each file item takes 3 lines
+	if actualFileItems < 1 {
+		actualFileItems = 1
+	}
+	
 	startIdx := m.fileViewport
-	endIdx := m.fileViewport + itemsPerScreen
+	endIdx := m.fileViewport + actualFileItems
 	if endIdx > len(m.files) {
 		endIdx = len(m.files)
 	}
@@ -396,8 +412,7 @@ func (m Model) viewFileList() string {
 		}
 	}
 	
-	// Pad content to fill the screen height, accounting for app info header
-	// Subtract 4 lines for app info and separator
+	// Pad content to fill the screen height
 	paddedContent := m.padContentToHeight(listContent.String(), itemsPerScreen)
 
 	// Apply border and center
