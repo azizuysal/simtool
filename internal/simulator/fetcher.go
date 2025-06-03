@@ -149,3 +149,40 @@ func formatRuntime(runtime string) string {
 	runtimeName = strings.Replace(runtimeName, "-", ".", -1)
 	return runtimeName
 }
+
+// parseRuntimeVersion extracts version from runtime string
+func parseRuntimeVersion(runtime string) string {
+	parts := strings.Split(runtime, " ")
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+	return runtime
+}
+
+// parseSimulatorJSON parses the JSON output from simctl
+func parseSimulatorJSON(data []byte) ([]Item, error) {
+	var output SimctlOutput
+	if err := json.Unmarshal(data, &output); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	var items []Item
+	for runtime, devices := range output.Devices {
+		// Skip non-iOS runtimes
+		if !strings.Contains(runtime, "iOS") {
+			continue
+		}
+		
+		for _, device := range devices {
+			if device.IsAvailable {
+				items = append(items, Item{
+					Simulator: device,
+					Runtime:   runtime,
+					AppCount:  0, // This is calculated separately
+				})
+			}
+		}
+	}
+
+	return items, nil
+}

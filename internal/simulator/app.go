@@ -263,3 +263,53 @@ func FormatSize(bytes int64) string {
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
+
+// appInfo represents the JSON structure from xcrun simctl listapps
+type appInfo struct {
+	ApplicationType            string `json:"ApplicationType"`
+	Bundle                     string `json:"Bundle"`
+	BundleContainer            string `json:"BundleContainer"`
+	CFBundleDisplayName        string `json:"CFBundleDisplayName"`
+	CFBundleIdentifier         string `json:"CFBundleIdentifier"`
+	CFBundleName               string `json:"CFBundleName"`
+	CFBundleShortVersionString string `json:"CFBundleShortVersionString"`
+	DataContainer              string `json:"DataContainer"`
+	Path                       string `json:"Path"`
+}
+
+// parseAppListJSON parses the JSON output from xcrun simctl listapps
+func parseAppListJSON(data []byte) ([]App, error) {
+	var appMap map[string]appInfo
+	if err := json.Unmarshal(data, &appMap); err != nil {
+		return nil, fmt.Errorf("failed to parse app list JSON: %w", err)
+	}
+
+	apps := make([]App, 0)
+	for bundleID, info := range appMap {
+		// Skip system apps
+		if info.ApplicationType != "User" {
+			continue
+		}
+
+		app := App{
+			BundleID:  bundleID,
+			Version:   info.CFBundleShortVersionString,
+			Path:      info.Path,
+			Container: info.DataContainer,
+			Size:      0, // Size is calculated separately
+		}
+
+		// Determine app name
+		if info.CFBundleDisplayName != "" {
+			app.Name = info.CFBundleDisplayName
+		} else if info.CFBundleName != "" {
+			app.Name = info.CFBundleName
+		} else {
+			app.Name = bundleID
+		}
+
+		apps = append(apps, app)
+	}
+
+	return apps, nil
+}

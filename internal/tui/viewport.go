@@ -56,3 +56,28 @@ func updateViewportForList(cursor, viewport *int, totalItems, itemsPerScreen int
 		*viewport = 0
 	}
 }
+
+// CalculateSimulatorViewport calculates the viewport position for simulator list
+func CalculateSimulatorViewport(currentViewport, currentCursor, totalItems, terminalHeight int) int {
+	itemsPerScreen := CalculateItemsPerScreen(terminalHeight)
+	viewport := currentViewport
+	cursor := currentCursor
+	
+	updateViewportForList(&cursor, &viewport, totalItems, itemsPerScreen)
+	return viewport
+}
+
+// CalculateFileListViewport calculates the viewport position for file list
+func CalculateFileListViewport(currentViewport, currentCursor, totalItems, terminalHeight, headerLines int) int {
+	availableHeight := terminalHeight - 8 - headerLines
+	actualFileItems := availableHeight / 3
+	if actualFileItems < 1 {
+		actualFileItems = 1
+	}
+	
+	viewport := currentViewport
+	cursor := currentCursor
+	
+	updateViewportForList(&cursor, &viewport, totalItems, actualFileItems)
+	return viewport
+}
