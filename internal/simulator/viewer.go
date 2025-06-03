@@ -134,6 +134,8 @@ func DetectFileType(path string) FileType {
 			".css": true, ".html": true, ".htm": true, ".vue": true,
 			".jsx": true, ".tsx": true, ".rs": true, ".plist": true,
 			".gitignore": true, ".env": true, ".conf": true, ".ini": true,
+			".podspec": true, ".gemspec": true, ".rake": true, ".gemfile": true,
+			".podfile": true, ".brewfile": true, ".rakefile": true,
 		}
 		
 		// If it has a known text extension or no extension, treat as text
