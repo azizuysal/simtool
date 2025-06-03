@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"regexp"
 	"testing"
 )
 
@@ -273,6 +274,13 @@ func TestIsTextContent(t *testing.T) {
 	}
 }
 
+// stripANSI removes ANSI escape codes from a string
+func stripANSI(s string) string {
+	// Match ANSI escape sequences
+	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	return ansiRegex.ReplaceAllString(s, "")
+}
+
 func TestGetSyntaxHighlightedLine(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -309,9 +317,31 @@ func TestGetSyntaxHighlightedLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := GetSyntaxHighlightedLine(tt.line, tt.ext)
-			// For now, the function just returns the line as-is
-			if result != tt.expected {
-				t.Errorf("GetSyntaxHighlightedLine() = %v, want %v", result, tt.expected)
+			
+			// For empty lines, expect no change
+			if tt.line == "" {
+				if result != tt.expected {
+					t.Errorf("GetSyntaxHighlightedLine() = %v, want %v", result, tt.expected)
+				}
+				return
+			}
+			
+			// For non-empty lines with known extensions, expect ANSI escape codes
+			if tt.ext == ".go" || tt.ext == ".js" || tt.ext == ".py" || tt.ext == ".json" {
+				// Check that syntax highlighting was applied (contains ANSI escape codes)
+				if !strings.Contains(result, "\033[") && !strings.Contains(result, "[38;") {
+					t.Errorf("Expected syntax highlighting for %s file, but got plain text: %v", tt.ext, result)
+				}
+				// Also check that the original content is preserved (minus ANSI codes)
+				strippedResult := stripANSI(result)
+				if strippedResult != tt.line {
+					t.Errorf("Content changed after highlighting: got %v, want %v", strippedResult, tt.line)
+				}
+			} else {
+				// For unknown extensions, expect plain text
+				if result != tt.expected {
+					t.Errorf("GetSyntaxHighlightedLine() = %v, want %v", result, tt.expected)
+				}
 			}
 		})
 	}

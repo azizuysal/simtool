@@ -80,7 +80,7 @@ simtool
 - **Line 2**: Size • Created date • Modified date
 
 #### File Viewer
-- **Text files**: Line numbers with content, lazy-loaded in chunks
+- **Text files**: Line numbers with syntax-highlighted content, lazy-loaded in chunks
 - **Images**: Metadata box and terminal-based preview
 - **Binary files**: Hex dump with ASCII representation
 

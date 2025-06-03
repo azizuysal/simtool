@@ -2,6 +2,7 @@ package simulator
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -11,8 +12,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"unicode/utf8"
 	
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/formatters"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	_ "golang.org/x/image/webp" // Add WebP support
 )
 
@@ -343,12 +349,92 @@ func FormatHexDump(data []byte, offset int64) []string {
 	return lines
 }
 
+var (
+	// Cache for lexers to improve performance
+	lexerCache = make(map[string]chroma.Lexer)
+	lexerMutex sync.RWMutex
+	
+	// Terminal formatter and style
+	termFormatter = formatters.Get("terminal16m")
+	chromaStyle   = styles.Get("monokai")
+)
+
 // GetSyntaxHighlightedLine returns a syntax highlighted version of a line
 // This is a simple implementation - could be enhanced with a proper syntax highlighting library
 func GetSyntaxHighlightedLine(line string, fileExt string) string {
-	// For now, just return the line as-is
-	// In a full implementation, this would apply syntax highlighting based on file type
-	return line
+	// Quick return for empty lines
+	if strings.TrimSpace(line) == "" {
+		return line
+	}
+	
+	// Get or create lexer for this file extension
+	lexer := getLexerForExtension(fileExt)
+	if lexer == nil {
+		// No lexer found, return plain text
+		return line
+	}
+	
+	// Tokenize the line
+	iterator, err := lexer.Tokenise(nil, line)
+	if err != nil {
+		return line
+	}
+	
+	// Format the tokens
+	var buf bytes.Buffer
+	err = termFormatter.Format(&buf, chromaStyle, iterator)
+	if err != nil {
+		return line
+	}
+	
+	return strings.TrimRight(buf.String(), "\n")
+}
+
+// getLexerForExtension returns a cached lexer for the given file extension
+func getLexerForExtension(fileExt string) chroma.Lexer {
+	// Try to get from cache first
+	lexerMutex.RLock()
+	lexer, exists := lexerCache[fileExt]
+	lexerMutex.RUnlock()
+	
+	if exists {
+		return lexer
+	}
+	
+	// Create new lexer
+	lexerMutex.Lock()
+	defer lexerMutex.Unlock()
+	
+	// Check again in case another goroutine created it
+	if lexer, exists := lexerCache[fileExt]; exists {
+		return lexer
+	}
+	
+	// Get lexer by filename (chroma uses the extension)
+	lexer = lexers.Match("file" + fileExt)
+	if lexer == nil {
+		// Try some common aliases
+		switch fileExt {
+		case ".h":
+			lexer = lexers.Get("c")
+		case ".hpp", ".hxx":
+			lexer = lexers.Get("cpp")
+		case ".yml":
+			lexer = lexers.Get("yaml")
+		case ".tsx":
+			lexer = lexers.Get("typescript")
+		case ".jsx":
+			lexer = lexers.Get("javascript")
+		}
+	}
+	
+	if lexer != nil {
+		// Clone the lexer to avoid concurrent modification issues
+		lexer = chroma.Coalesce(lexer)
+		lexerCache[fileExt] = lexer
+	}
+	
+	return lexer
 }
 
 // generateImagePreview creates a terminal-renderable preview of an image

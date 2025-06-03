@@ -184,7 +184,10 @@ func (m Model) viewFileContent() string {
 			if len(line) > innerWidth - maxLineNumWidth - 4 {
 				line = line[:innerWidth-maxLineNumWidth-7] + "..."
 			}
-			listContent.WriteString(line)
+			// Apply syntax highlighting
+			fileExt := filepath.Ext(m.viewingFile.Path)
+			highlightedLine := simulator.GetSyntaxHighlightedLine(line, fileExt)
+			listContent.WriteString(highlightedLine)
 			lineCount++
 		}
 		

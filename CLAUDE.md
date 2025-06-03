@@ -89,6 +89,7 @@ The application follows clean architecture principles with clear separation of c
    - Lists and manages installed apps
    - Browses app container files and directories
    - Reads file content with lazy loading for large files
+   - Provides syntax highlighting for code files using chroma
    - Generates terminal-based image previews
    - Formats hex dumps for binary files
 
@@ -140,3 +141,4 @@ The application follows clean architecture principles with clear separation of c
 
 - `github.com/charmbracelet/bubbletea` - Terminal UI framework
 - `github.com/charmbracelet/lipgloss` - Terminal styling
+- `github.com/alecthomas/chroma/v2` - Syntax highlighting library
