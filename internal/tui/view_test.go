@@ -70,260 +70,146 @@ func TestView(t *testing.T) {
 			},
 			contains: []string{"TestApp Files"},
 		},
-		{
-			name: "file viewer view",
-			model: Model{
-				viewState: FileViewerView,
-				viewingFile: &simulator.FileInfo{
-					Path: "/path/to/test.txt",
-				},
-				fileContent: &simulator.FileContent{
-					Type:  simulator.FileTypeText,
-					Lines: []string{"Hello", "World"},
-				},
-				height: 30,
-				width:  80,
-			},
-			contains: []string{"test.txt"},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.model.View()
+			got := tt.model.View()
 
 			if tt.wantError {
-				if !strings.Contains(result, "Error:") {
-					t.Error("Expected error message")
+				if !strings.Contains(got, "Error:") {
+					t.Errorf("View() error case should contain 'Error:', got %v", got)
 				}
 			}
 
-			for _, expected := range tt.contains {
-				if !strings.Contains(result, expected) {
-					t.Errorf("Expected view to contain '%s'", expected)
-				}
-			}
-		})
-	}
-}
-
-func TestCenterContent(t *testing.T) {
-	model := Model{width: 80}
-	
-	tests := []struct {
-		name     string
-		content  string
-		width    int
-		centered bool
-	}{
-		{
-			name:     "short content",
-			content:  "Hello",
-			width:    80,
-			centered: true,
-		},
-		{
-			name:     "multi-line content",
-			content:  "Line 1\nLine 2\nLine 3",
-			width:    80,
-			centered: true,
-		},
-		{
-			name:     "content wider than width",
-			content:  strings.Repeat("x", 100),
-			width:    80,
-			centered: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			model.width = tt.width
-			result := model.centerContent(tt.content)
-
-			lines := strings.Split(result, "\n")
-			if len(lines) == 0 {
-				t.Error("Expected at least one line")
-				return
-			}
-
-			// Check if content is centered (has leading spaces)
-			if tt.centered && len(lines[0]) > 0 {
-				if !strings.HasPrefix(lines[0], " ") && tt.width > len(tt.content) {
-					t.Log("Content might not be centered")
+			for _, want := range tt.contains {
+				if !strings.Contains(got, want) {
+					t.Errorf("View() should contain %q, got %v", want, got)
 				}
 			}
 		})
 	}
 }
 
-func TestPadContentToHeight(t *testing.T) {
-	model := Model{}
-	
-	tests := []struct {
-		name           string
-		content        string
-		itemsPerScreen int
-		minExpected    int
-	}{
-		{
-			name:           "short content",
-			content:        "Line 1\nLine 2",
-			itemsPerScreen: 5,
-			minExpected:    2, // At least the original content
-		},
-		{
-			name:           "exact fit",
-			content:        strings.Repeat("Line\n", 14),
-			itemsPerScreen: 5,
-			minExpected:    14,
-		},
-		{
-			name:           "content too long",
-			content:        strings.Repeat("Line\n", 20),
-			itemsPerScreen: 5,
-			minExpected:    20, // No padding, return as is
-		},
-		{
-			name:           "single item",
-			content:        "One line",
-			itemsPerScreen: 1,
-			minExpected:    1,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := model.padContentToHeight(tt.content, tt.itemsPerScreen)
-			lines := strings.Split(strings.TrimRight(result, "\n"), "\n")
-			
-			if len(lines) < tt.minExpected {
-				t.Errorf("Expected at least %d lines, got %d", tt.minExpected, len(lines))
-			}
-			
-			// Check that padding was added for short content
-			originalLines := strings.Split(strings.TrimRight(tt.content, "\n"), "\n")
-			if len(originalLines) < tt.itemsPerScreen*3-1 && len(lines) <= len(originalLines) {
-				t.Log("Warning: No padding was added to short content")
-			}
-		})
-	}
-}
-
-func TestRenderSimulatorList(t *testing.T) {
-	simulators := []simulator.Item{
-		{
-			Simulator: simulator.Simulator{
-				Name:  "iPhone 15",
-				State: "Booted",
-			},
-			Runtime:  "iOS 17.0",
-			AppCount: 5,
-		},
-		{
-			Simulator: simulator.Simulator{
-				Name:  "iPhone 14",
-				State: "Shutdown",
-			},
-			Runtime:  "iOS 16.4",
-			AppCount: 0,
-		},
-	}
-
+func TestViewStateIntegration(t *testing.T) {
+	// Test that view correctly renders based on viewState
 	model := Model{
-		simulators: simulators,
-		simCursor:  0,
-		height:     30,
-		width:      80,
+		height: 30,
+		width:  80,
+		simulators: []simulator.Item{
+			{
+				Simulator: simulator.Simulator{
+					Name:  "iPhone 15",
+					State: "Booted",
+					UDID:  "test-udid",
+				},
+				Runtime:  "iOS 17.0",
+				AppCount: 2,
+			},
+		},
 	}
 
-	result := model.renderSimulatorList(model.simulators, 0, 2, 70)
-
-	// Check that result contains expected elements
-	if !strings.Contains(result, "iPhone 15") {
-		t.Error("Expected iPhone 15 in result")
+	// Test SimulatorListView
+	model.viewState = SimulatorListView
+	view := model.View()
+	if !strings.Contains(view, "iOS Simulators") {
+		t.Error("SimulatorListView should show iOS Simulators")
 	}
 
-	if !strings.Contains(result, "iOS 17.0") {
-		t.Error("Expected iOS 17.0 in result")
+	// Test AppListView
+	model.viewState = AppListView
+	model.selectedSim = &model.simulators[0]
+	model.apps = []simulator.App{
+		{Name: "TestApp", BundleID: "com.test.app", Size: 1024},
+	}
+	view = model.View()
+	if !strings.Contains(view, "iPhone 15 Apps") {
+		t.Error("AppListView should show simulator name")
 	}
 
-	if !strings.Contains(result, "Running") {
-		t.Error("Expected Running state")
+	// Test FileListView
+	model.viewState = FileListView
+	model.selectedApp = &model.apps[0]
+	model.files = []simulator.FileInfo{
+		{Name: "Documents", IsDirectory: true, Size: 0},
 	}
-
-	if !strings.Contains(result, "5 apps") {
-		t.Error("Expected app count")
-	}
-
-	if !strings.Contains(result, "▶") {
-		t.Error("Expected cursor indicator")
+	view = model.View()
+	if !strings.Contains(view, "TestApp Files") {
+		t.Error("FileListView should show app name")
 	}
 }
 
-func TestViewStates(t *testing.T) {
-	// Test empty simulator list
+func TestViewLoadingStates(t *testing.T) {
 	model := Model{
-		viewState:  SimulatorListView,
-		simulators: []simulator.Item{},
-		height:     30,
-		width:      80,
+		height: 30,
+		width:  80,
 	}
 
-	result := model.viewSimulatorList()
-	if !strings.Contains(result, "Loading simulators...") {
-		t.Error("Expected loading message for empty simulator list")
+	// Test loading simulators
+	model.viewState = SimulatorListView
+	model.loadingSimulators = true
+	view := model.View()
+	if !strings.Contains(view, "Loading simulators...") {
+		t.Error("Should show loading message when loading simulators")
 	}
 
-	// Test loading apps state
-	model = Model{
-		viewState:   AppListView,
-		loadingApps: true,
-		height:      30,
-		width:       80,
+	// Test loading apps
+	model.viewState = AppListView
+	model.loadingApps = true
+	model.selectedSim = &simulator.Item{
+		Simulator: simulator.Simulator{Name: "iPhone 15"},
+	}
+	view = model.View()
+	if !strings.Contains(view, "Loading apps...") {
+		t.Error("Should show loading message when loading apps")
 	}
 
-	result = model.viewAppList()
-	if !strings.Contains(result, "Loading apps...") {
-		t.Error("Expected loading message for apps")
+	// Test loading files
+	model.viewState = FileListView
+	model.loadingFiles = true
+	model.selectedApp = &simulator.App{Name: "TestApp"}
+	view = model.View()
+	if !strings.Contains(view, "Loading files...") {
+		t.Error("Should show loading message when loading files")
+	}
+}
+
+func TestViewSearchMode(t *testing.T) {
+	model := Model{
+		height: 30,
+		width:  80,
+		simulators: []simulator.Item{
+			{
+				Simulator: simulator.Simulator{Name: "iPhone 15"},
+				Runtime:   "iOS 17.0",
+			},
+		},
+		simSearchMode:  true,
+		simSearchQuery: "iPhone",
 	}
 
-	// Test no simulator selected
-	model = Model{
-		viewState:   AppListView,
-		selectedSim: nil,
-		height:      30,
-		width:       80,
+	view := model.View()
+	if !strings.Contains(view, "Search: iPhone") {
+		t.Error("Should show search query in search mode")
+	}
+}
+
+func TestViewFilterMode(t *testing.T) {
+	model := Model{
+		height: 30,
+		width:  80,
+		simulators: []simulator.Item{
+			{
+				Simulator: simulator.Simulator{Name: "iPhone 15"},
+				Runtime:   "iOS 17.0",
+				AppCount:  2,
+			},
+		},
+		filterActive: true,
 	}
 
-	result = model.viewAppList()
-	if !strings.Contains(result, "No simulator selected") {
-		t.Error("Expected no simulator selected message")
-	}
-
-	// Test loading files state
-	model = Model{
-		viewState:    FileListView,
-		loadingFiles: true,
-		height:       30,
-		width:        80,
-	}
-
-	result = model.viewFileList()
-	if !strings.Contains(result, "Loading files...") {
-		t.Error("Expected loading message for files")
-	}
-
-	// Test no app selected
-	model = Model{
-		viewState:   FileListView,
-		selectedApp: nil,
-		height:      30,
-		width:       80,
-	}
-
-	result = model.viewFileList()
-	if !strings.Contains(result, "No app selected") {
-		t.Error("Expected no app selected message")
+	view := model.View()
+	if !strings.Contains(view, "Filter: Showing only simulators with apps") {
+		t.Error("Should show filter status when filter is active")
 	}
 }

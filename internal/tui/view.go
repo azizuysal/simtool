@@ -1,536 +1,208 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
-	"simtool/internal/simulator"
+	"simtool/internal/tui/components"
+	"simtool/internal/tui/components/file_viewer"
 	"simtool/internal/ui"
 )
 
-// View renders the UI
+// View renders the UI using the component system
 func (m Model) View() string {
+	// Handle errors
 	if m.err != nil {
 		return ui.ErrorStyle.Render("Error: " + m.err.Error())
 	}
 
-	// Ensure consistent rendering by always returning the same structure
-	var content string
+	// Create layout
+	layout := components.NewLayout(m.width, m.height)
+
+	// Get view-specific content
+	var title, content, footer, status string
+
 	switch m.viewState {
 	case SimulatorListView:
-		content = m.viewSimulatorList()
+		title, content, footer, status = m.renderSimulatorListView()
 	case AppListView:
-		content = m.viewAppList()
+		title, content, footer, status = m.renderAppListView()
 	case FileListView:
-		content = m.viewFileList()
+		title, content, footer, status = m.renderFileListView()
 	case FileViewerView:
-		content = m.viewFileContent()
+		title, content, footer, status = m.renderFileViewerView()
 	default:
-		content = m.viewSimulatorList()
+		title, content, footer, status = m.renderSimulatorListView()
 	}
-	
-	return content
+
+	// Render with layout
+	return layout.Render(title, content, footer, status)
 }
 
-// viewSimulatorList renders the simulator list view
-func (m Model) viewSimulatorList() string {
-	if len(m.simulators) == 0 {
-		return "Loading simulators..."
-	}
-
-	var s strings.Builder
-
-	// Get filtered simulators (by apps and search)
+// renderSimulatorListView renders the simulator list using components
+func (m Model) renderSimulatorListView() (title, content, footer, status string) {
+	// Get filtered simulators
 	filteredSims := m.getFilteredAndSearchedSimulators()
-	
-	// Header
-	headerText := fmt.Sprintf("iOS Simulators (%d", len(filteredSims))
-	if m.filterActive || m.simSearchQuery != "" {
-		headerText += fmt.Sprintf(" of %d)", len(m.simulators))
+
+	// Calculate available space for content
+	// Title takes ~4 lines (padding + title + padding)
+	// Footer takes ~4 lines (padding + status + footer + padding)
+	contentHeight := m.height - 8
+	contentWidth := m.width - 6 // Account for side margins
+
+	// Create simulator list component
+	simList := components.NewSimulatorList(contentWidth, contentHeight)
+	simList.Update(filteredSims, m.simCursor, m.simViewport, m.filterActive, m.simSearchMode, m.simSearchQuery)
+
+	// Get title
+	title = simList.GetTitle(len(m.simulators))
+
+	// Get content
+	// Create content box
+	contentBox := components.NewContentBox(contentWidth, contentHeight)
+	if m.loadingSimulators {
+		// Show empty content while loading
+		content = contentBox.Render("", "", false)
 	} else {
-		headerText += ")"
-	}
-	s.WriteString(ui.FormatHeader(headerText, m.width))
-
-	// Calculate visible range
-	itemsPerScreen := CalculateItemsPerScreen(m.height)
-	startIdx := m.simViewport
-	endIdx := m.simViewport + itemsPerScreen
-	if endIdx > len(filteredSims) {
-		endIdx = len(filteredSims)
+		content = contentBox.Render("", simList.Render(), false)
 	}
 
-	// Calculate content width
-	contentWidth := m.width - 6 // Account for borders and padding
-	if contentWidth < 50 {
-		contentWidth = 50
-	}
+	// Get footer
+	footer = simList.GetFooter()
 
-	// Build list content
-	listContent := m.renderSimulatorList(filteredSims, startIdx, endIdx, contentWidth)
-	
-	// Pad content to fill the screen height
-	paddedContent := m.padContentToHeight(listContent, itemsPerScreen)
-
-	// Apply border and center
-	borderedList := ui.BorderStyle.Width(contentWidth).Render(paddedContent)
-	s.WriteString(m.centerContent(borderedList))
-
-	// Status message or search/filter display
-	if m.simSearchMode {
-		s.WriteString("\n")
-		searchStatus := fmt.Sprintf("Search: %s", m.simSearchQuery)
-		if m.simSearchQuery == "" {
-			searchStatus = "Search: (type to filter)"
-		}
-		
-		// Center the search status
-		if m.width > lipgloss.Width(searchStatus) {
-			leftPadding := (m.width - lipgloss.Width(searchStatus)) / 2
-			s.WriteString(strings.Repeat(" ", leftPadding))
-		}
-		s.WriteString(ui.SearchStyle.Render(searchStatus))
-		s.WriteString("\n")
-	} else if m.filterActive && m.statusMessage == "" {
-		// Show filter status when no other status message
-		s.WriteString("\n")
-		filterStatus := "Filter: Showing only simulators with apps"
-		
-		// Center the filter status
-		if m.width > lipgloss.Width(filterStatus) {
-			leftPadding := (m.width - lipgloss.Width(filterStatus)) / 2
-			s.WriteString(strings.Repeat(" ", leftPadding))
-		}
-		s.WriteString(ui.SearchStyle.Render(filterStatus))
-		s.WriteString("\n")
+	// Get status
+	if m.loadingSimulators {
+		status = ui.LoadingStyle.Render("Loading simulators...")
 	} else if m.statusMessage != "" {
-		s.WriteString("\n")
-		statusStyle := ui.FooterStyle.Copy()
 		if strings.Contains(m.statusMessage, "Error") || strings.Contains(m.statusMessage, "No apps installed") {
-			statusStyle = ui.ErrorStyle
+			status = ui.ErrorStyle.Render(m.statusMessage)
 		} else if strings.Contains(m.statusMessage, "successfully") {
-			statusStyle = statusStyle.Foreground(lipgloss.Color("42"))
-		}
-		
-		// Center the status message
-		if m.width > lipgloss.Width(m.statusMessage) {
-			leftPadding := (m.width - lipgloss.Width(m.statusMessage)) / 2
-			s.WriteString(strings.Repeat(" ", leftPadding))
-		}
-		s.WriteString(statusStyle.Render(m.statusMessage))
-		s.WriteString("\n")
-	} else {
-		s.WriteString("\n\n")
-	}
-
-	// Footer
-	footerText := ""
-	if m.simSearchMode {
-		footerText = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
-	} else {
-		footerText = "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • /: search • q: quit"
-	}
-	scrollInfo := ui.FormatScrollInfo(m.simViewport, itemsPerScreen, len(filteredSims))
-	
-	// Center the footer text
-	fullFooter := footerText + scrollInfo
-	if m.width > lipgloss.Width(fullFooter) {
-		leftPadding := (m.width - lipgloss.Width(fullFooter)) / 2
-		s.WriteString(strings.Repeat(" ", leftPadding))
-	}
-	s.WriteString(ui.FooterStyle.Render(fullFooter))
-
-	return s.String()
-}
-
-// renderSimulatorList renders the visible simulators
-func (m Model) renderSimulatorList(filteredSims []simulator.Item, startIdx, endIdx int, contentWidth int) string {
-	var listContent strings.Builder
-	innerWidth := contentWidth - 4 // Account for padding
-
-	for i := startIdx; i < endIdx; i++ {
-		sim := filteredSims[i]
-
-		// Format app count text
-		appCountText := ""
-		if sim.AppCount > 0 {
-			appCountText = fmt.Sprintf(" • %d app", sim.AppCount)
-			if sim.AppCount > 1 {
-				appCountText += "s"
-			}
-		} else if sim.AppCount == 0 {
-			// Show "0 apps" for both running and non-running simulators
-			appCountText = " • 0 apps"
-		}
-
-		if i == m.simCursor {
-			// Selected item
-			line1 := fmt.Sprintf("▶ %s", sim.Name)
-			line2 := fmt.Sprintf("  %s • %s%s", sim.Runtime, sim.StateDisplay(), appCountText)
-
-			// Pad to full width
-			line1 = ui.PadLine(line1, innerWidth)
-			line2 = ui.PadLine(line2, innerWidth)
-
-			listContent.WriteString(ui.SelectedStyle.Render(line1))
-			listContent.WriteString("\n")
-			listContent.WriteString(ui.SelectedStyle.Render(line2))
+			status = ui.FooterStyle.Copy().Foreground(ui.SuccessColor).Render(m.statusMessage)
 		} else {
-			// Non-selected item
-			var nameStyle, detailStyle lipgloss.Style
-			if sim.IsRunning() {
-				nameStyle = ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Inherit(ui.BootedStyle)
-				detailStyle = ui.ListItemStyle.Copy().Inherit(ui.BootedStyle)
-			} else {
-				nameStyle = ui.ListItemStyle.Copy().Inherit(ui.NameStyle)
-				detailStyle = ui.ListItemStyle.Copy().Inherit(ui.DetailStyle)
-			}
-
-			listContent.WriteString(nameStyle.Render(sim.Name))
-			listContent.WriteString("\n")
-			listContent.WriteString(detailStyle.Render(sim.Runtime + " • " + sim.StateDisplay() + appCountText))
+			status = ui.FooterStyle.Render(m.statusMessage)
 		}
-
-		if i < endIdx-1 {
-			listContent.WriteString("\n\n")
-		}
+	} else {
+		status = simList.GetStatus()
 	}
 
-	return listContent.String()
+	return
 }
 
-// centerContent centers content horizontally
-func (m Model) centerContent(content string) string {
-	lines := strings.Split(content, "\n")
-	if len(lines) == 0 {
-		return content
-	}
-
-	contentWidth := lipgloss.Width(lines[0])
-	if m.width <= contentWidth {
-		return content
-	}
-
-	var result strings.Builder
-	leftPadding := (m.width - contentWidth) / 2
-	paddingStr := strings.Repeat(" ", leftPadding)
-
-	for i, line := range lines {
-		if i > 0 {
-			result.WriteString("\n")
-		}
-		result.WriteString(paddingStr)
-		result.WriteString(line)
-	}
-
-	return result.String()
-}
-
-// viewAppList renders the app list view
-func (m Model) viewAppList() string {
-	if m.loadingApps {
-		return "Loading apps..."
-	}
-	
-	if m.selectedSim == nil {
-		return "No simulator selected"
-	}
-
-	var s strings.Builder
-
-	// Get filtered apps by search
+// renderAppListView renders the app list using components
+func (m Model) renderAppListView() (title, content, footer, status string) {
+	// Get filtered apps
 	filteredApps := m.getFilteredAndSearchedApps()
 
-	// Header with simulator name
-	headerText := fmt.Sprintf("%s Apps (%d", m.selectedSim.Name, len(filteredApps))
-	if m.appSearchQuery != "" {
-		headerText += fmt.Sprintf(" of %d)", len(m.apps))
-	} else {
-		headerText += ")"
-	}
-	s.WriteString(ui.FormatHeader(headerText, m.width))
-
-	// Calculate visible range
-	itemsPerScreen := CalculateItemsPerScreen(m.height)
-	startIdx := m.appViewport
-	endIdx := m.appViewport + itemsPerScreen
-	if endIdx > len(filteredApps) {
-		endIdx = len(filteredApps)
-	}
-
-	// Calculate content width
+	// Calculate available space
+	contentHeight := m.height - 8
 	contentWidth := m.width - 6
-	if contentWidth < 50 {
-		contentWidth = 50
+
+	// Create app list component
+	appList := components.NewAppList(contentWidth, contentHeight)
+	simName := ""
+	if m.selectedSim != nil {
+		simName = m.selectedSim.Name
 	}
+	appList.Update(filteredApps, m.appCursor, m.appViewport, m.appSearchMode, m.appSearchQuery, simName)
 
-	// Build app list content
-	var listContent strings.Builder
-	innerWidth := contentWidth - 4
+	// Get title
+	title = appList.GetTitle(len(m.apps))
 
-	if len(filteredApps) == 0 {
-		if m.appSearchQuery != "" {
-			listContent.WriteString(ui.DetailStyle.Render("No apps match your search"))
-		} else {
-			listContent.WriteString(ui.DetailStyle.Render("No apps installed"))
-		}
+	// Get content
+	// Create content box
+	contentBox := components.NewContentBox(contentWidth, contentHeight)
+	if m.loadingApps {
+		// Show empty content while loading
+		content = contentBox.Render("", "", false)
 	} else {
-		for i := startIdx; i < endIdx; i++ {
-			app := filteredApps[i]
-
-			// Format app details
-			sizeText := simulator.FormatSize(app.Size)
-			detailText := fmt.Sprintf("%s • %s", app.BundleID, sizeText)
-			if app.Version != "" {
-				detailText = fmt.Sprintf("%s • v%s • %s", app.BundleID, app.Version, sizeText)
-			}
-
-			if i == m.appCursor {
-				// Selected item
-				line1 := fmt.Sprintf("▶ %s", app.Name)
-				line2 := fmt.Sprintf("  %s", detailText)
-
-				// Pad to full width
-				line1 = ui.PadLine(line1, innerWidth)
-				line2 = ui.PadLine(line2, innerWidth)
-
-				listContent.WriteString(ui.SelectedStyle.Render(line1))
-				listContent.WriteString("\n")
-				listContent.WriteString(ui.SelectedStyle.Render(line2))
-			} else {
-				// Non-selected item
-				listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Render(app.Name))
-				listContent.WriteString("\n")
-				listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.DetailStyle).Render(detailText))
-			}
-
-			if i < endIdx-1 {
-				listContent.WriteString("\n\n")
-			}
-		}
+		content = contentBox.Render("", appList.Render(), false)
 	}
-	
-	// Pad content to fill the screen height
-	paddedContent := m.padContentToHeight(listContent.String(), itemsPerScreen)
 
-	// Apply border and center
-	borderedList := ui.BorderStyle.Width(contentWidth).Render(paddedContent)
-	s.WriteString(m.centerContent(borderedList))
+	// Get footer
+	footer = appList.GetFooter()
 
-	// Status message or search display
-	if m.appSearchMode {
-		s.WriteString("\n")
-		searchStatus := fmt.Sprintf("Search: %s", m.appSearchQuery)
-		if m.appSearchQuery == "" {
-			searchStatus = "Search: (type to filter)"
-		}
-		
-		// Center the search status
-		if m.width > lipgloss.Width(searchStatus) {
-			leftPadding := (m.width - lipgloss.Width(searchStatus)) / 2
-			s.WriteString(strings.Repeat(" ", leftPadding))
-		}
-		s.WriteString(ui.SearchStyle.Render(searchStatus))
-		s.WriteString("\n")
+	// Get status
+	if m.loadingApps {
+		status = ui.LoadingStyle.Render("Loading apps...")
+	} else if m.statusMessage != "" {
+		status = ui.FooterStyle.Render(m.statusMessage)
 	} else {
-		s.WriteString("\n\n")
+		status = appList.GetStatus()
 	}
 
-	// Footer
-	footerText := ""
-	if m.appSearchMode {
-		footerText = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
-	} else {
-		footerText = "↑/k: up • ↓/j: down • →/l: files • space: open in Finder • /: search • ←/h: back • q: quit"
-	}
-	scrollInfo := ui.FormatScrollInfo(m.appViewport, itemsPerScreen, len(filteredApps))
-	
-	// Center the footer text
-	fullFooter := footerText + scrollInfo
-	if m.width > lipgloss.Width(fullFooter) {
-		leftPadding := (m.width - lipgloss.Width(fullFooter)) / 2
-		s.WriteString(strings.Repeat(" ", leftPadding))
-	}
-	s.WriteString(ui.FooterStyle.Render(fullFooter))
-
-	return s.String()
+	return
 }
 
-// padContentToHeight pads content to fill the expected height
-func (m Model) padContentToHeight(content string, itemsPerScreen int) string {
-	lines := strings.Split(content, "\n")
-	currentLines := len(lines)
-	
-	// Calculate expected lines: itemsPerScreen * 3 (2 lines per item + 1 blank line)
-	// Subtract 1 because the last item doesn't have a trailing blank line
-	expectedLines := itemsPerScreen * 3 - 1
-	if itemsPerScreen > 0 && expectedLines < 2 {
-		expectedLines = 2 // Minimum of 2 lines
-	}
-	
-	// If content is already at or above expected height, return as is
-	if currentLines >= expectedLines {
-		return content
-	}
-	
-	// Add empty lines to reach expected height
-	var result strings.Builder
-	result.WriteString(content)
-	for i := currentLines; i < expectedLines; i++ {
-		result.WriteString("\n")
-	}
-	
-	return result.String()
-}
+// renderFileListView renders the file list using components
+func (m Model) renderFileListView() (title, content, footer, status string) {
+	// Calculate available space
+	contentHeight := m.height - 8
+	contentWidth := m.width - 6
 
-// viewFileList renders the file list view
-func (m Model) viewFileList() string {
+	// Create file list component
+	fileList := components.NewFileList(contentWidth, contentHeight)
+	fileList.Update(m.files, m.fileCursor, m.fileViewport, m.selectedApp, m.breadcrumbs)
+
+	// Get title
+	title = fileList.GetTitle()
+
+	// Get content
+	// Create content box
+	contentBox := components.NewContentBox(contentWidth, contentHeight)
 	if m.loadingFiles {
-		return "Loading files..."
-	}
-	
-	if m.selectedApp == nil {
-		return "No app selected"
-	}
-
-	var s strings.Builder
-
-	// Header with app name
-	headerText := fmt.Sprintf("%s Files", m.selectedApp.Name)
-	s.WriteString(ui.FormatHeader(headerText, m.width))
-
-	// Calculate visible range
-	// Use the full height for padding calculations
-	itemsPerScreen := CalculateItemsPerScreen(m.height)
-	
-	// But for file list viewport, we need to account for the extra header content
-	// Calculate how many files can actually fit given the header space
-	headerLines := 6 // App name (1) + app details (1) + spacing (2) + separator (2)
-	if len(m.breadcrumbs) > 0 {
-		headerLines += 2 // Breadcrumb line + spacing
-	}
-	
-	// Calculate actual space for files
-	availableHeight := m.height - 8 - headerLines // 8 is the standard reserved space
-	actualFileItems := availableHeight / 3 // Each file item takes 3 lines
-	if actualFileItems < 1 {
-		actualFileItems = 1
-	}
-	
-	startIdx := m.fileViewport
-	endIdx := m.fileViewport + actualFileItems
-	if endIdx > len(m.files) {
-		endIdx = len(m.files)
-	}
-
-	// Calculate content width
-	contentWidth := m.width - 6
-	if contentWidth < 50 {
-		contentWidth = 50
-	}
-
-	// Build file list content
-	var listContent strings.Builder
-	innerWidth := contentWidth - 4
-	
-	// Show app info at the top
-	listContent.WriteString(ui.NameStyle.Render(m.selectedApp.Name))
-	listContent.WriteString("\n")
-	appDetails := fmt.Sprintf("%s • v%s • %s", m.selectedApp.BundleID, m.selectedApp.Version, simulator.FormatSize(m.selectedApp.Size))
-	if m.selectedApp.Version == "" {
-		appDetails = fmt.Sprintf("%s • %s", m.selectedApp.BundleID, simulator.FormatSize(m.selectedApp.Size))
-	}
-	listContent.WriteString(ui.DetailStyle.Render(appDetails))
-	listContent.WriteString("\n\n")
-	
-	// Show breadcrumbs if not at root
-	if len(m.breadcrumbs) > 0 {
-		breadcrumbPath := strings.Join(m.breadcrumbs, "/") + "/"
-		listContent.WriteString(ui.DetailStyle.Copy().Foreground(lipgloss.Color("33")).Render(breadcrumbPath))
-		listContent.WriteString("\n\n")
-	}
-	
-	listContent.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
-	listContent.WriteString("\n\n")
-
-	if len(m.files) == 0 {
-		listContent.WriteString(ui.DetailStyle.Render("No files in folder"))
+		// Show empty content while loading
+		content = contentBox.Render("", "", false)
 	} else {
-		for i := startIdx; i < endIdx; i++ {
-			file := m.files[i]
-
-			// Format file name with directory indicator
-			fileName := file.Name
-			if file.IsDirectory {
-				fileName = fileName + "/"
-			}
-
-			// Format file details
-			sizeText := simulator.FormatSize(file.Size)
-			createdText := simulator.FormatFileDate(file.CreatedAt)
-			modifiedText := simulator.FormatFileDate(file.ModifiedAt)
-			detailText := fmt.Sprintf("%s • Created %s • Modified %s", sizeText, createdText, modifiedText)
-
-			if i == m.fileCursor {
-				// Selected item
-				line1 := fmt.Sprintf("▶ %s", fileName)
-				line2 := fmt.Sprintf("  %s", detailText)
-
-				// Pad to full width
-				line1 = ui.PadLine(line1, innerWidth)
-				line2 = ui.PadLine(line2, innerWidth)
-
-				listContent.WriteString(ui.SelectedStyle.Render(line1))
-				listContent.WriteString("\n")
-				listContent.WriteString(ui.SelectedStyle.Render(line2))
-			} else {
-				// Non-selected item
-				if file.IsDirectory {
-					listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Foreground(lipgloss.Color("33")).Render(fileName))
-				} else {
-					listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Render(fileName))
-				}
-				listContent.WriteString("\n")
-				listContent.WriteString(ui.ListItemStyle.Copy().Inherit(ui.DetailStyle).Render(detailText))
-			}
-
-			if i < endIdx-1 {
-				listContent.WriteString("\n\n")
-			}
-		}
+		content = contentBox.Render("", fileList.Render(), false)
 	}
-	
-	// Pad content to fill the screen height
-	paddedContent := m.padContentToHeight(listContent.String(), itemsPerScreen)
 
-	// Apply border and center
-	borderedList := ui.BorderStyle.Width(contentWidth).Render(paddedContent)
-	s.WriteString(m.centerContent(borderedList))
+	// Get footer
+	footer = fileList.GetFooter()
 
-	s.WriteString("\n\n")
-
-	// Footer
-	footerText := "↑/k: up • ↓/j: down"
-	if len(m.files) > 0 {
-		if m.files[m.fileCursor].IsDirectory {
-			footerText += " • →/l: enter"
-		} else {
-			footerText += " • →/l: view file"
-		}
-		footerText += " • space: open in Finder"
+	// Get status
+	if m.loadingFiles {
+		status = ui.LoadingStyle.Render("Loading files...")
+	} else if m.statusMessage != "" {
+		status = ui.FooterStyle.Render(m.statusMessage)
 	}
-	footerText += " • ←/h: back • q: quit"
-	scrollInfo := ui.FormatScrollInfo(m.fileViewport, itemsPerScreen, len(m.files))
-	
-	// Center the footer text
-	fullFooter := footerText + scrollInfo
-	if m.width > lipgloss.Width(fullFooter) {
-		leftPadding := (m.width - lipgloss.Width(fullFooter)) / 2
-		s.WriteString(strings.Repeat(" ", leftPadding))
-	}
-	s.WriteString(ui.FooterStyle.Render(fullFooter))
 
-	return s.String()
+	return
 }
 
+// renderFileViewerView renders the file viewer using components
+func (m Model) renderFileViewerView() (title, content, footer, status string) {
+	// Calculate available space for content
+	contentHeight := m.height - 8
+	contentWidth := m.width - 6
+	
+	// Create file viewer component with content dimensions
+	viewer := file_viewer.NewFileViewer(contentWidth, contentHeight)
+	viewer.Update(m.viewingFile, m.fileContent, m.contentViewport, m.contentOffset, m.svgWarning)
+
+	// Get title
+	title = viewer.GetTitle()
+
+	// Get content
+	// Create content box for all file types
+	contentBox := components.NewContentBox(contentWidth, contentHeight)
+	if m.loadingContent {
+		// Show empty content while loading
+		content = contentBox.Render("", "", false)
+	} else {
+		rawContent := viewer.Render()
+		content = contentBox.Render("", rawContent, false)
+	}
+
+	// Get footer
+	footer = viewer.GetFooter()
+
+	// Get status
+	if m.loadingContent {
+		status = ui.LoadingStyle.Render("Loading file...")
+	} else if m.statusMessage != "" {
+		status = ui.FooterStyle.Render(m.statusMessage)
+	} else if viewerStatus := viewer.GetStatus(); viewerStatus != "" {
+		status = viewerStatus
+	}
+
+	return
+}

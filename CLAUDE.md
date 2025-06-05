@@ -23,10 +23,20 @@ simtool/
 │   ├── tui/           # Terminal UI components
 │   │   ├── model.go       # Bubble Tea model
 │   │   ├── update.go      # Message handling
-│   │   ├── view.go        # Rendering logic
-│   │   ├── view_file.go   # File viewer rendering
+│   │   ├── view.go        # Main view orchestrator
 │   │   ├── viewport.go    # Scrolling logic
-│   │   └── keys.go        # Key bindings
+│   │   ├── keys.go        # Key bindings
+│   │   └── components/    # Reusable UI components
+│   │       ├── layout.go         # Base layout (title, content, footer)
+│   │       ├── simulator_list.go # Simulator list view
+│   │       ├── app_list.go       # App list view
+│   │       ├── file_list.go      # File browser view
+│   │       └── file_viewer/      # File viewer components
+│   │           ├── viewer.go     # Main file viewer
+│   │           ├── text.go       # Text file viewer
+│   │           ├── image.go      # Image file viewer
+│   │           ├── binary.go     # Binary file viewer
+│   │           └── archive.go    # Archive file viewer
 │   └── ui/            # UI styles and formatting
 │       ├── styles.go      # Lipgloss styles
 │       └── format.go      # Formatting helpers
@@ -98,9 +108,13 @@ The application follows clean architecture principles with clear separation of c
 2. **internal/tui**: Terminal UI logic (Bubble Tea MVU pattern)
    - Model: Application state (simulators, apps, files, cursor, viewport)
    - Update: Handles messages and state updates
-   - View: Renders simulator list, app list, file browser, and file viewer
+   - View: Main view orchestrator using component system
+   - Components: Reusable UI components with consistent layout
+     - Layout: Base responsive layout with title, content box, and footer
+     - Views: Separated simulator list, app list, file list components
+     - File viewers: Type-specific renderers for text, image, binary, and archive files
    - Viewport: Manages scrolling logic for all views
-   - Lazy loading for text files and dynamic chunk loading
+   - Responsive design that adapts to terminal window size
 
 3. **internal/ui**: UI styling and formatting
    - Centralized Lipgloss styles
@@ -116,8 +130,10 @@ The application follows clean architecture principles with clear separation of c
 
 - **Interface-based design**: Simulator fetcher is an interface for easy testing
 - **Package separation**: Clear boundaries between UI, business logic, and presentation
-- **Reusable components**: UI styles and formatting are centralized
+- **Component-based UI**: Reusable UI components with consistent layout and behavior
+- **Responsive design**: All views adapt to terminal window size
 - **Clean architecture**: Dependencies flow inward (UI → TUI → Simulator)
+- **Separation of concerns**: Each component handles its own rendering, state, and behavior
 
 ## Features
 
@@ -153,11 +169,15 @@ The application follows clean architecture principles with clear separation of c
 - Navigate with arrow keys (↑/↓) or vim keys (j/k)
 - Move between views with arrow keys (←/→) or vim keys (h/l)
 - Selected items highlighted with gray background
-- Centered UI elements with rounded borders
+- Responsive layout with consistent structure:
+  - Centered title at top with padding
+  - Rounded content box with padding
+  - Status line and centered footer at bottom
 - Smooth viewport scrolling for long lists
 - Centered key legends on all views
 - Status messages displayed in dedicated status area
 - Blue colored search and filter status indicators
+- Orange colored warnings (e.g., SVG rendering limitations)
 - Press 'q' or Ctrl+C to quit
 
 ## Key Dependencies

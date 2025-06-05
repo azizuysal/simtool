@@ -28,6 +28,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fetchSimulatorsMsg:
 		m.simulators = msg.simulators
 		m.err = msg.err
+		m.loadingSimulators = false
 		if m.simCursor >= len(m.simulators) {
 			m.simCursor = len(m.simulators) - 1
 		}

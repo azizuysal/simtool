@@ -21,16 +21,25 @@ func (m *Model) updateViewport() {
 	case AppListView:
 		updateViewportForList(&m.appCursor, &m.appViewport, len(m.apps), itemsPerScreen)
 	case FileListView:
-		// For file list, account for header content
+		// Calculate available height for content box
+		contentHeight := m.height - 8 // Title (4) + Footer (4)
+		
+		// Account for header inside content box
 		headerLines := 6 // App name (1) + app details (1) + spacing (2) + separator (2)
 		if len(m.breadcrumbs) > 0 {
 			headerLines += 2 // Breadcrumb line + spacing
 		}
-		availableHeight := m.height - 8 - headerLines
+		
+		// Available height for file items
+		availableHeight := contentHeight - headerLines
+		
+		// Each file item takes 3 lines (name + details + spacing)
+		// But we need to ensure we don't count partial items
 		actualFileItems := availableHeight / 3
 		if actualFileItems < 1 {
 			actualFileItems = 1
 		}
+		
 		updateViewportForList(&m.fileCursor, &m.fileViewport, len(m.files), actualFileItems)
 	}
 }

@@ -33,6 +33,7 @@ type Model struct {
 	simCursor     int
 	simViewport   int
 	booting       bool
+	loadingSimulators bool           // Whether simulators are being loaded
 	filterActive  bool               // Whether to show only sims with apps
 	simSearchMode bool               // Whether search is active in sim list
 	simSearchQuery string            // Current search query for sim list
@@ -71,6 +72,7 @@ type Model struct {
 func New(fetcher simulator.Fetcher) Model {
 	return Model{
 		fetcher: fetcher,
+		loadingSimulators: true,
 	}
 }
 

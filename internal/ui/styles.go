@@ -3,6 +3,9 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
+	// Color constants
+	SuccessColor = lipgloss.Color("42") // Green for success messages
+
 	// SelectedStyle is used for the currently selected item
 	SelectedStyle = lipgloss.NewStyle().
 		Background(lipgloss.Color("240")).
@@ -71,5 +74,15 @@ var (
 	// FolderStyle is used for folders/directories
 	FolderStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("87")).
+		Bold(true)
+
+	// StatusStyle is used for status messages in the status line
+	StatusStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("214")). // Orange
+		Bold(true)
+
+	// LoadingStyle is used for loading messages
+	LoadingStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("39")). // Blue
 		Bold(true)
 )
