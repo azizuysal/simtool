@@ -15,9 +15,9 @@ func (fv *FileViewer) renderBinary() string {
 
 	// File info header
 	info := fmt.Sprintf("Binary file • %s", simulator.FormatSize(fv.File.Size))
-	s.WriteString(ui.DetailStyle.Render(info))
+	s.WriteString(ui.DetailStyle().Render(info))
 	s.WriteString("\n")
-	s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+	s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 	s.WriteString("\n\n")
 
 	// Display hex dump
@@ -41,7 +41,7 @@ func (fv *FileViewer) renderBinary() string {
 			if lineCount > 0 {
 				s.WriteString("\n")
 			}
-			s.WriteString(ui.DetailStyle.Render(hexLines[i]))
+			s.WriteString(ui.DetailStyle().Render(hexLines[i]))
 			lineCount++
 		}
 

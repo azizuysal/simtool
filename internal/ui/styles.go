@@ -12,25 +12,116 @@ var (
 	styles *config.Styles
 	
 	// Legacy color constants (for backward compatibility)
-	SuccessColor lipgloss.Color
-
-	// Style variables for backward compatibility
-	SelectedStyle lipgloss.Style
-	NormalStyle   lipgloss.Style
-	BootedStyle   lipgloss.Style
-	ShutdownStyle lipgloss.Style
-	HeaderStyle   lipgloss.Style
-	ErrorStyle    lipgloss.Style
-	SearchStyle   lipgloss.Style
-	NameStyle     lipgloss.Style
-	DetailStyle   lipgloss.Style
-	BorderStyle   lipgloss.Style
-	ListItemStyle lipgloss.Style
-	FooterStyle   lipgloss.Style
-	FolderStyle   lipgloss.Style
-	StatusStyle   lipgloss.Style
-	LoadingStyle  lipgloss.Style
+	successColor lipgloss.Color
 )
+
+// Style getter functions that always return the current styles
+// This ensures components always use the latest styles after reload
+
+func SelectedStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Selected
+	}
+	return lipgloss.NewStyle()
+}
+
+func NormalStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Normal
+	}
+	return lipgloss.NewStyle()
+}
+
+func BootedStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Booted
+	}
+	return lipgloss.NewStyle()
+}
+
+func ShutdownStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Shutdown
+	}
+	return lipgloss.NewStyle()
+}
+
+func HeaderStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Header
+	}
+	return lipgloss.NewStyle()
+}
+
+func ErrorStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Error
+	}
+	return lipgloss.NewStyle()
+}
+
+func SearchStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Search
+	}
+	return lipgloss.NewStyle()
+}
+
+func NameStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Name
+	}
+	return lipgloss.NewStyle()
+}
+
+func DetailStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Detail
+	}
+	return lipgloss.NewStyle()
+}
+
+func BorderStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Border
+	}
+	return lipgloss.NewStyle()
+}
+
+func ListItemStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.ListItem
+	}
+	return lipgloss.NewStyle()
+}
+
+func FooterStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Footer
+	}
+	return lipgloss.NewStyle()
+}
+
+func FolderStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Folder
+	}
+	return lipgloss.NewStyle()
+}
+
+func StatusStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Status
+	}
+	return lipgloss.NewStyle()
+}
+
+func LoadingStyle() lipgloss.Style {
+	if styles != nil {
+		return styles.Loading
+	}
+	return lipgloss.NewStyle()
+}
 
 func init() {
 	// Load configuration
@@ -47,32 +138,21 @@ func init() {
 	// Get colors from the extracted theme
 	colors, _ := config.ExtractThemeColors(cfg.GetActiveTheme())
 	if colors != nil {
-		SuccessColor = config.ConvertToLipglossColor(colors.Success)
+		successColor = config.ConvertToLipglossColor(colors.Success)
 	} else {
 		// Extract from github-dark as absolute fallback
 		githubDarkColors, _ := config.ExtractThemeColors("github-dark")
 		if githubDarkColors != nil {
-			SuccessColor = config.ConvertToLipglossColor(githubDarkColors.Success)
+			successColor = config.ConvertToLipglossColor(githubDarkColors.Success)
 		} else {
-			SuccessColor = lipgloss.Color("") // No color if all fails
+			successColor = lipgloss.Color("") // No color if all fails
 		}
 	}
-	
-	SelectedStyle = styles.Selected
-	NormalStyle = styles.Normal
-	BootedStyle = styles.Booted
-	ShutdownStyle = styles.Shutdown
-	HeaderStyle = styles.Header
-	ErrorStyle = styles.Error
-	SearchStyle = styles.Search
-	NameStyle = styles.Name
-	DetailStyle = styles.Detail
-	BorderStyle = styles.Border
-	ListItemStyle = styles.ListItem
-	FooterStyle = styles.Footer
-	FolderStyle = styles.Folder
-	StatusStyle = styles.Status
-	LoadingStyle = styles.Loading
+}
+
+// SuccessColor returns the success color
+func SuccessColor() lipgloss.Color {
+	return successColor
 }
 
 // ReloadStyles reloads styles from configuration
@@ -90,32 +170,16 @@ func ReloadStyles() error {
 	// Get colors from the extracted theme
 	colors, _ := config.ExtractThemeColors(cfg.GetActiveTheme())
 	if colors != nil {
-		SuccessColor = config.ConvertToLipglossColor(colors.Success)
+		successColor = config.ConvertToLipglossColor(colors.Success)
 	} else {
 		// Extract from github-dark as absolute fallback
 		githubDarkColors, _ := config.ExtractThemeColors("github-dark")
 		if githubDarkColors != nil {
-			SuccessColor = config.ConvertToLipglossColor(githubDarkColors.Success)
+			successColor = config.ConvertToLipglossColor(githubDarkColors.Success)
 		} else {
-			SuccessColor = lipgloss.Color("") // No color if all fails
+			successColor = lipgloss.Color("") // No color if all fails
 		}
 	}
-	
-	SelectedStyle = styles.Selected
-	NormalStyle = styles.Normal
-	BootedStyle = styles.Booted
-	ShutdownStyle = styles.Shutdown
-	HeaderStyle = styles.Header
-	ErrorStyle = styles.Error
-	SearchStyle = styles.Search
-	NameStyle = styles.Name
-	DetailStyle = styles.Detail
-	BorderStyle = styles.Border
-	ListItemStyle = styles.ListItem
-	FooterStyle = styles.Footer
-	FolderStyle = styles.Folder
-	StatusStyle = styles.Status
-	LoadingStyle = styles.Loading
 	
 	return nil
 }

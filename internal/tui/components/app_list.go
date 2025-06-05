@@ -42,9 +42,9 @@ func (al *AppList) Update(apps []simulator.App, cursor, viewport int, searchMode
 func (al *AppList) Render() string {
 	if len(al.Apps) == 0 {
 		if al.SearchQuery != "" {
-			return ui.DetailStyle.Render("No apps match your search")
+			return ui.DetailStyle().Render("No apps match your search")
 		}
-		return ui.DetailStyle.Render("No apps installed")
+		return ui.DetailStyle().Render("No apps installed")
 	}
 
 	// Calculate items per screen
@@ -92,7 +92,7 @@ func (al *AppList) GetStatus() string {
 		if al.SearchQuery == "" {
 			searchStatus = "Search: (type to filter)"
 		}
-		return ui.SearchStyle.Render(searchStatus)
+		return ui.SearchStyle().Render(searchStatus)
 	}
 	return ""
 }
@@ -133,14 +133,14 @@ func (al *AppList) renderList(startIdx, endIdx int) string {
 			line1 = ui.PadLine(line1, innerWidth)
 			line2 = ui.PadLine(line2, innerWidth)
 
-			s.WriteString(ui.SelectedStyle.Render(line1))
+			s.WriteString(ui.SelectedStyle().Render(line1))
 			s.WriteString("\n")
-			s.WriteString(ui.SelectedStyle.Render(line2))
+			s.WriteString(ui.SelectedStyle().Render(line2))
 		} else {
 			// Non-selected item
-			s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Render(app.Name))
+			s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Render(app.Name))
 			s.WriteString("\n")
-			s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.DetailStyle).Render(detailText))
+			s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.DetailStyle()).Render(detailText))
 		}
 
 		if i < endIdx-1 {

@@ -37,7 +37,7 @@ func (dtl *DatabaseTableList) Update(dbInfo *simulator.DatabaseInfo, dbFile *sim
 // Render renders the database table list content
 func (dtl *DatabaseTableList) Render() string {
 	if dtl.DatabaseInfo == nil {
-		return ui.DetailStyle.Render("No database loaded")
+		return ui.DetailStyle().Render("No database loaded")
 	}
 
 	// Build header content
@@ -109,7 +109,7 @@ func (dtl *DatabaseTableList) buildHeader() string {
 	if dtl.DatabaseFile != nil {
 		dbName = dtl.DatabaseFile.Name
 	}
-	s.WriteString(ui.NameStyle.Render(dbName))
+	s.WriteString(ui.NameStyle().Render(dbName))
 	s.WriteString("\n")
 	
 	dbDetails := fmt.Sprintf("%s • %d tables • %s", 
@@ -123,7 +123,7 @@ func (dtl *DatabaseTableList) buildHeader() string {
 			dtl.DatabaseInfo.TableCount, 
 			simulator.FormatSize(dtl.DatabaseInfo.FileSize))
 	}
-	s.WriteString(ui.DetailStyle.Render(dbDetails))
+	s.WriteString(ui.DetailStyle().Render(dbDetails))
 
 	return s.String()
 }
@@ -137,13 +137,13 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 	if header != "" {
 		s.WriteString(header)
 		s.WriteString("\n\n")
-		s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 		s.WriteString("\n\n")
 	}
 
 	// Render table list
 	if len(dtl.DatabaseInfo.Tables) == 0 {
-		s.WriteString(ui.DetailStyle.Render("No tables found"))
+		s.WriteString(ui.DetailStyle().Render("No tables found"))
 	} else {
 		for i := startIdx; i < endIdx && i < len(dtl.DatabaseInfo.Tables); i++ {
 			table := dtl.DatabaseInfo.Tables[i]
@@ -180,9 +180,9 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 				line1 = ui.PadLine(line1, innerWidth)
 				line2 = ui.PadLine(line2, innerWidth)
 
-				s.WriteString(ui.SelectedStyle.Render(line1))
+				s.WriteString(ui.SelectedStyle().Render(line1))
 				s.WriteString("\n")
-				s.WriteString(ui.SelectedStyle.Render(line2))
+				s.WriteString(ui.SelectedStyle().Render(line2))
 			} else {
 				// Non-selected item
 				// Truncate colInfo to fit within innerWidth
@@ -190,9 +190,9 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 					colInfo = colInfo[:innerWidth-3] + "..."
 				}
 				
-				s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Render(tableName))
+				s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Render(tableName))
 				s.WriteString("\n")
-				s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.DetailStyle).Render(colInfo))
+				s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.DetailStyle()).Render(colInfo))
 			}
 		}
 	}

@@ -18,9 +18,9 @@ func (fv *FileViewer) renderText() string {
 	info := fmt.Sprintf("Text file • %d lines • %s",
 		fv.Content.TotalLines,
 		simulator.FormatSize(fv.File.Size))
-	s.WriteString(ui.DetailStyle.Render(info))
+	s.WriteString(ui.DetailStyle().Render(info))
 	s.WriteString("\n")
-	s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+	s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 	s.WriteString("\n\n")
 
 	// Calculate visible lines
@@ -47,7 +47,7 @@ func (fv *FileViewer) renderText() string {
 		// Line number
 		lineNum := fv.ContentOffset + i + 1
 		lineNumStr := fmt.Sprintf("%*d", maxLineNumWidth, lineNum)
-		s.WriteString(ui.DetailStyle.Render(lineNumStr + " │ "))
+		s.WriteString(ui.DetailStyle().Render(lineNumStr + " │ "))
 
 		// Line content with syntax highlighting
 		line := fv.Content.Lines[i]

@@ -333,6 +333,32 @@ func DetectTerminalDarkMode() bool {
 	return true
 }
 
+// DetectTerminalDarkModeLive performs live terminal theme detection without using cache
+// This is used for dynamic theme switching while the app is running
+func DetectTerminalDarkModeLive() bool {
+	// First check for explicit override
+	if override := os.Getenv("SIMTOOL_THEME_MODE"); override != "" {
+		switch strings.ToLower(override) {
+		case "light":
+			return false
+		case "dark":
+			return true
+		}
+	}
+	
+	// Skip cached result and do live detection
+	// Use the live version that works in TUI
+	result := QueryTerminalBackgroundLive()
+	if result == "light" {
+		return false
+	} else if result == "dark" {
+		return true
+	}
+	
+	// Default to dark mode if detection fails
+	return true
+}
+
 // ConvertToLipglossColor converts a hex color string to lipgloss.Color
 func ConvertToLipglossColor(hex string) lipgloss.Color {
 	return lipgloss.Color(hex)

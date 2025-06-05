@@ -46,8 +46,8 @@ func (c *Config) GenerateStyles() *Styles {
 	colors, err := ExtractThemeColors(themeName)
 	if err != nil {
 		log.Printf("Warning: failed to extract colors from theme %q: %v", themeName, err)
-		// Fallback to monokai
-		colors, _ = ExtractThemeColors("monokai")
+		// Fallback to github-dark
+		colors, _ = ExtractThemeColors("github-dark")
 	}
 	
 	return &Styles{
@@ -95,12 +95,10 @@ func (c *Config) GenerateStyles() *Styles {
 			Padding(1, 2),
 		
 		Footer: lipgloss.NewStyle().
-			Faint(true).
 			Foreground(ConvertToLipglossColor(colors.Muted)),
 		
 		// Content styles
 		Name: lipgloss.NewStyle().
-			Bold(true).
 			Foreground(ConvertToLipglossColor(colors.Primary)),
 		
 		Detail: lipgloss.NewStyle().
@@ -112,8 +110,7 @@ func (c *Config) GenerateStyles() *Styles {
 		
 		// Search and status styles
 		Search: lipgloss.NewStyle().
-			Foreground(ConvertToLipglossColor(colors.Info)).
-			Bold(true),
+			Foreground(ConvertToLipglossColor(colors.Info)),
 		
 		Status: lipgloss.NewStyle().
 			Foreground(ConvertToLipglossColor(colors.Warning)).

@@ -1,10 +1,12 @@
 package tui
 
 import (
+	"os"
 	"os/exec"
 	"time"
 	
 	tea "github.com/charmbracelet/bubbletea"
+	"simtool/internal/config"
 	"simtool/internal/simulator"
 )
 
@@ -80,13 +82,24 @@ type Model struct {
 	tableDataViewport int                  // Viewport position within table content
 	loadingDatabase bool                   // Whether database info is loading
 	loadingTableData bool                  // Whether table data is loading
+	
+	// Theme state
+	currentThemeMode string               // Current detected theme mode ("dark" or "light")
 }
 
 // New creates a new Model with the given fetcher
 func New(fetcher simulator.Fetcher) Model {
+	// Get initial theme mode
+	isDark := config.DetectTerminalDarkMode()
+	themeMode := "light"
+	if isDark {
+		themeMode = "dark"
+	}
+	
 	return Model{
 		fetcher: fetcher,
 		loadingSimulators: true,
+		currentThemeMode: themeMode,
 	}
 }
 
@@ -137,12 +150,47 @@ type fetchAppsMsg struct {
 // tickMsg is sent periodically to refresh simulator status
 type tickMsg time.Time
 
+// themeChangedMsg is sent when the terminal theme changes
+type themeChangedMsg struct {
+	newMode string // "dark" or "light"
+}
+
 // fetchAppsCmd fetches apps for a simulator
 func (m Model) fetchAppsCmd(sim simulator.Item) tea.Cmd {
 	return func() tea.Msg {
 		apps, err := simulator.GetAppsForSimulator(sim.UDID, sim.IsRunning())
 		return fetchAppsMsg{apps: apps, err: err}
 	}
+}
+
+// checkThemeChange detects if the terminal theme has changed
+// This is called periodically with the tick to enable dynamic theme switching
+// when the user changes their terminal's appearance
+func (m *Model) checkThemeChange() tea.Cmd {
+	// Skip theme detection if explicitly overridden
+	if os.Getenv("SIMTOOL_THEME_MODE") != "" {
+		return nil
+	}
+	
+	// Detect current theme mode (live, without cache)
+	isDark := config.DetectTerminalDarkModeLive()
+	newMode := "light"
+	if isDark {
+		newMode = "dark"
+	}
+	
+	// Debug: log theme detection
+	// os.WriteFile("/tmp/theme_debug.log", []byte(fmt.Sprintf("%s: current=%s detected=%s\n", time.Now().Format("15:04:05"), m.currentThemeMode, newMode)), 0644)
+	
+	// Check if theme has changed
+	if newMode != m.currentThemeMode {
+		// Theme has changed, return a command to handle it
+		return func() tea.Msg {
+			return themeChangedMsg{newMode: newMode}
+		}
+	}
+	
+	return nil
 }
 
 // fetchFilesMsg is sent when files are fetched

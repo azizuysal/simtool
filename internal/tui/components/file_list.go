@@ -109,20 +109,20 @@ func (fl *FileList) buildHeader() string {
 	var s strings.Builder
 
 	// App info
-	s.WriteString(ui.NameStyle.Render(fl.App.Name))
+	s.WriteString(ui.NameStyle().Render(fl.App.Name))
 	s.WriteString("\n")
 	
 	appDetails := fmt.Sprintf("%s • v%s • %s", fl.App.BundleID, fl.App.Version, simulator.FormatSize(fl.App.Size))
 	if fl.App.Version == "" {
 		appDetails = fmt.Sprintf("%s • %s", fl.App.BundleID, simulator.FormatSize(fl.App.Size))
 	}
-	s.WriteString(ui.DetailStyle.Render(appDetails))
+	s.WriteString(ui.DetailStyle().Render(appDetails))
 
 	// Breadcrumbs if not at root
 	if len(fl.Breadcrumbs) > 0 {
 		s.WriteString("\n\n")
 		breadcrumbPath := strings.Join(fl.Breadcrumbs, "/") + "/"
-		s.WriteString(ui.FolderStyle.Render(breadcrumbPath))
+		s.WriteString(ui.FolderStyle().Render(breadcrumbPath))
 	}
 
 	return s.String()
@@ -147,7 +147,7 @@ func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availa
 	if header != "" {
 		s.WriteString(header)
 		s.WriteString("\n\n")
-		s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 		s.WriteString("\n\n")
 	}
 
@@ -156,7 +156,7 @@ func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availa
 
 	// Render file list
 	if len(fl.Files) == 0 {
-		s.WriteString(ui.DetailStyle.Render("No files in folder"))
+		s.WriteString(ui.DetailStyle().Render("No files in folder"))
 		linesUsed = 1
 	} else {
 		for i := startIdx; i < endIdx && linesUsed < availableHeight; i++ {
@@ -189,18 +189,18 @@ func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availa
 				line1 = ui.PadLine(line1, innerWidth)
 				line2 = ui.PadLine(line2, innerWidth)
 
-				s.WriteString(ui.SelectedStyle.Render(line1))
+				s.WriteString(ui.SelectedStyle().Render(line1))
 				s.WriteString("\n")
-				s.WriteString(ui.SelectedStyle.Render(line2))
+				s.WriteString(ui.SelectedStyle().Render(line2))
 			} else {
 				// Non-selected item
 				if file.IsDirectory {
-					s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.FolderStyle).Render(fileName))
+					s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.FolderStyle()).Render(fileName))
 				} else {
-					s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Render(fileName))
+					s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Render(fileName))
 				}
 				s.WriteString("\n")
-				s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.DetailStyle).Render(detailText))
+				s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.DetailStyle()).Render(detailText))
 			}
 			linesUsed += 2 // Each item uses 2 lines
 		}

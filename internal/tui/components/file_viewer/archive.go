@@ -19,7 +19,7 @@ type treeNode struct {
 // renderArchive renders archive file content as a tree structure
 func (fv *FileViewer) renderArchive() string {
 	if fv.Content.ArchiveInfo == nil {
-		return ui.DetailStyle.Render("Error loading archive")
+		return ui.DetailStyle().Render("Error loading archive")
 	}
 
 	var s strings.Builder
@@ -37,9 +37,9 @@ func (fv *FileViewer) renderArchive() string {
 			archInfo.Format, archInfo.FileCount, archInfo.FolderCount)
 	}
 
-	s.WriteString(ui.DetailStyle.Render(infoStr))
+	s.WriteString(ui.DetailStyle().Render(infoStr))
 	s.WriteString("\n")
-	s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+	s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 	s.WriteString("\n\n")
 
 	// Build and render tree

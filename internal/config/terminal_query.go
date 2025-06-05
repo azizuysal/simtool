@@ -42,3 +42,11 @@ func isSystemDarkMode() bool {
 	return strings.TrimSpace(string(output)) == "Dark"
 }
 
+// QueryTerminalBackgroundLive attempts to detect terminal background for live updates
+// This version is designed to work even when running inside a TUI
+func QueryTerminalBackgroundLive() string {
+	// For now, just use system detection since OSC queries don't work in TUI
+	// In the future, we could try more sophisticated approaches
+	return queryMacOSTerminalBackground()
+}
+

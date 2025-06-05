@@ -52,6 +52,7 @@ A terminal UI application for managing iOS simulators on macOS.
 - Centered key legends showing available shortcuts
 - Dedicated status area for search and filter indicators
 - Theme-aware color scheme that adapts to dark/light mode
+- Dynamic theme switching - automatically updates when terminal theme changes
 - All UI colors derived from syntax highlighting themes for consistency
 
 ## Requirements
@@ -104,12 +105,13 @@ Configuration file location: `~/.config/simtool/config.toml` (or `$XDG_CONFIG_HO
 
 ### Terminal Theme Detection
 
-SimTool attempts to automatically detect your terminal's theme using:
-1. OSC escape sequences (supported by some terminals like WezTerm)
-2. macOS system appearance as a fallback
-3. Environment variable override (`SIMTOOL_THEME_MODE`)
+SimTool automatically detects your terminal's theme and dynamically updates its color scheme:
+1. **Live theme detection** - UI colors update automatically when you change your terminal theme
+2. **OSC escape sequences** - Supported by some terminals like WezTerm for accurate theme detection
+3. **macOS system appearance** - Used as a fallback when OSC queries aren't supported
+4. **Environment variable override** - `SIMTOOL_THEME_MODE` for manual control
 
-Note: Many modern terminals (VS Code, iTerm2) don't support OSC queries for security reasons.
+Note: Theme switching works best with terminals that support OSC queries. For terminals that don't (VS Code, iTerm2), use the environment variable or config file to set the theme.
 
 **To manually set the theme mode:**
 

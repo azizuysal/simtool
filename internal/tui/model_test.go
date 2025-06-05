@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -345,5 +346,80 @@ func TestViewStateConstants(t *testing.T) {
 	// Verify initial state
 	if SimulatorListView != 0 {
 		t.Error("Expected SimulatorListView to be the zero value")
+	}
+}
+
+func TestThemeChangedMsg(t *testing.T) {
+	msg := themeChangedMsg{
+		newMode: "dark",
+	}
+	
+	if msg.newMode != "dark" {
+		t.Errorf("Expected theme mode 'dark', got %q", msg.newMode)
+	}
+}
+
+func TestCheckThemeChange(t *testing.T) {
+	// Save original env var
+	originalOverride := os.Getenv("SIMTOOL_THEME_MODE")
+	defer func() {
+		if originalOverride != "" {
+			os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
+		} else {
+			os.Unsetenv("SIMTOOL_THEME_MODE")
+		}
+	}()
+
+	tests := []struct {
+		name            string
+		currentMode     string
+		envOverride     string
+		expectCommand   bool
+	}{
+		{
+			name:          "with override - no detection",
+			currentMode:   "dark",
+			envOverride:   "dark",
+			expectCommand: false,
+		},
+		{
+			name:          "with override light - no detection",
+			currentMode:   "light",
+			envOverride:   "light",
+			expectCommand: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set up environment
+			if tt.envOverride != "" {
+				os.Setenv("SIMTOOL_THEME_MODE", tt.envOverride)
+			} else {
+				os.Unsetenv("SIMTOOL_THEME_MODE")
+			}
+
+			model := &Model{
+				currentThemeMode: tt.currentMode,
+			}
+
+			cmd := model.checkThemeChange()
+			
+			if tt.expectCommand && cmd == nil {
+				t.Error("Expected checkThemeChange to return a command")
+			} else if !tt.expectCommand && cmd != nil {
+				t.Error("Expected checkThemeChange to return nil")
+			}
+		})
+	}
+}
+
+func TestNewModelThemeMode(t *testing.T) {
+	fetcher := &mockFetcher{}
+	model := New(fetcher)
+	
+	// Model should have a theme mode set
+	if model.currentThemeMode != "dark" && model.currentThemeMode != "light" {
+		t.Errorf("Expected currentThemeMode to be 'dark' or 'light', got %q", model.currentThemeMode)
 	}
 }

@@ -12,7 +12,7 @@ import (
 func (m Model) View() string {
 	// Handle errors
 	if m.err != nil {
-		return ui.ErrorStyle.Render("Error: " + m.err.Error())
+		return ui.ErrorStyle().Render("Error: " + m.err.Error())
 	}
 
 	// Create layout
@@ -75,14 +75,14 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 
 	// Get status
 	if m.loadingSimulators {
-		status = ui.LoadingStyle.Render("Loading simulators...")
+		status = ui.LoadingStyle().Render("Loading simulators...")
 	} else if m.statusMessage != "" {
 		if strings.Contains(m.statusMessage, "Error") || strings.Contains(m.statusMessage, "No apps installed") {
-			status = ui.ErrorStyle.Render(m.statusMessage)
+			status = ui.ErrorStyle().Render(m.statusMessage)
 		} else if strings.Contains(m.statusMessage, "successfully") {
-			status = ui.FooterStyle.Copy().Foreground(ui.SuccessColor).Render(m.statusMessage)
+			status = ui.FooterStyle().Copy().Foreground(ui.SuccessColor()).Render(m.statusMessage)
 		} else {
-			status = ui.FooterStyle.Render(m.statusMessage)
+			status = ui.FooterStyle().Render(m.statusMessage)
 		}
 	} else {
 		status = simList.GetStatus()
@@ -126,9 +126,9 @@ func (m Model) renderAppListView() (title, content, footer, status string) {
 
 	// Get status
 	if m.loadingApps {
-		status = ui.LoadingStyle.Render("Loading apps...")
+		status = ui.LoadingStyle().Render("Loading apps...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle.Render(m.statusMessage)
+		status = ui.FooterStyle().Render(m.statusMessage)
 	} else {
 		status = appList.GetStatus()
 	}
@@ -164,9 +164,9 @@ func (m Model) renderFileListView() (title, content, footer, status string) {
 
 	// Get status
 	if m.loadingFiles {
-		status = ui.LoadingStyle.Render("Loading files...")
+		status = ui.LoadingStyle().Render("Loading files...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle.Render(m.statusMessage)
+		status = ui.FooterStyle().Render(m.statusMessage)
 	}
 
 	return
@@ -201,9 +201,9 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 
 	// Get status
 	if m.loadingContent {
-		status = ui.LoadingStyle.Render("Loading file...")
+		status = ui.LoadingStyle().Render("Loading file...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle.Render(m.statusMessage)
+		status = ui.FooterStyle().Render(m.statusMessage)
 	} else if viewerStatus := viewer.GetStatus(); viewerStatus != "" {
 		status = viewerStatus
 	}
@@ -239,9 +239,9 @@ func (m Model) renderDatabaseTableListView() (title, content, footer, status str
 
 	// Get status
 	if m.loadingDatabase {
-		status = ui.LoadingStyle.Render("Loading database...")
+		status = ui.LoadingStyle().Render("Loading database...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle.Render(m.statusMessage)
+		status = ui.FooterStyle().Render(m.statusMessage)
 	}
 
 	return
@@ -275,9 +275,9 @@ func (m Model) renderDatabaseTableContentView() (title, content, footer, status 
 
 	// Get status
 	if m.loadingTableData {
-		status = ui.LoadingStyle.Render("Loading table data...")
+		status = ui.LoadingStyle().Render("Loading table data...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle.Render(m.statusMessage)
+		status = ui.FooterStyle().Render(m.statusMessage)
 	}
 
 	return

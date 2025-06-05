@@ -11,7 +11,7 @@ import (
 // renderDatabase renders database file content
 func (fv *FileViewer) renderDatabase() string {
 	if fv.Content.DatabaseInfo == nil {
-		return ui.DetailStyle.Render("Error loading database")
+		return ui.DetailStyle().Render("Error loading database")
 	}
 
 	var s strings.Builder
@@ -28,14 +28,14 @@ func (fv *FileViewer) renderDatabase() string {
 			dbInfo.Format, dbInfo.Version, dbInfo.TableCount, simulator.FormatSize(dbInfo.FileSize))
 	}
 
-	s.WriteString(ui.DetailStyle.Render(info))
+	s.WriteString(ui.DetailStyle().Render(info))
 	s.WriteString("\n")
-	s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+	s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 	s.WriteString("\n\n")
 
 	// Handle errors
 	if dbInfo.Error != "" {
-		s.WriteString(ui.ErrorStyle.Render("Error: " + dbInfo.Error))
+		s.WriteString(ui.ErrorStyle().Render("Error: " + dbInfo.Error))
 		return s.String()
 	}
 
@@ -46,7 +46,7 @@ func (fv *FileViewer) renderDatabase() string {
 // renderDatabaseTables renders the database tables with scrolling support
 func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) string {
 	if len(dbInfo.Tables) == 0 {
-		return ui.DetailStyle.Render("No tables found")
+		return ui.DetailStyle().Render("No tables found")
 	}
 
 	var s strings.Builder
@@ -72,7 +72,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 
 		// Table header with icon
 		tableHeader := fmt.Sprintf("🗃️  %s (%d rows)", table.Name, table.RowCount)
-		s.WriteString(ui.NameStyle.Render(tableHeader))
+		s.WriteString(ui.NameStyle().Render(tableHeader))
 		s.WriteString("\n")
 		linesUsed++
 
@@ -108,14 +108,14 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 			}
 			
 			colInfo := "Columns: " + strings.Join(colStrs, ", ")
-			s.WriteString(ui.DetailStyle.Render(colInfo))
+			s.WriteString(ui.DetailStyle().Render(colInfo))
 			s.WriteString("\n")
 			linesUsed++
 		}
 
 		// Sample data preview
 		if len(table.Sample) > 0 && linesUsed < availableHeight {
-			s.WriteString(ui.DetailStyle.Render("Sample data:"))
+			s.WriteString(ui.DetailStyle().Render("Sample data:"))
 			s.WriteString("\n")
 			linesUsed++
 
@@ -161,7 +161,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 
 				rowStr := rowPrefix + strings.Join(values, " | ")
 
-				s.WriteString(ui.DetailStyle.Render(rowStr))
+				s.WriteString(ui.DetailStyle().Render(rowStr))
 				if j < len(table.Sample)-1 && linesUsed+1 < availableHeight {
 					s.WriteString("\n")
 					linesUsed++
@@ -185,7 +185,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 				schemaPreview = schemaPreview[:remainingWidth-3] + "..."
 			}
 			
-			s.WriteString(ui.DetailStyle.Copy().Foreground(ui.DetailStyle.GetForeground()).Render(schemaPrefix + schemaPreview))
+			s.WriteString(ui.DetailStyle().Copy().Foreground(ui.DetailStyle().GetForeground()).Render(schemaPrefix + schemaPreview))
 			linesUsed += 2
 		}
 	}

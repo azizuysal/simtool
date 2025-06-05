@@ -40,7 +40,7 @@ func (dtc *DatabaseTableContent) Update(table *simulator.TableInfo, data []map[s
 // Render renders the table content
 func (dtc *DatabaseTableContent) Render() string {
 	if dtc.Table == nil {
-		return ui.DetailStyle.Render("No table selected")
+		return ui.DetailStyle().Render("No table selected")
 	}
 
 	// Build header content
@@ -94,11 +94,11 @@ func (dtc *DatabaseTableContent) buildHeader() string {
 	var s strings.Builder
 
 	// Table info
-	s.WriteString(ui.NameStyle.Render(dtc.Table.Name))
+	s.WriteString(ui.NameStyle().Render(dtc.Table.Name))
 	s.WriteString("\n")
 	
 	tableDetails := fmt.Sprintf("%d rows • %d columns", dtc.Table.RowCount, len(dtc.Table.Columns))
-	s.WriteString(ui.DetailStyle.Render(tableDetails))
+	s.WriteString(ui.DetailStyle().Render(tableDetails))
 
 	return s.String()
 }
@@ -112,7 +112,7 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 	if header != "" {
 		s.WriteString(header)
 		s.WriteString("\n\n")
-		s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 		s.WriteString("\n\n")
 	}
 
@@ -211,16 +211,16 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 			headerStr += " | ..."
 		}
 		
-		s.WriteString(ui.NameStyle.Render(headerStr))
+		s.WriteString(ui.NameStyle().Render(headerStr))
 		s.WriteString("\n")
-		s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 		s.WriteString("\n")
 		availableHeight -= 3 // Account for column headers
 	}
 
 	// Show table data
 	if len(dtc.TableData) == 0 {
-		s.WriteString(ui.DetailStyle.Render("No data"))
+		s.WriteString(ui.DetailStyle().Render("No data"))
 	} else {
 		linesUsed := 0
 		startIdx := dtc.Viewport
@@ -275,7 +275,7 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 				rowStr += " | ..."
 			}
 			
-			s.WriteString(ui.DetailStyle.Render(rowStr))
+			s.WriteString(ui.DetailStyle().Render(rowStr))
 			linesUsed++
 		}
 	}

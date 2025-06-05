@@ -39,7 +39,7 @@ func (fv *FileViewer) Update(file *simulator.FileInfo, content *simulator.FileCo
 // Render renders the file content based on type
 func (fv *FileViewer) Render() string {
 	if fv.File == nil || fv.Content == nil {
-		return ui.DetailStyle.Render("No file selected")
+		return ui.DetailStyle().Render("No file selected")
 	}
 
 	switch fv.Content.Type {
@@ -54,7 +54,7 @@ func (fv *FileViewer) Render() string {
 	case simulator.FileTypeDatabase:
 		return fv.renderDatabase()
 	default:
-		return ui.DetailStyle.Render("Unknown file type")
+		return ui.DetailStyle().Render("Unknown file type")
 	}
 }
 
@@ -82,7 +82,7 @@ func (fv *FileViewer) GetFooter() string {
 // GetStatus returns the status message for the file viewer
 func (fv *FileViewer) GetStatus() string {
 	if fv.SVGWarning != "" {
-		return ui.StatusStyle.Render(fv.SVGWarning)
+		return ui.StatusStyle().Render(fv.SVGWarning)
 	}
 	return ""
 }

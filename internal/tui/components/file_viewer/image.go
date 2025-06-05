@@ -11,7 +11,7 @@ import (
 // renderImage renders image file content with preview
 func (fv *FileViewer) renderImage() string {
 	if fv.Content.ImageInfo == nil {
-		return ui.DetailStyle.Render("Error loading image")
+		return ui.DetailStyle().Render("Error loading image")
 	}
 
 	return fv.renderImageContent()
@@ -28,9 +28,9 @@ func (fv *FileViewer) renderImageContent() string {
 		fv.Content.ImageInfo.Width,
 		fv.Content.ImageInfo.Height,
 		simulator.FormatSize(fv.Content.ImageInfo.Size))
-	s.WriteString(ui.DetailStyle.Render(info))
+	s.WriteString(ui.DetailStyle().Render(info))
 	s.WriteString("\n")
-	s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+	s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 	s.WriteString("\n\n")
 	
 	// Count lines used by header

@@ -136,8 +136,8 @@ func (c *Config) GetActiveTheme() string {
 	case "auto":
 		fallthrough
 	default:
-		// Auto-detect terminal mode
-		if DetectTerminalDarkMode() {
+		// Auto-detect terminal mode using live detection for dynamic switching
+		if DetectTerminalDarkModeLive() {
 			return c.Theme.DarkTheme
 		}
 		return c.Theme.LightTheme

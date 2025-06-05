@@ -9,6 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"simtool/internal/simulator"
+	"simtool/internal/ui"
 )
 
 // clearStatusMsg is sent to clear the status message
@@ -90,13 +91,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tickMsg:
-		// Periodically refresh simulator status
-		return m, tea.Batch(
+		// Periodically refresh simulator status and check theme
+		cmds := []tea.Cmd{
 			fetchSimulatorsCmd(m.fetcher),
 			tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
 				return tickMsg(t)
 			}),
-		)
+		}
+		
+		// Check if theme mode has changed
+		cmd := m.checkThemeChange()
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		
+		return m, tea.Batch(cmds...)
+		
+	case themeChangedMsg:
+		// Theme has changed, update model and reload styles
+		m.currentThemeMode = msg.newMode
+		
+		// Reload styles from config with new theme
+		if err := ui.ReloadStyles(); err != nil {
+			m.statusMessage = fmt.Sprintf("Failed to reload theme: %v", err)
+			// Clear error message after a delay
+			return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		}
+		
+		// Simply return the model - styles will be picked up on next render
+		return m, nil
 		
 	case fetchFilesMsg:
 		m.files = msg.files

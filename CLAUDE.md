@@ -159,6 +159,14 @@ The application follows clean architecture principles with clear separation of c
 - **Responsive design**: All views adapt to terminal window size
 - **Clean architecture**: Dependencies flow inward (UI → TUI → Simulator)
 - **Separation of concerns**: Each component handles its own rendering, state, and behavior
+- **Dynamic style system**: All styles exposed as getter functions instead of static values
+  - Enables real-time theme updates without restart
+  - Prevents style caching issues in Bubble Tea
+  - Consistent style generation between initial load and theme changes
+- **Live theme detection**: Uses `DetectTerminalDarkModeLive()` for dynamic switching
+  - Bypasses cached detection results
+  - Checks terminal theme every 2 seconds during tick updates
+  - Seamless UI color updates without layout disruption
 
 ## Features
 
@@ -213,6 +221,7 @@ The application follows clean architecture principles with clear separation of c
 - Theme-aware colored search and filter status indicators
 - Theme-aware colored warnings (e.g., SVG rendering limitations)
 - All UI colors automatically adapt to selected theme
+- Dynamic theme switching - UI updates when terminal theme changes
 - Press 'q' or Ctrl+C to quit
 
 ## Configuration
@@ -224,12 +233,17 @@ The application supports theme-based customization through TOML configuration:
 - All UI colors are derived from the selected syntax highlighting theme
 - No hardcoded colors - everything is theme-based
 - Supports 60+ built-in themes from the chroma library
+- Dynamic theme switching:
+  - Live detection - UI updates automatically when terminal theme changes
+  - Checks every 2 seconds for theme changes
+  - Smooth transition without layout disruption
 - Automatic dark/light mode detection:
-  - OSC escape sequence queries (supported by some terminals)
+  - OSC escape sequence queries (supported by some terminals like WezTerm)
   - macOS system appearance as fallback
   - Environment variable override (`SIMTOOL_THEME_MODE`)
 - Theme colors are intelligently extracted to create a cohesive color scheme
 - Contrast adjustments ensure readability in both light and dark themes
+- All styles are generated dynamically using getter functions for real-time updates
 
 ## Key Dependencies
 

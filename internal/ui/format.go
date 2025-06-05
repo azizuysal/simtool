@@ -9,7 +9,7 @@ import (
 
 // FormatHeader creates a centered header
 func FormatHeader(text string, width int) string {
-	header := HeaderStyle.Render(text)
+	header := HeaderStyle().Render(text)
 	headerWidth := lipgloss.Width(header)
 
 	var result strings.Builder
@@ -35,7 +35,7 @@ func FormatFooter(text string, contentWidth, totalWidth int) string {
 		leftPadding := (totalWidth - contentWidth) / 2
 		result.WriteString(strings.Repeat(" ", leftPadding))
 	}
-	result.WriteString(FooterStyle.Render(text))
+	result.WriteString(FooterStyle().Render(text))
 	
 	return result.String()
 }

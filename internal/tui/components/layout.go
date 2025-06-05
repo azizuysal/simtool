@@ -29,12 +29,12 @@ func (l *Layout) Render(title, content, footer, status string) string {
 	titleSection := l.renderTitle(title)
 	footerSection := l.renderFooter(footer, status)
 	
-	// Count actual lines used by title and footer
-	titleLines := strings.Count(titleSection, "\n") + 1
-	footerLines := strings.Count(footerSection, "\n") + 1
+	// Use lipgloss to measure actual rendered height
+	titleHeight := lipgloss.Height(titleSection)
+	footerHeight := lipgloss.Height(footerSection)
 	
 	// Calculate remaining height for content
-	contentHeight := l.Height - titleLines - footerLines
+	contentHeight := l.Height - titleHeight - footerHeight
 	if contentHeight < 5 {
 		contentHeight = 5
 	}
@@ -55,7 +55,7 @@ func (l *Layout) renderTitle(title string) string {
 	s.WriteString("\n")
 	
 	// Use the theme-based header style
-	headerStyle := ui.HeaderStyle.Copy().MarginBottom(0)
+	headerStyle := ui.HeaderStyle().Copy().MarginBottom(0)
 	
 	header := headerStyle.Render(title)
 	headerWidth := lipgloss.Width(header)
@@ -96,7 +96,7 @@ func (l *Layout) renderContent(content string, height int) string {
 	}
 
 	// Apply border with rounded corners
-	borderedContent := ui.BorderStyle.
+	borderedContent := ui.BorderStyle().
 		Width(contentWidth).
 		Render(content)
 
@@ -126,11 +126,12 @@ func (l *Layout) renderFooter(footer, status string) string {
 	}
 
 	// Footer key legend
-	if l.Width > lipgloss.Width(footer) {
-		leftPadding := (l.Width - lipgloss.Width(footer)) / 2
+	styledFooter := ui.FooterStyle().Render(footer)
+	if l.Width > lipgloss.Width(styledFooter) {
+		leftPadding := (l.Width - lipgloss.Width(styledFooter)) / 2
 		s.WriteString(strings.Repeat(" ", leftPadding))
 	}
-	s.WriteString(ui.FooterStyle.Render(footer))
+	s.WriteString(styledFooter)
 
 	// Bottom padding line
 	s.WriteString("\n")
@@ -200,7 +201,7 @@ func (cb *ContentBox) Render(header, content string, hasHeader bool) string {
 		s.WriteString("\n\n")
 		
 		// Separator line
-		s.WriteString(ui.DetailStyle.Render(strings.Repeat("─", innerWidth)))
+		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 		s.WriteString("\n\n")
 
 		// Adjust height for content

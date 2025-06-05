@@ -42,7 +42,7 @@ func (sl *SimulatorList) Update(simulators []simulator.Item, cursor, viewport in
 // Render renders the simulator list content
 func (sl *SimulatorList) Render() string {
 	if len(sl.Simulators) == 0 {
-		return ui.DetailStyle.Render("No simulators found")
+		return ui.DetailStyle().Render("No simulators found")
 	}
 
 	// Calculate items per screen
@@ -90,9 +90,9 @@ func (sl *SimulatorList) GetStatus() string {
 		if sl.SearchQuery == "" {
 			searchStatus = "Search: (type to filter)"
 		}
-		return ui.SearchStyle.Render(searchStatus)
+		return ui.SearchStyle().Render(searchStatus)
 	} else if sl.FilterActive {
-		return ui.SearchStyle.Render("Filter: Showing only simulators with apps")
+		return ui.SearchStyle().Render("Filter: Showing only simulators with apps")
 	}
 	return ""
 }
@@ -137,18 +137,18 @@ func (sl *SimulatorList) renderList(startIdx, endIdx int) string {
 			line1 = ui.PadLine(line1, innerWidth)
 			line2 = ui.PadLine(line2, innerWidth)
 
-			s.WriteString(ui.SelectedStyle.Render(line1))
+			s.WriteString(ui.SelectedStyle().Render(line1))
 			s.WriteString("\n")
-			s.WriteString(ui.SelectedStyle.Render(line2))
+			s.WriteString(ui.SelectedStyle().Render(line2))
 		} else {
 			// Non-selected item
 			var nameStyle, detailStyle lipgloss.Style
 			if sim.IsRunning() {
-				nameStyle = ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Inherit(ui.BootedStyle)
-				detailStyle = ui.ListItemStyle.Copy().Inherit(ui.BootedStyle)
+				nameStyle = ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Inherit(ui.BootedStyle())
+				detailStyle = ui.ListItemStyle().Copy().Inherit(ui.BootedStyle())
 			} else {
-				nameStyle = ui.ListItemStyle.Copy().Inherit(ui.NameStyle)
-				detailStyle = ui.ListItemStyle.Copy().Inherit(ui.DetailStyle)
+				nameStyle = ui.ListItemStyle().Copy().Inherit(ui.NameStyle())
+				detailStyle = ui.ListItemStyle().Copy().Inherit(ui.DetailStyle())
 			}
 
 			s.WriteString(nameStyle.Render(sim.Name))
