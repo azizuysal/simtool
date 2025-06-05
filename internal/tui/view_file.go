@@ -516,20 +516,6 @@ func (m Model) viewFileContent() string {
 		}
 	}
 	
-	// Display SVG warning if present
-	if m.svgWarning != "" {
-		warningStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("214")). // Orange color
-			Align(lipgloss.Center)
-		
-		borderedWidth := lipgloss.Width(strings.Split(borderedList, "\n")[0])
-		warningText := warningStyle.Width(borderedWidth).Render(m.svgWarning)
-		centeredWarning := m.centerContent(warningText)
-		s.WriteString("\n")
-		s.WriteString(centeredWarning)
-		s.WriteString("\n")
-	}
-	
 	s.WriteString(ui.FormatFooter(footerText,
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
 

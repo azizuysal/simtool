@@ -16,6 +16,8 @@ A terminal UI application for managing iOS simulators on macOS.
 - View file contents with syntax highlighting
 - Display images with terminal-based previews
 - View binary files in hex dump format
+- View ZIP archives as tree structure
+- View SVG files with terminal-based previews
 - Open files and folders in Finder
 - Navigate with arrow keys or vim-style keys
 - Smooth scrolling for long lists
@@ -84,6 +86,7 @@ simtool
 - **Images**: Metadata box and terminal-based preview
 - **Binary files**: Hex dump with ASCII representation
 - **ZIP archives**: Tree view with file/folder counts and overall compression ratio
+- **SVG files**: Metadata and terminal-based preview using ASCII art
 
 ## Development
 

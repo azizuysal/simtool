@@ -93,6 +93,7 @@ The application follows clean architecture principles with clear separation of c
    - Generates terminal-based image previews
    - Formats hex dumps for binary files
    - Displays ZIP archive contents with file listings
+   - Generates SVG previews as ASCII art
 
 2. **internal/tui**: Terminal UI logic (Bubble Tea MVU pattern)
    - Model: Application state (simulators, apps, files, cursor, viewport)
@@ -135,6 +136,7 @@ The application follows clean architecture principles with clear separation of c
 - Display images with terminal-based previews
 - View binary files in hex dump format
 - View ZIP archives as tree structure
+- View SVG files with terminal-based previews
 - Open files and folders in Finder
 - Lazy loading for large files
 - Smart file type detection based on content and extension
