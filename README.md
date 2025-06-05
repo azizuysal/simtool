@@ -35,6 +35,11 @@ A terminal UI application for managing iOS simulators on macOS.
 - **SVG files**: ASCII art previews with dimension information
 - **Binary files**: Hex dump format with offset and ASCII preview
 - **Archives**: Tree structure view for ZIP, JAR, WAR, EAR, IPA, APK, AAR files
+- **Database files**: SQLite database browser with two-stage navigation
+  - Table list view showing all tables in the database
+  - Table content view with paginated data, column headers, and proper alignment
+  - Smart handling of binary data with box character (□) substitution
+  - Rune-aware column width calculation for proper multi-byte character support
 - Lazy loading for large files with automatic chunking
 
 ### User Interface
@@ -128,6 +133,10 @@ simtool
 - **Binary files**: Hex dump with ASCII representation
 - **ZIP archives**: Tree view with file/folder counts and overall compression ratio
 - **SVG files**: Metadata and terminal-based preview using ASCII art
+- **Database files**: 
+  - Table list with schema information
+  - Table content viewer with proper column alignment
+  - Pagination controls showing current data range (e.g., "1-50 of 1000")
 
 ## Development
 

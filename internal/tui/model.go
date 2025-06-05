@@ -16,6 +16,8 @@ const (
 	AppListView
 	FileListView
 	FileViewerView
+	DatabaseTableListView
+	DatabaseTableContentView
 )
 
 // Model represents the application state
@@ -66,6 +68,18 @@ type Model struct {
 	contentViewport int               // Viewport position within file content
 	loadingContent bool
 	svgWarning    string              // Warning message for SVG files with unsupported features
+	
+	// Database state
+	viewingDatabase *simulator.FileInfo    // The database file being viewed
+	databaseInfo    *simulator.DatabaseInfo // Database metadata and table list
+	selectedTable   *simulator.TableInfo   // Currently selected table
+	tableData       []map[string]any       // Current page of table data
+	tableCursor     int                    // Cursor in table list
+	tableViewport   int                    // Viewport in table list
+	tableDataOffset int                    // Row offset for table content pagination
+	tableDataViewport int                  // Viewport position within table content
+	loadingDatabase bool                   // Whether database info is loading
+	loadingTableData bool                  // Whether table data is loading
 }
 
 // New creates a new Model with the given fetcher
@@ -189,5 +203,34 @@ func (m Model) fetchFileContentCmd(path string, offset int) tea.Cmd {
 		}
 		content, err := simulator.ReadFileContent(path, offset, maxLines)
 		return fetchFileContentMsg{content: content, err: err}
+	}
+}
+
+// fetchDatabaseInfoMsg is sent when database info is fetched
+type fetchDatabaseInfoMsg struct {
+	dbInfo *simulator.DatabaseInfo
+	err    error
+}
+
+// fetchDatabaseInfoCmd fetches database information
+func (m Model) fetchDatabaseInfoCmd(path string) tea.Cmd {
+	return func() tea.Msg {
+		dbInfo, err := simulator.ReadDatabaseContent(path)
+		return fetchDatabaseInfoMsg{dbInfo: dbInfo, err: err}
+	}
+}
+
+// fetchTableDataMsg is sent when table data is fetched
+type fetchTableDataMsg struct {
+	data   []map[string]any
+	offset int
+	err    error
+}
+
+// fetchTableDataCmd fetches table data with pagination
+func (m Model) fetchTableDataCmd(dbPath, tableName string, offset, limit int) tea.Cmd {
+	return func() tea.Msg {
+		data, err := simulator.ReadTableData(dbPath, tableName, offset, limit)
+		return fetchTableDataMsg{data: data, offset: offset, err: err}
 	}
 }

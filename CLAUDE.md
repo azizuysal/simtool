@@ -31,12 +31,15 @@ simtool/
 │   │       ├── simulator_list.go # Simulator list view
 │   │       ├── app_list.go       # App list view
 │   │       ├── file_list.go      # File browser view
+│   │       ├── database_table_list.go    # Database table list view
+│   │       ├── database_table_content.go # Database table content view  
 │   │       └── file_viewer/      # File viewer components
 │   │           ├── viewer.go     # Main file viewer
 │   │           ├── text.go       # Text file viewer
 │   │           ├── image.go      # Image file viewer
 │   │           ├── binary.go     # Binary file viewer
-│   │           └── archive.go    # Archive file viewer
+│   │           ├── archive.go    # Archive file viewer
+│   │           └── database.go   # Database file viewer
 │   └── ui/            # UI styles and formatting
 │       ├── styles.go      # Lipgloss styles
 │       └── format.go      # Formatting helpers
@@ -104,6 +107,7 @@ The application follows clean architecture principles with clear separation of c
    - Formats hex dumps for binary files
    - Displays ZIP archive contents with file listings
    - Generates SVG previews as ASCII art
+   - Provides SQLite database browsing with table navigation and data viewing
 
 2. **internal/tui**: Terminal UI logic (Bubble Tea MVU pattern)
    - Model: Application state (simulators, apps, files, cursor, viewport)
@@ -111,8 +115,8 @@ The application follows clean architecture principles with clear separation of c
    - View: Main view orchestrator using component system
    - Components: Reusable UI components with consistent layout
      - Layout: Base responsive layout with title, content box, and footer
-     - Views: Separated simulator list, app list, file list components
-     - File viewers: Type-specific renderers for text, image, binary, and archive files
+     - Views: Separated simulator list, app list, file list, database table list, and database table content components
+     - File viewers: Type-specific renderers for text, image, binary, archive, and database files
    - Viewport: Manages scrolling logic for all views
    - Responsive design that adapts to terminal window size
 
@@ -163,6 +167,12 @@ The application follows clean architecture principles with clear separation of c
 - SVG files: ASCII art previews with viewBox information
 - Binary files: Hex dump format with offset and ASCII preview
 - Archives: Tree structure view for ZIP, JAR, WAR, EAR, IPA, APK, AAR files
+- Database files: SQLite database browser with two-stage navigation
+  - Table list view showing all tables with row counts and column information
+  - Table content view with paginated data display
+  - Proper column alignment using rune-aware width calculations
+  - Smart handling of binary/non-printable data with box character (□) substitution
+  - Lazy loading with pagination for large tables
 - Lazy loading for large files with dynamic chunk loading
 
 ### Navigation & UI
@@ -185,3 +195,4 @@ The application follows clean architecture principles with clear separation of c
 - `github.com/charmbracelet/bubbletea` - Terminal UI framework
 - `github.com/charmbracelet/lipgloss` - Terminal styling
 - `github.com/alecthomas/chroma/v2` - Syntax highlighting library
+- `github.com/mattn/go-sqlite3` - SQLite database driver for database file viewing

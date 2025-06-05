@@ -30,6 +30,10 @@ func (m Model) View() string {
 		title, content, footer, status = m.renderFileListView()
 	case FileViewerView:
 		title, content, footer, status = m.renderFileViewerView()
+	case DatabaseTableListView:
+		title, content, footer, status = m.renderDatabaseTableListView()
+	case DatabaseTableContentView:
+		title, content, footer, status = m.renderDatabaseTableContentView()
 	default:
 		title, content, footer, status = m.renderSimulatorListView()
 	}
@@ -202,6 +206,78 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 		status = ui.FooterStyle.Render(m.statusMessage)
 	} else if viewerStatus := viewer.GetStatus(); viewerStatus != "" {
 		status = viewerStatus
+	}
+
+	return
+}
+
+// renderDatabaseTableListView renders the database table list using components
+func (m Model) renderDatabaseTableListView() (title, content, footer, status string) {
+	// Calculate available space
+	contentHeight := m.height - 8
+	contentWidth := m.width - 6
+
+	// Create database table list component
+	tableList := components.NewDatabaseTableList(contentWidth, contentHeight)
+	tableList.Update(m.databaseInfo, m.viewingDatabase, m.tableCursor, m.tableViewport)
+
+	// Get title
+	title = tableList.GetTitle()
+
+	// Get content
+	// Create content box
+	contentBox := components.NewContentBox(contentWidth, contentHeight)
+	if m.loadingDatabase {
+		// Show empty content while loading
+		content = contentBox.Render("", "", false)
+	} else {
+		content = contentBox.Render("", tableList.Render(), false)
+	}
+
+	// Get footer
+	footer = tableList.GetFooter()
+
+	// Get status
+	if m.loadingDatabase {
+		status = ui.LoadingStyle.Render("Loading database...")
+	} else if m.statusMessage != "" {
+		status = ui.FooterStyle.Render(m.statusMessage)
+	}
+
+	return
+}
+
+// renderDatabaseTableContentView renders individual table content using components
+func (m Model) renderDatabaseTableContentView() (title, content, footer, status string) {
+	// Calculate available space
+	contentHeight := m.height - 8
+	contentWidth := m.width - 6
+
+	// Create database table content component
+	tableContent := components.NewDatabaseTableContent(contentWidth, contentHeight)
+	tableContent.Update(m.selectedTable, m.tableData, m.viewingDatabase, m.tableDataViewport, m.tableDataOffset)
+
+	// Get title
+	title = tableContent.GetTitle()
+
+	// Get content
+	// Create content box
+	contentBox := components.NewContentBox(contentWidth, contentHeight)
+	if m.loadingTableData {
+		// Show empty content while loading
+		content = contentBox.Render("", "", false)
+	} else {
+		content = contentBox.Render("", tableContent.Render(), false)
+	}
+
+	// Get footer
+	footer = tableContent.GetFooter()
+
+	// Get status
+	if m.loadingTableData {
+		status = ui.LoadingStyle.Render("Loading table data...")
+	} else if m.statusMessage != "" {
+		status = ui.FooterStyle.Render(m.statusMessage)
 	}
 
 	return

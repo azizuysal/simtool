@@ -136,6 +136,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.updateViewport()
 		
+	case fetchDatabaseInfoMsg:
+		m.loadingDatabase = false
+		if msg.err != nil {
+			m.statusMessage = fmt.Sprintf("Error loading database: %v", msg.err)
+			m.viewState = FileListView
+			m.viewingDatabase = nil
+			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		}
+		m.databaseInfo = msg.dbInfo
+		m.updateViewport()
+		
+	case fetchTableDataMsg:
+		m.loadingTableData = false
+		if msg.err != nil {
+			m.statusMessage = fmt.Sprintf("Error loading table data: %v", msg.err)
+			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		}
+		m.tableData = msg.data
+		m.tableDataOffset = msg.offset
+		m.updateViewport()
+		
 	case fetchFileContentMsg:
 		m.loadingContent = false
 		if msg.err != nil {
@@ -221,6 +246,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.contentViewport = 0
 			m.svgWarning = ""
 			m.updateViewport()
+		case DatabaseTableListView:
+			m.viewState = FileListView
+			m.viewingDatabase = nil
+			m.databaseInfo = nil
+			m.tableCursor = 0
+			m.tableViewport = 0
+			m.updateViewport()
+		case DatabaseTableContentView:
+			m.viewState = DatabaseTableListView
+			m.selectedTable = nil
+			m.tableData = nil
+			m.tableDataOffset = 0
+			m.tableDataViewport = 0
+			m.updateViewport()
 		case FileListView:
 			if len(m.breadcrumbs) > 0 {
 				// Go up one directory level
@@ -291,14 +330,37 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.loadingFiles = true
 					return m, m.fetchFilesCmd(file.Path)
 				} else {
-					// View the file
-					m.viewingFile = &file
-					m.viewState = FileViewerView
-					m.loadingContent = true
-					m.contentOffset = 0
-					m.contentViewport = 0
-					return m, m.fetchFileContentCmd(file.Path, 0)
+					// Check if it's a database file
+					fileType := simulator.DetectFileType(file.Path)
+					if fileType == simulator.FileTypeDatabase {
+						// View database tables
+						m.viewingDatabase = &file
+						m.viewState = DatabaseTableListView
+						m.loadingDatabase = true
+						m.tableCursor = 0
+						m.tableViewport = 0
+						return m, m.fetchDatabaseInfoCmd(file.Path)
+					} else {
+						// View the file
+						m.viewingFile = &file
+						m.viewState = FileViewerView
+						m.loadingContent = true
+						m.contentOffset = 0
+						m.contentViewport = 0
+						return m, m.fetchFileContentCmd(file.Path, 0)
+					}
 				}
+			}
+		case DatabaseTableListView:
+			if m.databaseInfo != nil && len(m.databaseInfo.Tables) > 0 && m.tableCursor < len(m.databaseInfo.Tables) {
+				table := m.databaseInfo.Tables[m.tableCursor]
+				m.selectedTable = &table
+				m.viewState = DatabaseTableContentView
+				m.loadingTableData = true
+				m.tableDataOffset = 0
+				m.tableDataViewport = 0
+				// Load first page of table data (50 rows)
+				return m, m.fetchTableDataCmd(m.viewingDatabase.Path, table.Name, 0, 50)
 			}
 		}
 
@@ -361,6 +423,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.contentViewport--
 					}
 				}
+			}
+		case DatabaseTableListView:
+			if m.tableCursor > 0 {
+				m.tableCursor--
+				m.updateViewport()
+			}
+		case DatabaseTableContentView:
+			if m.tableDataViewport > 0 {
+				m.tableDataViewport--
 			}
 		}
 
@@ -456,6 +527,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 							}
 						}
 				}
+			}
+		case DatabaseTableListView:
+			if m.databaseInfo != nil && m.tableCursor < len(m.databaseInfo.Tables)-1 {
+				m.tableCursor++
+				m.updateViewport()
+			}
+		case DatabaseTableContentView:
+			// Allow scrolling through table data with lazy loading
+			itemsPerScreen := CalculateItemsPerScreen(m.height) - 8 // Account for header and table headers
+			maxViewport := len(m.tableData) - itemsPerScreen
+			if maxViewport < 0 {
+				maxViewport = 0
+			}
+			
+			if m.tableDataViewport < maxViewport {
+				m.tableDataViewport++
+			} else if m.selectedTable != nil && m.tableDataOffset + len(m.tableData) < int(m.selectedTable.RowCount) {
+				// Need to load more data
+				newOffset := m.tableDataOffset + len(m.tableData)
+				m.tableDataOffset = newOffset
+				m.tableDataViewport = 0 // Reset viewport for new chunk
+				m.loadingTableData = true
+				return m, m.fetchTableDataCmd(m.viewingDatabase.Path, m.selectedTable.Name, newOffset, 50)
 			}
 		}
 

@@ -51,6 +51,8 @@ func (fv *FileViewer) Render() string {
 		return fv.renderBinary()
 	case simulator.FileTypeArchive:
 		return fv.renderArchive()
+	case simulator.FileTypeDatabase:
+		return fv.renderDatabase()
 	default:
 		return ui.DetailStyle.Render("Unknown file type")
 	}
@@ -139,6 +141,17 @@ func (fv *FileViewer) getScrollInfo() string {
 			hasContent = true
 			// Count tree lines (this is approximate)
 			totalLines = len(fv.Content.ArchiveInfo.Entries) * 2 // Rough estimate
+			startLine = fv.ContentViewport + 1
+			endLine = startLine + contentHeight - 4
+			if endLine > totalLines {
+				endLine = totalLines
+			}
+		}
+	case simulator.FileTypeDatabase:
+		if fv.Content.DatabaseInfo != nil {
+			hasContent = true
+			// Each table takes approximately 6-8 lines (header + columns + sample + spacing)
+			totalLines = len(fv.Content.DatabaseInfo.Tables) * 8
 			startLine = fv.ContentViewport + 1
 			endLine = startLine + contentHeight - 4
 			if endLine > totalLines {
