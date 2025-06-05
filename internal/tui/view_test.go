@@ -237,7 +237,7 @@ func TestRenderSimulatorList(t *testing.T) {
 		width:      80,
 	}
 
-	result := model.renderSimulatorList(0, 2, 70)
+	result := model.renderSimulatorList(model.simulators, 0, 2, 70)
 
 	// Check that result contains expected elements
 	if !strings.Contains(result, "iPhone 15") {

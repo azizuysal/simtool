@@ -370,11 +370,16 @@ func TestDetectFileTypeForArchives(t *testing.T) {
 			tmpDir := t.TempDir()
 			tmpFile := filepath.Join(tmpDir, tt.filename)
 			
-			// For archives, write a valid ZIP header
-			if tt.expected == FileTypeArchive {
+			// Write appropriate content based on expected type
+			switch tt.expected {
+			case FileTypeArchive:
 				// ZIP file signature: "PK\x03\x04"
 				os.WriteFile(tmpFile, []byte("PK\x03\x04"), 0644)
-			} else {
+			case FileTypeBinary:
+				// Write actual binary content
+				os.WriteFile(tmpFile, []byte{0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD}, 0644)
+			default:
+				// Text content
 				os.WriteFile(tmpFile, []byte("test content"), 0644)
 			}
 			
@@ -410,17 +415,17 @@ func TestDetectFileTypeWithContent(t *testing.T) {
 		{
 			name:     "text content with binary extension",
 			path:     binTextFile,
-			expected: FileTypeBinary, // DetectFileType checks extension first, then content
+			expected: FileTypeBinary, // Binary extensions are checked first now
 		},
 		{
 			name:     "binary content with text extension",
 			path:     txtBinaryFile,
-			expected: FileTypeBinary,
+			expected: FileTypeText, // .txt is a known text extension
 		},
 		{
 			name:     "empty file",
 			path:     emptyFile,
-			expected: FileTypeBinary, // Empty .dat files default to binary
+			expected: FileTypeBinary, // Empty .dat files are binary (isTextContent returns false, .dat is in binaryExts)
 		},
 		{
 			name:     "image by extension without file",

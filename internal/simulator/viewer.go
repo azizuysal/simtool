@@ -110,7 +110,20 @@ func DetectFileType(path string) FileType {
 		return FileTypeArchive
 	}
 	
-	// For all files (including those with text-like extensions), check content
+	// Check for known binary extensions first
+	binaryExts := map[string]bool{
+		".exe": true, ".dll": true, ".so": true, ".dylib": true,
+		".bin": true, ".dat": true, ".db": true, ".sqlite": true,
+		".o": true, ".a": true, ".lib": true, ".obj": true,
+		".class": true, ".jar": true, ".dex": true,
+		".pyc": true, ".pyo": true, ".wasm": true,
+	}
+	
+	if binaryExts[ext] {
+		return FileTypeBinary
+	}
+	
+	// For non-binary extensions, check content
 	file, err := os.Open(path)
 	if err != nil {
 		return FileTypeBinary
@@ -127,19 +140,6 @@ func DetectFileType(path string) FileType {
 	// Check if the content is valid UTF-8 and mostly printable
 	if isTextContent(buffer[:n]) {
 		return FileTypeText
-	}
-	
-	// If content check fails, check for known binary extensions
-	binaryExts := map[string]bool{
-		".exe": true, ".dll": true, ".so": true, ".dylib": true,
-		".bin": true, ".dat": true, ".db": true, ".sqlite": true,
-		".o": true, ".a": true, ".lib": true, ".obj": true,
-		".class": true, ".jar": true, ".dex": true,
-		".pyc": true, ".pyo": true, ".wasm": true,
-	}
-	
-	if binaryExts[ext] {
-		return FileTypeBinary
 	}
 	
 	// For unknown extensions with non-text content, still check common text extensions
