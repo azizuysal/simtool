@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,8 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/srwiley/oksvg"
+	"github.com/srwiley/rasterx"
 	_ "golang.org/x/image/webp" // Add WebP support
 )
 
@@ -302,6 +305,12 @@ func readImageInfo(path string, maxPreviewHeight int) (*ImageInfo, error) {
 	stat, err := file.Stat()
 	if err != nil {
 		return nil, err
+	}
+	
+	// Check if it's an SVG file
+	ext := strings.ToLower(filepath.Ext(path))
+	if ext == ".svg" {
+		return readSVGInfo(path, stat.Size(), maxPreviewHeight)
 	}
 	
 	// Decode image to get dimensions
@@ -618,4 +627,162 @@ func generateImagePreview(img image.Image, maxWidth, maxHeight int) *ImagePrevie
 	}
 	
 	return preview
+}
+
+// readSVGInfo reads SVG metadata and generates preview
+func readSVGInfo(path string, fileSize int64, maxPreviewHeight int) (*ImageInfo, error) {
+	// Read SVG file
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Try to extract dimensions from SVG content
+	svgStr := string(data)
+	width, height := extractSVGDimensions(svgStr)
+	
+	info := &ImageInfo{
+		Format: "svg",
+		Width:  width,
+		Height: height,
+		Size:   fileSize,
+	}
+	
+	// Generate preview if requested
+	if maxPreviewHeight > 15 { // Only generate preview if we have reasonable space
+		// Calculate available space
+		availableHeight := maxPreviewHeight - 12
+		if availableHeight > 0 {
+			maxWidth := availableHeight * 3
+			
+			// Calculate render size to fit in preview area
+			renderWidth := width
+			renderHeight := height
+			
+			// Scale down if needed to fit preview constraints
+			if renderHeight > availableHeight*10 || renderWidth > maxWidth*10 {
+				aspectRatio := float64(width) / float64(height)
+				if aspectRatio > float64(maxWidth)/float64(availableHeight) {
+					renderWidth = maxWidth * 10
+					renderHeight = int(float64(renderWidth) / aspectRatio)
+				} else {
+					renderHeight = availableHeight * 10
+					renderWidth = int(float64(renderHeight) * aspectRatio)
+				}
+			}
+			
+			// Use oksvg implementation
+			icon, parseErr := oksvg.ReadIconStream(bytes.NewReader(data))
+			if parseErr != nil {
+				info.Preview = &ImagePreview{
+					Width:  1,
+					Height: 1,
+					Rows:   []string{fmt.Sprintf("[SVG parsing error: %v]", parseErr)},
+				}
+			} else {
+				// Try oksvg rendering
+				img, renderErr := rasterizeSVG(icon, renderWidth, renderHeight)
+				if renderErr != nil {
+					info.Preview = &ImagePreview{
+						Width:  1,
+						Height: 1,
+						Rows:   []string{fmt.Sprintf("[SVG rendering error: %v]", renderErr)},
+					}
+				} else {
+					info.Preview = generateImagePreview(img, maxWidth, availableHeight)
+				}
+			}
+		}
+	}
+	
+	return info, nil
+}
+
+// extractSVGDimensions tries to extract width and height from SVG content
+func extractSVGDimensions(svgContent string) (int, int) {
+	width, height := 256, 256 // defaults
+	
+	// Try to extract width
+	if widthMatch := strings.Index(svgContent, `width="`); widthMatch != -1 {
+		widthStart := widthMatch + 7
+		widthEnd := strings.Index(svgContent[widthStart:], `"`)
+		if widthEnd != -1 {
+			if w, err := strconv.Atoi(svgContent[widthStart:widthStart+widthEnd]); err == nil {
+				width = w
+			}
+		}
+	}
+	
+	// Try to extract height
+	if heightMatch := strings.Index(svgContent, `height="`); heightMatch != -1 {
+		heightStart := heightMatch + 8
+		heightEnd := strings.Index(svgContent[heightStart:], `"`)
+		if heightEnd != -1 {
+			if h, err := strconv.Atoi(svgContent[heightStart:heightStart+heightEnd]); err == nil {
+				height = h
+			}
+		}
+	}
+	
+	// Try viewBox if width/height not found
+	if viewBoxMatch := strings.Index(svgContent, `viewBox="`); viewBoxMatch != -1 {
+		viewBoxStart := viewBoxMatch + 9
+		viewBoxEnd := strings.Index(svgContent[viewBoxStart:], `"`)
+		if viewBoxEnd != -1 {
+			viewBox := svgContent[viewBoxStart:viewBoxStart+viewBoxEnd]
+			parts := strings.Fields(viewBox)
+			if len(parts) >= 4 {
+				if w, err := strconv.ParseFloat(parts[2], 64); err == nil {
+					width = int(w)
+				}
+				if h, err := strconv.ParseFloat(parts[3], 64); err == nil {
+					height = int(h)
+				}
+			}
+		}
+	}
+	
+	return width, height
+}
+
+// rasterizeSVG converts an SVG icon to a raster image using oksvg
+func rasterizeSVG(icon *oksvg.SvgIcon, width, height int) (image.Image, error) {
+	// Limit render size to prevent memory issues
+	maxSize := 1024
+	if width > maxSize || height > maxSize {
+		scale := float64(maxSize) / float64(max(width, height))
+		width = int(float64(width) * scale)
+		height = int(float64(height) * scale)
+	}
+	
+	// Create a new RGBA image
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	
+	// Set icon size to fit the canvas
+	icon.SetTarget(0, 0, float64(width), float64(height))
+	
+	// Create a rasterizer
+	scanner := rasterx.NewScannerGV(width, height, img, img.Bounds())
+	raster := rasterx.NewDasher(width, height, scanner)
+	
+	// Try to draw the SVG
+	defer func() {
+		if r := recover(); r != nil {
+			// Recover from panics in SVG rendering
+			err := fmt.Errorf("SVG rendering panic: %v", r)
+			fmt.Println(err)
+		}
+	}()
+	
+	// Draw the icon
+	icon.Draw(raster, 1.0)
+	
+	return img, nil
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

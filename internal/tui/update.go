@@ -2,7 +2,9 @@ package tui
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -148,6 +150,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.fileContent.Type == simulator.FileTypeBinary {
 			m.contentOffset = int(m.fileContent.BinaryOffset / 16)
 		}
+		
+		// Check for SVG with unsupported features
+		m.svgWarning = ""
+		if m.viewingFile != nil && strings.ToLower(filepath.Ext(m.viewingFile.Path)) == ".svg" {
+			// Read file to check for unsupported features
+			if data, err := os.ReadFile(m.viewingFile.Path); err == nil {
+				svgStr := string(data)
+				var unsupportedFeatures []string
+				
+				if strings.Contains(svgStr, "data:image/") || 
+				   strings.Contains(svgStr, "xlink:href=\"data:") ||
+				   strings.Contains(svgStr, "xlink:href=\"http") {
+					unsupportedFeatures = append(unsupportedFeatures, "embedded images")
+				}
+				if strings.Contains(svgStr, "<filter") || strings.Contains(svgStr, "filter=") {
+					unsupportedFeatures = append(unsupportedFeatures, "filters")
+				}
+				if strings.Contains(svgStr, "<foreignObject") {
+					unsupportedFeatures = append(unsupportedFeatures, "foreign objects")
+				}
+				
+				if len(unsupportedFeatures) > 0 {
+					m.svgWarning = fmt.Sprintf("Warning: SVG contains unsupported features (%s). Preview may be incomplete.", 
+						strings.Join(unsupportedFeatures, ", "))
+				}
+			}
+		}
+		
 		m.updateViewport()
 	}
 
@@ -173,6 +203,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.fileContent = nil
 			m.contentOffset = 0
 			m.contentViewport = 0
+			m.svgWarning = ""
 			m.updateViewport()
 		case FileListView:
 			if len(m.breadcrumbs) > 0 {

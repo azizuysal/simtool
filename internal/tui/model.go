@@ -59,6 +59,7 @@ type Model struct {
 	contentOffset int                 // Line offset for text files, byte offset for binary
 	contentViewport int               // Viewport position within file content
 	loadingContent bool
+	svgWarning    string              // Warning message for SVG files with unsupported features
 }
 
 // New creates a new Model with the given fetcher

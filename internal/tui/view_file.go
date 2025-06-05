@@ -210,7 +210,21 @@ func (m Model) viewFileContent() string {
 		previewBorder := ui.BorderStyle.Width(contentWidth).Render(previewContent.String())
 		s.WriteString(m.centerContent(previewBorder))
 		
-		s.WriteString("\n\n")
+		// Display SVG warning if present
+		if m.svgWarning != "" {
+			warningStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("214")). // Orange color
+				Align(lipgloss.Center)
+			
+			warningText := warningStyle.Width(contentWidth).Render(m.svgWarning)
+			centeredWarning := m.centerContent(warningText)
+			s.WriteString("\n")
+			s.WriteString(centeredWarning)
+			s.WriteString("\n")
+		} else {
+			s.WriteString("\n\n")
+		}
+		
 		s.WriteString(ui.FormatFooter("←/h: back • q: quit", contentWidth, m.width))
 		
 		return s.String()
@@ -500,6 +514,20 @@ func (m Model) viewFileContent() string {
 				footerText += fmt.Sprintf(" (%d-%d of %d)", startLine, endLine, totalLines)
 			}
 		}
+	}
+	
+	// Display SVG warning if present
+	if m.svgWarning != "" {
+		warningStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("214")). // Orange color
+			Align(lipgloss.Center)
+		
+		borderedWidth := lipgloss.Width(strings.Split(borderedList, "\n")[0])
+		warningText := warningStyle.Width(borderedWidth).Render(m.svgWarning)
+		centeredWarning := m.centerContent(warningText)
+		s.WriteString("\n")
+		s.WriteString(centeredWarning)
+		s.WriteString("\n")
 	}
 	
 	s.WriteString(ui.FormatFooter(footerText,

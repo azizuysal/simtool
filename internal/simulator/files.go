@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -101,4 +102,15 @@ func FormatFileDate(t time.Time) string {
 	
 	// Otherwise show full date
 	return t.Format("Jan 2, 2006")
+}
+
+// IsImageFile checks if a file is a supported image format (including SVG)
+func IsImageFile(filename string) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg":
+		return true
+	default:
+		return false
+	}
 }
