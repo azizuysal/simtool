@@ -253,11 +253,47 @@ simtool --list-themes
 ```
 simtool/
 ├── cmd/simtool/        # Application entry point
+│   └── main.go
 ├── internal/
+│   ├── config/         # Configuration and theme management
+│   │   ├── config.go      # Config loading and theme selection
+│   │   ├── config_test.go
+│   │   ├── detect.go      # Terminal theme detection
+│   │   ├── detect_test.go
+│   │   ├── paths.go       # Config file paths
+│   │   ├── styles.go      # Style generation from themes
+│   │   ├── terminal_osc.go    # OSC escape sequences
+│   │   ├── terminal_query.go  # Terminal background detection
+│   │   ├── theme.go       # Theme color extraction
+│   │   └── theme_test.go
 │   ├── simulator/      # Simulator types and fetching logic
-│   ├── tui/           # Terminal UI components
+│   │   ├── simulator.go   # Core types
+│   │   ├── fetcher.go     # xcrun simctl integration
+│   │   ├── app.go         # App information
+│   │   ├── files.go       # File operations
+│   │   ├── viewer.go      # File content viewing
+│   │   └── *_test.go      # Test files
+│   ├── tui/           # Terminal UI components  
+│   │   ├── model.go       # Bubble Tea model
+│   │   ├── update.go      # Message handling
+│   │   ├── view.go        # View orchestrator
+│   │   ├── viewport.go    # Scrolling logic
+│   │   ├── keys.go        # Key bindings
+│   │   ├── components/    # Reusable UI components
+│   │   └── *_test.go      # Test files
 │   └── ui/            # UI styles and formatting
-└── Makefile           # Build automation
+│       ├── styles.go      # Dynamic style functions
+│       ├── styles_test.go
+│       ├── format.go      # Formatting helpers
+│       └── format_test.go
+├── scripts/
+│   └── coverage-badge.sh
+├── .gitignore
+├── CLAUDE.md          # AI assistant guidance
+├── go.mod
+├── go.sum
+├── Makefile           # Build automation
+└── README.md
 ```
 
 ### Building

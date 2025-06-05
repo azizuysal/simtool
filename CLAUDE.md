@@ -11,27 +11,42 @@ This is a Go project called `simtool` that uses the Bubble Tea framework to crea
 ```
 simtool/
 ├── cmd/simtool/        # Application entry point
+│   └── main.go           # Main function
 ├── internal/
-│   ├── config/         # Configuration management
-│   │   ├── config.go      # Config loading and merging
-│   │   ├── styles.go      # Style generation from config
-│   │   ├── theme.go       # Theme color extraction
-│   │   ├── detect.go      # Terminal theme detection
-│   │   ├── terminal_query.go # macOS system theme detection
-│   │   └── terminal_osc.go   # OSC escape sequence queries
+│   ├── config/         # Configuration and theme management
+│   │   ├── config.go      # Config loading and theme selection
+│   │   ├── config_test.go # Config tests
+│   │   ├── detect.go      # Terminal theme detection initialization
+│   │   ├── detect_test.go # Detection tests
+│   │   ├── paths.go       # Config file paths
+│   │   ├── styles.go      # Style generation from themes
+│   │   ├── terminal_osc.go    # OSC escape sequence queries
+│   │   ├── terminal_query.go  # Terminal background detection
+│   │   ├── theme.go       # Theme color extraction and live detection
+│   │   └── theme_test.go  # Theme tests
 │   ├── simulator/      # Simulator types and fetching logic
 │   │   ├── simulator.go   # Core types and interfaces
+│   │   ├── simulator_test.go
 │   │   ├── fetcher.go     # xcrun simctl integration
+│   │   ├── fetcher_test.go
 │   │   ├── app.go         # App information and listing
+│   │   ├── app_test.go
 │   │   ├── files.go       # File browsing and operations
+│   │   ├── files_test.go
 │   │   ├── files_darwin.go # macOS-specific file operations
 │   │   ├── files_other.go  # Stub for other platforms
-│   │   └── viewer.go      # File content viewing and syntax highlighting
+│   │   ├── viewer.go      # File content viewing
+│   │   └── viewer_svg_test.go
 │   ├── tui/           # Terminal UI components
-│   │   ├── model.go       # Bubble Tea model
-│   │   ├── update.go      # Message handling
+│   │   ├── model.go       # Bubble Tea model with theme state
+│   │   ├── model_test.go
+│   │   ├── update.go      # Message handling and theme changes
+│   │   ├── update_test.go # Update and theme change tests
 │   │   ├── view.go        # Main view orchestrator
+│   │   ├── view_test.go
+│   │   ├── view_file.go   # File-specific view logic
 │   │   ├── viewport.go    # Scrolling logic
+│   │   ├── viewport_test.go
 │   │   ├── keys.go        # Key bindings
 │   │   └── components/    # Reusable UI components
 │   │       ├── layout.go         # Base layout (title, content, footer)
@@ -42,15 +57,25 @@ simtool/
 │   │       ├── database_table_content.go # Database table content view  
 │   │       └── file_viewer/      # File viewer components
 │   │           ├── viewer.go     # Main file viewer
-│   │           ├── text.go       # Text file viewer with syntax highlighting
+│   │           ├── text.go       # Text file viewer
 │   │           ├── image.go      # Image file viewer
 │   │           ├── binary.go     # Binary file viewer
 │   │           ├── archive.go    # Archive file viewer
 │   │           └── database.go   # Database file viewer
 │   └── ui/            # UI styles and formatting
-│       ├── styles.go      # Lipgloss styles (theme-based)
-│       └── format.go      # Formatting helpers
-└── Makefile           # Build automation
+│       ├── styles.go      # Dynamic style functions
+│       ├── styles_test.go # Style function tests
+│       ├── format.go      # Formatting helpers
+│       └── format_test.go
+├── scripts/
+│   └── coverage-badge.sh  # Generate coverage badge
+├── .gitignore
+├── CLAUDE.md          # Project guidance for AI assistants
+├── CLAUDE.local.md    # Private project instructions
+├── go.mod
+├── go.sum
+├── Makefile           # Build automation
+└── README.md          # User documentation
 ```
 
 ## Development Commands
