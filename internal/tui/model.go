@@ -33,6 +33,7 @@ type Model struct {
 	simCursor     int
 	simViewport   int
 	booting       bool
+	filterActive  bool               // Whether to show only sims with apps
 	
 	// App list state
 	selectedSim   *simulator.Item

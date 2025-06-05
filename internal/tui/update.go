@@ -236,8 +236,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case KeyRight, KeyL:
 		switch m.viewState {
 		case SimulatorListView:
-			if len(m.simulators) > 0 {
-				sim := m.simulators[m.simCursor]
+			filteredSims := m.getFilteredSimulators()
+			if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
+				sim := filteredSims[m.simCursor]
 				m.selectedSim = &sim
 				m.viewState = AppListView
 				m.loadingApps = true
@@ -468,11 +469,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.updateViewport()
 
+	case KeyF:
+		if m.viewState == SimulatorListView {
+			m.filterActive = !m.filterActive
+			if m.filterActive {
+				m.statusMessage = "Filter: Showing only simulators with apps"
+			} else {
+				m.statusMessage = "Filter: Showing all simulators"
+			}
+			// Reset cursor when toggling filter
+			m.simCursor = 0
+			m.simViewport = 0
+			m.updateViewport()
+			return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
+		}
+
 	case KeySpace:
 		switch m.viewState {
 		case SimulatorListView:
-			if len(m.simulators) > 0 {
-				sim := m.simulators[m.simCursor]
+			filteredSims := m.getFilteredSimulators()
+			if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
+				sim := filteredSims[m.simCursor]
 				if !sim.IsRunning() && !m.booting {
 					m.booting = true
 					m.statusMessage = fmt.Sprintf("Booting %s...", sim.Name)
@@ -502,4 +521,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+// getFilteredSimulators returns simulators based on the current filter state
+func (m Model) getFilteredSimulators() []simulator.Item {
+	if !m.filterActive {
+		return m.simulators
+	}
+	
+	// Filter to show only simulators with apps
+	var filtered []simulator.Item
+	for _, sim := range m.simulators {
+		if sim.AppCount > 0 {
+			filtered = append(filtered, sim)
+		}
+	}
+	return filtered
 }

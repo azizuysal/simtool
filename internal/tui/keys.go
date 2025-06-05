@@ -16,4 +16,5 @@ const (
 	KeyEnter = "enter"
 	KeyRight = "right"
 	KeyLeft  = "left"
+	KeyF     = "f"
 )

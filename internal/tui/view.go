@@ -41,16 +41,27 @@ func (m Model) viewSimulatorList() string {
 
 	var s strings.Builder
 
+	// Get filtered simulators
+	filteredSims := m.getFilteredSimulators()
+	
 	// Header
-	headerText := fmt.Sprintf("iOS Simulators (%d)", len(m.simulators))
+	headerText := fmt.Sprintf("iOS Simulators (%d", len(filteredSims))
+	if m.filterActive {
+		headerText += fmt.Sprintf(" of %d)", len(m.simulators))
+	} else {
+		headerText += ")"
+	}
+	if m.filterActive {
+		headerText += " [Filter: With Apps]"
+	}
 	s.WriteString(ui.FormatHeader(headerText, m.width))
 
 	// Calculate visible range
 	itemsPerScreen := CalculateItemsPerScreen(m.height)
 	startIdx := m.simViewport
 	endIdx := m.simViewport + itemsPerScreen
-	if endIdx > len(m.simulators) {
-		endIdx = len(m.simulators)
+	if endIdx > len(filteredSims) {
+		endIdx = len(filteredSims)
 	}
 
 	// Calculate content width
@@ -60,7 +71,7 @@ func (m Model) viewSimulatorList() string {
 	}
 
 	// Build list content
-	listContent := m.renderSimulatorList(startIdx, endIdx, contentWidth)
+	listContent := m.renderSimulatorList(filteredSims, startIdx, endIdx, contentWidth)
 	
 	// Pad content to fill the screen height
 	paddedContent := m.padContentToHeight(listContent, itemsPerScreen)
@@ -91,8 +102,8 @@ func (m Model) viewSimulatorList() string {
 	}
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • →/l: apps • space: run • q: quit"
-	scrollInfo := ui.FormatScrollInfo(m.simViewport, itemsPerScreen, len(m.simulators))
+	footerText := "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • q: quit"
+	scrollInfo := ui.FormatScrollInfo(m.simViewport, itemsPerScreen, len(filteredSims))
 	s.WriteString(ui.FormatFooter(footerText+scrollInfo, 
 		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
 
@@ -100,12 +111,12 @@ func (m Model) viewSimulatorList() string {
 }
 
 // renderSimulatorList renders the visible simulators
-func (m Model) renderSimulatorList(startIdx, endIdx int, contentWidth int) string {
+func (m Model) renderSimulatorList(filteredSims []simulator.Item, startIdx, endIdx int, contentWidth int) string {
 	var listContent strings.Builder
 	innerWidth := contentWidth - 4 // Account for padding
 
 	for i := startIdx; i < endIdx; i++ {
-		sim := m.simulators[i]
+		sim := filteredSims[i]
 
 		// Format app count text
 		appCountText := ""
