@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
@@ -42,7 +41,7 @@ func (fv *FileViewer) renderBinary() string {
 			if lineCount > 0 {
 				s.WriteString("\n")
 			}
-			s.WriteString(ui.DetailStyle.Copy().Foreground(lipgloss.Color("245")).Render(hexLines[i]))
+			s.WriteString(ui.DetailStyle.Render(hexLines[i]))
 			lineCount++
 		}
 

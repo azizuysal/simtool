@@ -27,6 +27,8 @@ import (
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 	_ "golang.org/x/image/webp" // Add WebP support
+	
+	"simtool/internal/config"
 )
 
 // FileType represents the type of file for viewing
@@ -470,13 +472,60 @@ var (
 	lexerMutex sync.RWMutex
 	
 	// Terminal formatter and style
-	termFormatter = formatters.Get("terminal16m")
-	chromaStyle   = styles.Get("monokai")
+	termFormatter chroma.Formatter
+	chromaStyle   *chroma.Style
+	
+	// Initialize once
+	initOnce sync.Once
 )
+
+// initChromaStyle initializes the chroma style from config
+func initChromaStyle() {
+	initOnce.Do(func() {
+		// Initialize the terminal formatter
+		// Try terminal16m first for best color support
+		termFormatter = formatters.Get("terminal16m")
+		if termFormatter == nil {
+			// Fallback to terminal256
+			termFormatter = formatters.Get("terminal256")
+		}
+		if termFormatter == nil {
+			// Last resort: basic terminal
+			termFormatter = formatters.Get("terminal")
+		}
+		
+		// Load config
+		cfg, err := config.Load()
+		if err != nil {
+			// Fallback to github-dark if config load fails
+			chromaStyle = styles.Get("github-dark")
+			return
+		}
+		
+		// Get the active theme based on config
+		themeName := cfg.GetActiveTheme()
+		style := styles.Get(themeName)
+		if style == nil || style == styles.Fallback {
+			// Theme not found, try some variations
+			themeLower := strings.ToLower(themeName)
+			style = styles.Get(themeLower)
+			
+			if style == nil || style == styles.Fallback {
+				// Still not found, fallback to github-dark
+				style = styles.Get("github-dark")
+			}
+		}
+		
+		chromaStyle = style
+	})
+}
 
 // GetSyntaxHighlightedLine returns a syntax highlighted version of a line
 // This is a simple implementation - could be enhanced with a proper syntax highlighting library
 func GetSyntaxHighlightedLine(line string, fileExt string) string {
+	// Initialize style if needed
+	initChromaStyle()
+	
 	// Quick return for empty lines
 	if strings.TrimSpace(line) == "" {
 		return line
@@ -497,12 +546,23 @@ func GetSyntaxHighlightedLine(line string, fileExt string) string {
 	
 	// Format the tokens
 	var buf bytes.Buffer
+	if termFormatter == nil || chromaStyle == nil {
+		// Formatter or style not initialized properly
+		return line
+	}
+	
 	err = termFormatter.Format(&buf, chromaStyle, iterator)
 	if err != nil {
 		return line
 	}
 	
-	return strings.TrimRight(buf.String(), "\n")
+	result := buf.String()
+	// If formatting produced no output, return original
+	if result == "" {
+		return line
+	}
+	
+	return strings.TrimRight(result, "\n")
 }
 
 // getLexerForExtension returns a cached lexer for the given file extension
@@ -534,12 +594,24 @@ func getLexerForExtension(fileExt string) chroma.Lexer {
 			lexer = lexers.Get("c")
 		case ".hpp", ".hxx":
 			lexer = lexers.Get("cpp")
+		case ".m":
+			lexer = lexers.Get("objective-c")
+		case ".mm":
+			lexer = lexers.Get("objective-c++")
+			if lexer == nil {
+				// Fallback to Objective-C if Objective-C++ not available
+				lexer = lexers.Get("objective-c")
+			}
+			if lexer == nil {
+				// Final fallback to C++
+				lexer = lexers.Get("cpp")
+			}
 		case ".yml":
 			lexer = lexers.Get("yaml")
 		case ".tsx":
 			lexer = lexers.Get("typescript")
 		case ".jsx":
-			lexer = lexers.Get("javascript")
+			lexer = lexers.Get("react")
 		}
 	}
 	

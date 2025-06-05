@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
@@ -123,7 +122,7 @@ func (fl *FileList) buildHeader() string {
 	if len(fl.Breadcrumbs) > 0 {
 		s.WriteString("\n\n")
 		breadcrumbPath := strings.Join(fl.Breadcrumbs, "/") + "/"
-		s.WriteString(ui.DetailStyle.Copy().Foreground(lipgloss.Color("33")).Render(breadcrumbPath))
+		s.WriteString(ui.FolderStyle.Render(breadcrumbPath))
 	}
 
 	return s.String()
@@ -196,7 +195,7 @@ func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availa
 			} else {
 				// Non-selected item
 				if file.IsDirectory {
-					s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Foreground(lipgloss.Color("33")).Render(fileName))
+					s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.FolderStyle).Render(fileName))
 				} else {
 					s.WriteString(ui.ListItemStyle.Copy().Inherit(ui.NameStyle).Render(fileName))
 				}

@@ -12,6 +12,13 @@ This is a Go project called `simtool` that uses the Bubble Tea framework to crea
 simtool/
 ├── cmd/simtool/        # Application entry point
 ├── internal/
+│   ├── config/         # Configuration management
+│   │   ├── config.go      # Config loading and merging
+│   │   ├── styles.go      # Style generation from config
+│   │   ├── theme.go       # Theme color extraction
+│   │   ├── detect.go      # Terminal theme detection
+│   │   ├── terminal_query.go # macOS system theme detection
+│   │   └── terminal_osc.go   # OSC escape sequence queries
 │   ├── simulator/      # Simulator types and fetching logic
 │   │   ├── simulator.go   # Core types and interfaces
 │   │   ├── fetcher.go     # xcrun simctl integration
@@ -19,7 +26,7 @@ simtool/
 │   │   ├── files.go       # File browsing and operations
 │   │   ├── files_darwin.go # macOS-specific file operations
 │   │   ├── files_other.go  # Stub for other platforms
-│   │   └── viewer.go      # File content viewing
+│   │   └── viewer.go      # File content viewing and syntax highlighting
 │   ├── tui/           # Terminal UI components
 │   │   ├── model.go       # Bubble Tea model
 │   │   ├── update.go      # Message handling
@@ -35,13 +42,13 @@ simtool/
 │   │       ├── database_table_content.go # Database table content view  
 │   │       └── file_viewer/      # File viewer components
 │   │           ├── viewer.go     # Main file viewer
-│   │           ├── text.go       # Text file viewer
+│   │           ├── text.go       # Text file viewer with syntax highlighting
 │   │           ├── image.go      # Image file viewer
 │   │           ├── binary.go     # Binary file viewer
 │   │           ├── archive.go    # Archive file viewer
 │   │           └── database.go   # Database file viewer
 │   └── ui/            # UI styles and formatting
-│       ├── styles.go      # Lipgloss styles
+│       ├── styles.go      # Lipgloss styles (theme-based)
 │       └── format.go      # Formatting helpers
 └── Makefile           # Build automation
 ```
@@ -95,7 +102,15 @@ The application follows clean architecture principles with clear separation of c
 
 ### Packages
 
-1. **internal/simulator**: Core business logic
+1. **internal/config**: Configuration management
+   - Loads user configuration from `~/.config/simtool/config.toml`
+   - Merges user settings with defaults
+   - Extracts colors from syntax highlighting themes to create cohesive UI
+   - Detects terminal dark/light mode using OSC queries and system settings
+   - Generates lipgloss styles dynamically from theme colors
+   - Supports TOML format for human-friendly editing
+
+2. **internal/simulator**: Core business logic
    - Defines simulator types and interfaces
    - Fetches simulators via `xcrun simctl list devices --json`
    - Boots simulators and opens Simulator.app
@@ -121,11 +136,17 @@ The application follows clean architecture principles with clear separation of c
    - Responsive design that adapts to terminal window size
 
 3. **internal/ui**: UI styling and formatting
-   - Centralized Lipgloss styles
+   - Centralized Lipgloss styles (theme-based, no hardcoded colors)
+   - All colors derived from the active syntax highlighting theme
    - Formatting utilities
    - Reusable UI components
 
 4. **cmd/simtool**: Application entry point
+   - Terminal theme detection initialization
+   - Command-line flag handling
+   - Config file generation (`--generate-config`)
+   - Config path display (`--show-config-path`)
+   - Theme listing (`--list-themes`)
    - Minimal main function
    - Sets up dependencies
    - Runs the TUI application
@@ -163,6 +184,9 @@ The application follows clean architecture principles with clear separation of c
 
 ### File Viewing
 - Text files: Syntax highlighting for code files using chroma
+  - Support for TypeScript, TSX, JavaScript, JSX, Swift, Objective-C, Objective-C++, and 100+ more languages
+  - Theme-aware colors that adapt to terminal dark/light mode
+  - ANSI escape sequences for terminal rendering
 - Images: Terminal-based previews for PNG, JPEG, GIF, BMP, TIFF, WebP
 - SVG files: ASCII art previews with viewBox information
 - Binary files: Hex dump format with offset and ASCII preview
@@ -178,7 +202,7 @@ The application follows clean architecture principles with clear separation of c
 ### Navigation & UI
 - Navigate with arrow keys (↑/↓) or vim keys (j/k)
 - Move between views with arrow keys (←/→) or vim keys (h/l)
-- Selected items highlighted with gray background
+- Selected items highlighted with theme-based colors
 - Responsive layout with consistent structure:
   - Centered title at top with padding
   - Rounded content box with padding
@@ -186,9 +210,26 @@ The application follows clean architecture principles with clear separation of c
 - Smooth viewport scrolling for long lists
 - Centered key legends on all views
 - Status messages displayed in dedicated status area
-- Blue colored search and filter status indicators
-- Orange colored warnings (e.g., SVG rendering limitations)
+- Theme-aware colored search and filter status indicators
+- Theme-aware colored warnings (e.g., SVG rendering limitations)
+- All UI colors automatically adapt to selected theme
 - Press 'q' or Ctrl+C to quit
+
+## Configuration
+
+The application supports theme-based customization through TOML configuration:
+
+- Config location: `~/.config/simtool/config.toml` (or `$XDG_CONFIG_HOME/simtool/config.toml`)
+- Generate example: `simtool --generate-config`
+- All UI colors are derived from the selected syntax highlighting theme
+- No hardcoded colors - everything is theme-based
+- Supports 60+ built-in themes from the chroma library
+- Automatic dark/light mode detection:
+  - OSC escape sequence queries (supported by some terminals)
+  - macOS system appearance as fallback
+  - Environment variable override (`SIMTOOL_THEME_MODE`)
+- Theme colors are intelligently extracted to create a cohesive color scheme
+- Contrast adjustments ensure readability in both light and dark themes
 
 ## Key Dependencies
 
@@ -196,3 +237,4 @@ The application follows clean architecture principles with clear separation of c
 - `github.com/charmbracelet/lipgloss` - Terminal styling
 - `github.com/alecthomas/chroma/v2` - Syntax highlighting library
 - `github.com/mattn/go-sqlite3` - SQLite database driver for database file viewing
+- `github.com/BurntSushi/toml` - TOML configuration parsing

@@ -1,88 +1,121 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"log"
+	"simtool/internal/config"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 var (
-	// Color constants
-	SuccessColor = lipgloss.Color("42") // Green for success messages
+	// Global styles instance
+	styles *config.Styles
+	
+	// Legacy color constants (for backward compatibility)
+	SuccessColor lipgloss.Color
 
-	// SelectedStyle is used for the currently selected item
-	SelectedStyle = lipgloss.NewStyle().
-		Background(lipgloss.Color("240")).
-		Foreground(lipgloss.Color("255"))
-
-	// NormalStyle is the default style
-	NormalStyle = lipgloss.NewStyle()
-
-	// BootedStyle is used for running simulators
-	BootedStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("42"))
-
-	// ShutdownStyle is used for shutdown simulators
-	ShutdownStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("245"))
-
-	// HeaderStyle is used for the main header
-	HeaderStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("230")).
-		Background(lipgloss.Color("63")).
-		Padding(0, 2).
-		MarginBottom(1)
-
-	// ErrorStyle is used for error messages
-	ErrorStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("196"))
-
-	// SearchStyle is used for search status messages
-	SearchStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("39")). // Blue color
-		Bold(true)
-
-	// NameStyle is used for simulator names
-	NameStyle = lipgloss.NewStyle().
-		Bold(true)
-
-	// DetailStyle is used for simulator details
-	DetailStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("245"))
-
-	// BorderStyle defines the rounded border style
-	BorderStyle = lipgloss.NewStyle().
-		Border(lipgloss.Border{
-			Top:         "─",
-			Bottom:      "─",
-			Left:        "│",
-			Right:       "│",
-			TopLeft:     "╭",
-			TopRight:    "╮",
-			BottomLeft:  "╰",
-			BottomRight: "╯",
-		}).
-		BorderForeground(lipgloss.Color("240")).
-		Padding(1, 2)
-
-	// ListItemStyle is used for list items
-	ListItemStyle = lipgloss.NewStyle().
-		PaddingLeft(2).
-		PaddingRight(2)
-
-	// FooterStyle is used for the footer
-	FooterStyle = lipgloss.NewStyle().
-		Faint(true)
-
-	// FolderStyle is used for folders/directories
-	FolderStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("87")).
-		Bold(true)
-
-	// StatusStyle is used for status messages in the status line
-	StatusStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("214")). // Orange
-		Bold(true)
-
-	// LoadingStyle is used for loading messages
-	LoadingStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("39")). // Blue
-		Bold(true)
+	// Style variables for backward compatibility
+	SelectedStyle lipgloss.Style
+	NormalStyle   lipgloss.Style
+	BootedStyle   lipgloss.Style
+	ShutdownStyle lipgloss.Style
+	HeaderStyle   lipgloss.Style
+	ErrorStyle    lipgloss.Style
+	SearchStyle   lipgloss.Style
+	NameStyle     lipgloss.Style
+	DetailStyle   lipgloss.Style
+	BorderStyle   lipgloss.Style
+	ListItemStyle lipgloss.Style
+	FooterStyle   lipgloss.Style
+	FolderStyle   lipgloss.Style
+	StatusStyle   lipgloss.Style
+	LoadingStyle  lipgloss.Style
 )
+
+func init() {
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		log.Printf("Warning: failed to load config, using defaults: %v", err)
+		cfg = config.Default()
+	}
+	
+	// Generate styles from config
+	styles = cfg.GenerateStyles()
+	
+	// Map to legacy variables for backward compatibility
+	// Get colors from the extracted theme
+	colors, _ := config.ExtractThemeColors(cfg.GetActiveTheme())
+	if colors != nil {
+		SuccessColor = config.ConvertToLipglossColor(colors.Success)
+	} else {
+		// Extract from github-dark as absolute fallback
+		githubDarkColors, _ := config.ExtractThemeColors("github-dark")
+		if githubDarkColors != nil {
+			SuccessColor = config.ConvertToLipglossColor(githubDarkColors.Success)
+		} else {
+			SuccessColor = lipgloss.Color("") // No color if all fails
+		}
+	}
+	
+	SelectedStyle = styles.Selected
+	NormalStyle = styles.Normal
+	BootedStyle = styles.Booted
+	ShutdownStyle = styles.Shutdown
+	HeaderStyle = styles.Header
+	ErrorStyle = styles.Error
+	SearchStyle = styles.Search
+	NameStyle = styles.Name
+	DetailStyle = styles.Detail
+	BorderStyle = styles.Border
+	ListItemStyle = styles.ListItem
+	FooterStyle = styles.Footer
+	FolderStyle = styles.Folder
+	StatusStyle = styles.Status
+	LoadingStyle = styles.Loading
+}
+
+// ReloadStyles reloads styles from configuration
+// This can be called if the config file changes
+func ReloadStyles() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	
+	// Regenerate styles
+	styles = cfg.GenerateStyles()
+	
+	// Update legacy variables
+	// Get colors from the extracted theme
+	colors, _ := config.ExtractThemeColors(cfg.GetActiveTheme())
+	if colors != nil {
+		SuccessColor = config.ConvertToLipglossColor(colors.Success)
+	} else {
+		// Extract from github-dark as absolute fallback
+		githubDarkColors, _ := config.ExtractThemeColors("github-dark")
+		if githubDarkColors != nil {
+			SuccessColor = config.ConvertToLipglossColor(githubDarkColors.Success)
+		} else {
+			SuccessColor = lipgloss.Color("") // No color if all fails
+		}
+	}
+	
+	SelectedStyle = styles.Selected
+	NormalStyle = styles.Normal
+	BootedStyle = styles.Booted
+	ShutdownStyle = styles.Shutdown
+	HeaderStyle = styles.Header
+	ErrorStyle = styles.Error
+	SearchStyle = styles.Search
+	NameStyle = styles.Name
+	DetailStyle = styles.Detail
+	BorderStyle = styles.Border
+	ListItemStyle = styles.ListItem
+	FooterStyle = styles.Footer
+	FolderStyle = styles.Folder
+	StatusStyle = styles.Status
+	LoadingStyle = styles.Loading
+	
+	return nil
+}

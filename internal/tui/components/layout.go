@@ -54,12 +54,8 @@ func (l *Layout) renderTitle(title string) string {
 	// Top padding line
 	s.WriteString("\n")
 	
-	// Remove margin from HeaderStyle temporarily
-	headerStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("230")).
-		Background(lipgloss.Color("63")).
-		Padding(0, 2)
+	// Use the theme-based header style
+	headerStyle := ui.HeaderStyle.Copy().MarginBottom(0)
 	
 	header := headerStyle.Render(title)
 	headerWidth := lipgloss.Width(header)
