@@ -110,7 +110,13 @@ func (m Model) viewFileContent() string {
 		borderedContent := ui.BorderStyle.Width(contentWidth).Render(loadingMsg)
 		s.WriteString(m.centerContent(borderedContent))
 		s.WriteString("\n\n")
-		s.WriteString(ui.FormatFooter("Please wait...", contentWidth, m.width))
+		// Center the footer text
+		footerText := "Please wait..."
+		if m.width > lipgloss.Width(footerText) {
+			leftPadding := (m.width - lipgloss.Width(footerText)) / 2
+			s.WriteString(strings.Repeat(" ", leftPadding))
+		}
+		s.WriteString(ui.FooterStyle.Render(footerText))
 		return s.String()
 	}
 	
@@ -124,7 +130,13 @@ func (m Model) viewFileContent() string {
 		borderedContent := ui.BorderStyle.Width(contentWidth).Render(errorMsg)
 		s.WriteString(m.centerContent(borderedContent))
 		s.WriteString("\n\n")
-		s.WriteString(ui.FormatFooter("←/h: back • q: quit", contentWidth, m.width))
+		// Center the footer text
+		footerText := "←/h: back • q: quit"
+		if m.width > lipgloss.Width(footerText) {
+			leftPadding := (m.width - lipgloss.Width(footerText)) / 2
+			s.WriteString(strings.Repeat(" ", leftPadding))
+		}
+		s.WriteString(ui.FooterStyle.Render(footerText))
 		return s.String()
 	}
 
@@ -225,7 +237,13 @@ func (m Model) viewFileContent() string {
 			s.WriteString("\n\n")
 		}
 		
-		s.WriteString(ui.FormatFooter("←/h: back • q: quit", contentWidth, m.width))
+		// Center the footer text
+		footerText := "←/h: back • q: quit"
+		if m.width > lipgloss.Width(footerText) {
+			leftPadding := (m.width - lipgloss.Width(footerText)) / 2
+			s.WriteString(strings.Repeat(" ", leftPadding))
+		}
+		s.WriteString(ui.FooterStyle.Render(footerText))
 		
 		return s.String()
 	}
@@ -516,8 +534,12 @@ func (m Model) viewFileContent() string {
 		}
 	}
 	
-	s.WriteString(ui.FormatFooter(footerText,
-		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
+	// Center the footer text
+	if m.width > lipgloss.Width(footerText) {
+		leftPadding := (m.width - lipgloss.Width(footerText)) / 2
+		s.WriteString(strings.Repeat(" ", leftPadding))
+	}
+	s.WriteString(ui.FooterStyle.Render(footerText))
 
 	return s.String()
 }

@@ -41,18 +41,15 @@ func (m Model) viewSimulatorList() string {
 
 	var s strings.Builder
 
-	// Get filtered simulators
-	filteredSims := m.getFilteredSimulators()
+	// Get filtered simulators (by apps and search)
+	filteredSims := m.getFilteredAndSearchedSimulators()
 	
 	// Header
 	headerText := fmt.Sprintf("iOS Simulators (%d", len(filteredSims))
-	if m.filterActive {
+	if m.filterActive || m.simSearchQuery != "" {
 		headerText += fmt.Sprintf(" of %d)", len(m.simulators))
 	} else {
 		headerText += ")"
-	}
-	if m.filterActive {
-		headerText += " [Filter: With Apps]"
 	}
 	s.WriteString(ui.FormatHeader(headerText, m.width))
 
@@ -80,8 +77,34 @@ func (m Model) viewSimulatorList() string {
 	borderedList := ui.BorderStyle.Width(contentWidth).Render(paddedContent)
 	s.WriteString(m.centerContent(borderedList))
 
-	// Status message
-	if m.statusMessage != "" {
+	// Status message or search/filter display
+	if m.simSearchMode {
+		s.WriteString("\n")
+		searchStatus := fmt.Sprintf("Search: %s", m.simSearchQuery)
+		if m.simSearchQuery == "" {
+			searchStatus = "Search: (type to filter)"
+		}
+		
+		// Center the search status
+		if m.width > lipgloss.Width(searchStatus) {
+			leftPadding := (m.width - lipgloss.Width(searchStatus)) / 2
+			s.WriteString(strings.Repeat(" ", leftPadding))
+		}
+		s.WriteString(ui.SearchStyle.Render(searchStatus))
+		s.WriteString("\n")
+	} else if m.filterActive && m.statusMessage == "" {
+		// Show filter status when no other status message
+		s.WriteString("\n")
+		filterStatus := "Filter: Showing only simulators with apps"
+		
+		// Center the filter status
+		if m.width > lipgloss.Width(filterStatus) {
+			leftPadding := (m.width - lipgloss.Width(filterStatus)) / 2
+			s.WriteString(strings.Repeat(" ", leftPadding))
+		}
+		s.WriteString(ui.SearchStyle.Render(filterStatus))
+		s.WriteString("\n")
+	} else if m.statusMessage != "" {
 		s.WriteString("\n")
 		statusStyle := ui.FooterStyle.Copy()
 		if strings.Contains(m.statusMessage, "Error") || strings.Contains(m.statusMessage, "No apps installed") {
@@ -102,10 +125,21 @@ func (m Model) viewSimulatorList() string {
 	}
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • q: quit"
+	footerText := ""
+	if m.simSearchMode {
+		footerText = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
+	} else {
+		footerText = "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • /: search • q: quit"
+	}
 	scrollInfo := ui.FormatScrollInfo(m.simViewport, itemsPerScreen, len(filteredSims))
-	s.WriteString(ui.FormatFooter(footerText+scrollInfo, 
-		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
+	
+	// Center the footer text
+	fullFooter := footerText + scrollInfo
+	if m.width > lipgloss.Width(fullFooter) {
+		leftPadding := (m.width - lipgloss.Width(fullFooter)) / 2
+		s.WriteString(strings.Repeat(" ", leftPadding))
+	}
+	s.WriteString(ui.FooterStyle.Render(fullFooter))
 
 	return s.String()
 }
@@ -205,16 +239,24 @@ func (m Model) viewAppList() string {
 
 	var s strings.Builder
 
+	// Get filtered apps by search
+	filteredApps := m.getFilteredAndSearchedApps()
+
 	// Header with simulator name
-	headerText := fmt.Sprintf("%s Apps (%d)", m.selectedSim.Name, len(m.apps))
+	headerText := fmt.Sprintf("%s Apps (%d", m.selectedSim.Name, len(filteredApps))
+	if m.appSearchQuery != "" {
+		headerText += fmt.Sprintf(" of %d)", len(m.apps))
+	} else {
+		headerText += ")"
+	}
 	s.WriteString(ui.FormatHeader(headerText, m.width))
 
 	// Calculate visible range
 	itemsPerScreen := CalculateItemsPerScreen(m.height)
 	startIdx := m.appViewport
 	endIdx := m.appViewport + itemsPerScreen
-	if endIdx > len(m.apps) {
-		endIdx = len(m.apps)
+	if endIdx > len(filteredApps) {
+		endIdx = len(filteredApps)
 	}
 
 	// Calculate content width
@@ -227,11 +269,15 @@ func (m Model) viewAppList() string {
 	var listContent strings.Builder
 	innerWidth := contentWidth - 4
 
-	if len(m.apps) == 0 {
-		listContent.WriteString(ui.DetailStyle.Render("No apps installed"))
+	if len(filteredApps) == 0 {
+		if m.appSearchQuery != "" {
+			listContent.WriteString(ui.DetailStyle.Render("No apps match your search"))
+		} else {
+			listContent.WriteString(ui.DetailStyle.Render("No apps installed"))
+		}
 	} else {
 		for i := startIdx; i < endIdx; i++ {
-			app := m.apps[i]
+			app := filteredApps[i]
 
 			// Format app details
 			sizeText := simulator.FormatSize(app.Size)
@@ -272,13 +318,41 @@ func (m Model) viewAppList() string {
 	borderedList := ui.BorderStyle.Width(contentWidth).Render(paddedContent)
 	s.WriteString(m.centerContent(borderedList))
 
-	s.WriteString("\n\n")
+	// Status message or search display
+	if m.appSearchMode {
+		s.WriteString("\n")
+		searchStatus := fmt.Sprintf("Search: %s", m.appSearchQuery)
+		if m.appSearchQuery == "" {
+			searchStatus = "Search: (type to filter)"
+		}
+		
+		// Center the search status
+		if m.width > lipgloss.Width(searchStatus) {
+			leftPadding := (m.width - lipgloss.Width(searchStatus)) / 2
+			s.WriteString(strings.Repeat(" ", leftPadding))
+		}
+		s.WriteString(ui.SearchStyle.Render(searchStatus))
+		s.WriteString("\n")
+	} else {
+		s.WriteString("\n\n")
+	}
 
 	// Footer
-	footerText := "↑/k: up • ↓/j: down • →/l: files • space: open in Finder • ←/h: back • q: quit"
-	scrollInfo := ui.FormatScrollInfo(m.appViewport, itemsPerScreen, len(m.apps))
-	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
-		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
+	footerText := ""
+	if m.appSearchMode {
+		footerText = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
+	} else {
+		footerText = "↑/k: up • ↓/j: down • →/l: files • space: open in Finder • /: search • ←/h: back • q: quit"
+	}
+	scrollInfo := ui.FormatScrollInfo(m.appViewport, itemsPerScreen, len(filteredApps))
+	
+	// Center the footer text
+	fullFooter := footerText + scrollInfo
+	if m.width > lipgloss.Width(fullFooter) {
+		leftPadding := (m.width - lipgloss.Width(fullFooter)) / 2
+		s.WriteString(strings.Repeat(" ", leftPadding))
+	}
+	s.WriteString(ui.FooterStyle.Render(fullFooter))
 
 	return s.String()
 }
@@ -448,8 +522,14 @@ func (m Model) viewFileList() string {
 	}
 	footerText += " • ←/h: back • q: quit"
 	scrollInfo := ui.FormatScrollInfo(m.fileViewport, itemsPerScreen, len(m.files))
-	s.WriteString(ui.FormatFooter(footerText+scrollInfo,
-		lipgloss.Width(strings.Split(borderedList, "\n")[0]), m.width))
+	
+	// Center the footer text
+	fullFooter := footerText + scrollInfo
+	if m.width > lipgloss.Width(fullFooter) {
+		leftPadding := (m.width - lipgloss.Width(fullFooter)) / 2
+		s.WriteString(strings.Repeat(" ", leftPadding))
+	}
+	s.WriteString(ui.FooterStyle.Render(fullFooter))
 
 	return s.String()
 }

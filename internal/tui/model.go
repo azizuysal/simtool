@@ -34,6 +34,8 @@ type Model struct {
 	simViewport   int
 	booting       bool
 	filterActive  bool               // Whether to show only sims with apps
+	simSearchMode bool               // Whether search is active in sim list
+	simSearchQuery string            // Current search query for sim list
 	
 	// App list state
 	selectedSim   *simulator.Item
@@ -41,6 +43,8 @@ type Model struct {
 	appCursor     int
 	appViewport   int
 	loadingApps   bool
+	appSearchMode bool               // Whether search is active in app list
+	appSearchQuery string            // Current search query for app list
 	
 	// File list state
 	selectedApp   *simulator.App

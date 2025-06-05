@@ -121,25 +121,43 @@ The application follows clean architecture principles with clear separation of c
 
 ## Features
 
+### Simulator Management
 - Lists all iOS simulators sorted alphabetically by name
 - Shows installed app count for each simulator (both running and shutdown)
-- Boot simulators with 'space' key (opens Simulator.app)
-- Navigate with arrow keys (↑/↓) or vim keys (j/k)
 - Visual indication of running simulators (green text)
-- Selected simulator highlighted with gray background
-- Status messages for boot operations
-- Rounded border UI with proper centering
-- Smooth viewport scrolling for long lists
+- Boot simulators with 'space' key (opens Simulator.app)
+- Filter simulators to show only those with installed apps (press 'f')
+- Search simulators by name, runtime, or state (press '/')
+
+### App Browsing
 - Browse apps installed on each simulator
-- Navigate app data container files
-- View file contents with syntax highlighting for text files
-- Display images with terminal-based previews
-- View binary files in hex dump format
-- View ZIP archives as tree structure
-- View SVG files with terminal-based previews
-- Open files and folders in Finder
-- Lazy loading for large files
+- View app details including bundle ID, version, and size
+- Search apps by name, bundle ID, or version (press '/')
+- Open app containers in Finder (press 'space')
+
+### File Management
+- Navigate app data container files and directories
+- View file contents with appropriate rendering based on type
+- Open files and folders in Finder (press 'space')
 - Smart file type detection based on content and extension
+
+### File Viewing
+- Text files: Syntax highlighting for code files using chroma
+- Images: Terminal-based previews for PNG, JPEG, GIF, BMP, TIFF, WebP
+- SVG files: ASCII art previews with viewBox information
+- Binary files: Hex dump format with offset and ASCII preview
+- Archives: Tree structure view for ZIP, JAR, WAR, EAR, IPA, APK, AAR files
+- Lazy loading for large files with dynamic chunk loading
+
+### Navigation & UI
+- Navigate with arrow keys (↑/↓) or vim keys (j/k)
+- Move between views with arrow keys (←/→) or vim keys (h/l)
+- Selected items highlighted with gray background
+- Centered UI elements with rounded borders
+- Smooth viewport scrolling for long lists
+- Centered key legends on all views
+- Status messages displayed in dedicated status area
+- Blue colored search and filter status indicators
 - Press 'q' or Ctrl+C to quit
 
 ## Key Dependencies

@@ -186,8 +186,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // handleKeyPress processes keyboard input
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Handle search mode input first
+	if m.simSearchMode && m.viewState == SimulatorListView {
+		return m.handleSimulatorSearchInput(msg)
+	}
+	if m.appSearchMode && m.viewState == AppListView {
+		return m.handleAppSearchInput(msg)
+	}
+	
 	switch msg.String() {
 	case KeyCtrlC, KeyQuit:
+		// Don't quit if in search mode
+		if m.simSearchMode || m.appSearchMode {
+			return m, nil
+		}
 		return m, tea.Quit
 
 	case KeyLeft, KeyH:
@@ -196,6 +208,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.viewState = SimulatorListView
 			m.apps = nil
 			m.selectedSim = nil
+			// Clear app search mode
+			m.appSearchMode = false
+			m.appSearchQuery = ""
 			m.updateViewport()
 		case FileViewerView:
 			m.viewState = FileListView
@@ -353,12 +368,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.statusMessage = ""
 		switch m.viewState {
 		case SimulatorListView:
-			if m.simCursor < len(m.simulators)-1 {
+			filteredSims := m.getFilteredAndSearchedSimulators()
+			if m.simCursor < len(filteredSims)-1 {
 				m.simCursor++
 				m.updateViewport()
 			}
 		case AppListView:
-			if m.appCursor < len(m.apps)-1 {
+			filteredApps := m.getFilteredAndSearchedApps()
+			if m.appCursor < len(filteredApps)-1 {
 				m.appCursor++
 				m.updateViewport()
 			}
@@ -461,9 +478,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.statusMessage = ""
 		switch m.viewState {
 		case SimulatorListView:
-			m.simCursor = len(m.simulators) - 1
+			filteredSims := m.getFilteredAndSearchedSimulators()
+			m.simCursor = len(filteredSims) - 1
+			if m.simCursor < 0 {
+				m.simCursor = 0
+			}
 		case AppListView:
-			m.appCursor = len(m.apps) - 1
+			filteredApps := m.getFilteredAndSearchedApps()
+			m.appCursor = len(filteredApps) - 1
+			if m.appCursor < 0 {
+				m.appCursor = 0
+			}
 		case FileListView:
 			m.fileCursor = len(m.files) - 1
 		}
@@ -472,18 +497,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case KeyF:
 		if m.viewState == SimulatorListView {
 			m.filterActive = !m.filterActive
-			if m.filterActive {
-				m.statusMessage = "Filter: Showing only simulators with apps"
-			} else {
-				m.statusMessage = "Filter: Showing all simulators"
-			}
 			// Reset cursor when toggling filter
 			m.simCursor = 0
 			m.simViewport = 0
 			m.updateViewport()
-			return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
 		}
 
 	case KeySpace:
@@ -518,6 +535,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, m.openInFinderCmd(file.Path)
 			}
 		}
+		
+	case KeySlash:
+		switch m.viewState {
+		case SimulatorListView:
+			m.simSearchMode = true
+			m.simSearchQuery = ""
+			// Reset cursor to 0 when starting search
+			m.simCursor = 0
+			m.simViewport = 0
+			m.updateViewport()
+		case AppListView:
+			m.appSearchMode = true
+			m.appSearchQuery = ""
+			// Reset cursor to 0 when starting search
+			m.appCursor = 0
+			m.appViewport = 0
+			m.updateViewport()
+		}
 	}
 
 	return m, nil
@@ -537,4 +572,210 @@ func (m Model) getFilteredSimulators() []simulator.Item {
 		}
 	}
 	return filtered
+}
+
+// handleSimulatorSearchInput handles keyboard input when in simulator search mode
+func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case KeyEsc:
+		// Exit search mode
+		m.simSearchMode = false
+		m.simSearchQuery = ""
+		m.simCursor = 0
+		m.simViewport = 0
+		m.statusMessage = ""
+		m.updateViewport()
+		return m, nil
+		
+	case KeyBackspace:
+		// Remove last character from search query
+		if len(m.simSearchQuery) > 0 {
+			m.simSearchQuery = m.simSearchQuery[:len(m.simSearchQuery)-1]
+			m.simCursor = 0
+			m.simViewport = 0
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case KeyUp:
+		// Navigate in search results
+		if m.simCursor > 0 {
+			m.simCursor--
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case KeyDown:
+		// Navigate in search results
+		filteredSims := m.getFilteredAndSearchedSimulators()
+		if m.simCursor < len(filteredSims)-1 {
+			m.simCursor++
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case KeyEnter, KeyRight:
+		// Select simulator while in search
+		filteredSims := m.getFilteredAndSearchedSimulators()
+		if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
+			sim := filteredSims[m.simCursor]
+			m.selectedSim = &sim
+			m.viewState = AppListView
+			m.loadingApps = true
+			// Exit search mode
+			m.simSearchMode = false
+			m.simSearchQuery = ""
+			m.statusMessage = ""
+			return m, m.fetchAppsCmd(sim)
+		}
+		return m, nil
+		
+	case KeySpace:
+		// Space is allowed in search
+		m.simSearchQuery += " "
+		m.simCursor = 0
+		m.simViewport = 0
+		m.updateViewport()
+		return m, nil
+		
+	default:
+		// Add any single character to search query (including h, j, k, l, q, etc.)
+		if len(msg.String()) == 1 {
+			m.simSearchQuery += msg.String()
+			m.simCursor = 0
+			m.simViewport = 0
+			m.updateViewport()
+		}
+		return m, nil
+	}
+}
+
+// handleAppSearchInput handles keyboard input when in app search mode
+func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case KeyEsc:
+		// Exit search mode
+		m.appSearchMode = false
+		m.appSearchQuery = ""
+		m.appCursor = 0
+		m.appViewport = 0
+		m.statusMessage = ""
+		m.updateViewport()
+		return m, nil
+		
+	case KeyBackspace:
+		// Remove last character from search query
+		if len(m.appSearchQuery) > 0 {
+			m.appSearchQuery = m.appSearchQuery[:len(m.appSearchQuery)-1]
+			m.appCursor = 0
+			m.appViewport = 0
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case KeyUp:
+		// Navigate in search results
+		if m.appCursor > 0 {
+			m.appCursor--
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case KeyDown:
+		// Navigate in search results
+		filteredApps := m.getFilteredAndSearchedApps()
+		if m.appCursor < len(filteredApps)-1 {
+			m.appCursor++
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case KeyEnter, KeyRight:
+		// Select app while in search
+		filteredApps := m.getFilteredAndSearchedApps()
+		if len(filteredApps) > 0 && m.appCursor < len(filteredApps) {
+			app := filteredApps[m.appCursor]
+			m.selectedApp = &app
+			m.viewState = FileListView
+			m.loadingFiles = true
+			m.currentPath = app.Container
+			m.basePath = app.Container
+			m.breadcrumbs = []string{}
+			m.cursorMemory = make(map[string]int)
+			m.viewportMemory = make(map[string]int)
+			// Exit search mode
+			m.appSearchMode = false
+			m.appSearchQuery = ""
+			m.statusMessage = ""
+			return m, m.fetchFilesCmd(app.Container)
+		}
+		return m, nil
+		
+	case KeySpace:
+		// Space is allowed in search
+		m.appSearchQuery += " "
+		m.appCursor = 0
+		m.appViewport = 0
+		m.updateViewport()
+		return m, nil
+		
+	default:
+		// Add any single character to search query (including h, j, k, l, q, etc.)
+		if len(msg.String()) == 1 {
+			m.appSearchQuery += msg.String()
+			m.appCursor = 0
+			m.appViewport = 0
+			m.updateViewport()
+		}
+		return m, nil
+	}
+}
+
+// getFilteredAndSearchedSimulators returns simulators based on both filter and search
+func (m Model) getFilteredAndSearchedSimulators() []simulator.Item {
+	// First apply the app filter
+	filtered := m.getFilteredSimulators()
+	
+	// If no search query, return filtered results
+	if m.simSearchQuery == "" {
+		return filtered
+	}
+	
+	// Apply search filter
+	var searched []simulator.Item
+	query := strings.ToLower(m.simSearchQuery)
+	
+	for _, sim := range filtered {
+		// Search in name, runtime, and state
+		if strings.Contains(strings.ToLower(sim.Name), query) ||
+			strings.Contains(strings.ToLower(sim.Runtime), query) ||
+			strings.Contains(strings.ToLower(sim.State), query) {
+			searched = append(searched, sim)
+		}
+	}
+	
+	return searched
+}
+
+// getFilteredAndSearchedApps returns apps based on search query
+func (m Model) getFilteredAndSearchedApps() []simulator.App {
+	// If no search query, return all apps
+	if m.appSearchQuery == "" {
+		return m.apps
+	}
+	
+	// Apply search filter
+	var searched []simulator.App
+	query := strings.ToLower(m.appSearchQuery)
+	
+	for _, app := range m.apps {
+		// Search in name, bundle ID, and version
+		if strings.Contains(strings.ToLower(app.Name), query) ||
+			strings.Contains(strings.ToLower(app.BundleID), query) ||
+			strings.Contains(strings.ToLower(app.Version), query) {
+			searched = append(searched, app)
+		}
+	}
+	
+	return searched
 }

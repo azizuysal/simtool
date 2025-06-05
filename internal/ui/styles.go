@@ -31,6 +31,11 @@ var (
 	ErrorStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("196"))
 
+	// SearchStyle is used for search status messages
+	SearchStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("39")). // Blue color
+		Bold(true)
+
 	// NameStyle is used for simulator names
 	NameStyle = lipgloss.NewStyle().
 		Bold(true)
