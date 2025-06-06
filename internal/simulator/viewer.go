@@ -243,7 +243,7 @@ func isTextContent(data []byte) bool {
 }
 
 // ReadFileContent reads file content based on its type
-func ReadFileContent(path string, startLine, maxLines int) (*FileContent, error) {
+func ReadFileContent(path string, startLine, maxLines, maxWidth int) (*FileContent, error) {
 	fileType := DetectFileType(path)
 	
 	content := &FileContent{
@@ -258,7 +258,7 @@ func ReadFileContent(path string, startLine, maxLines int) (*FileContent, error)
 		content.Error = err
 		
 	case FileTypeImage:
-		info, err := readImageInfo(path, maxLines) // Pass maxLines for preview size
+		info, err := readImageInfo(path, maxLines, maxWidth) // Pass dimensions for preview size
 		content.ImageInfo = info
 		content.Error = err
 		
@@ -347,7 +347,7 @@ func readTextFile(path string, startLine, maxLines int) ([]string, int, error) {
 }
 
 // readImageInfo reads image metadata and generates preview
-func readImageInfo(path string, maxPreviewHeight int) (*ImageInfo, error) {
+func readImageInfo(path string, maxPreviewHeight, maxPreviewWidth int) (*ImageInfo, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -363,7 +363,7 @@ func readImageInfo(path string, maxPreviewHeight int) (*ImageInfo, error) {
 	// Check if it's an SVG file
 	ext := strings.ToLower(filepath.Ext(path))
 	if ext == ".svg" {
-		return readSVGInfo(path, stat.Size(), maxPreviewHeight)
+		return readSVGInfo(path, stat.Size(), maxPreviewHeight, maxPreviewWidth)
 	}
 	
 	// Decode image to get dimensions
@@ -388,12 +388,17 @@ func readImageInfo(path string, maxPreviewHeight int) (*ImageInfo, error) {
 		img, _, err := image.Decode(file)
 		if err == nil {
 			// Calculate available space
-			// Reserve space: ~8 lines for metadata, 4 for padding/borders
-			availableHeight := maxPreviewHeight - 12
+			// The maxPreviewHeight already accounts for UI overhead from model.go
+			// Just reserve 4 lines for the image info header in the viewer
+			availableHeight := maxPreviewHeight - 4
 			if availableHeight > 0 {
-				// Width is typically 2-3x height in terminals
-				maxWidth := availableHeight * 3
-				info.Preview = generateImagePreview(img, maxWidth, availableHeight)
+				// Use the actual available width minus some padding
+				// Account for content box padding (4 chars)
+				availableWidth := maxPreviewWidth - 4
+				if availableWidth < 20 {
+					availableWidth = 20
+				}
+				info.Preview = generateImagePreview(img, availableWidth, availableHeight)
 			}
 		}
 	}
@@ -753,7 +758,7 @@ func generateImagePreview(img image.Image, maxWidth, maxHeight int) *ImagePrevie
 }
 
 // readSVGInfo reads SVG metadata and generates preview
-func readSVGInfo(path string, fileSize int64, maxPreviewHeight int) (*ImageInfo, error) {
+func readSVGInfo(path string, fileSize int64, maxPreviewHeight, maxPreviewWidth int) (*ImageInfo, error) {
 	// Read SVG file
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -774,19 +779,23 @@ func readSVGInfo(path string, fileSize int64, maxPreviewHeight int) (*ImageInfo,
 	// Generate preview if requested
 	if maxPreviewHeight > 15 { // Only generate preview if we have reasonable space
 		// Calculate available space
-		availableHeight := maxPreviewHeight - 12
+		availableHeight := maxPreviewHeight - 4 // Same as regular images
 		if availableHeight > 0 {
-			maxWidth := availableHeight * 3
+			// Use the actual available width minus padding
+			availableWidth := maxPreviewWidth - 4
+			if availableWidth < 20 {
+				availableWidth = 20
+			}
 			
 			// Calculate render size to fit in preview area
 			renderWidth := width
 			renderHeight := height
 			
 			// Scale down if needed to fit preview constraints
-			if renderHeight > availableHeight*10 || renderWidth > maxWidth*10 {
+			if renderHeight > availableHeight*10 || renderWidth > availableWidth*10 {
 				aspectRatio := float64(width) / float64(height)
-				if aspectRatio > float64(maxWidth)/float64(availableHeight) {
-					renderWidth = maxWidth * 10
+				if aspectRatio > float64(availableWidth)/float64(availableHeight) {
+					renderWidth = availableWidth * 10
 					renderHeight = int(float64(renderWidth) / aspectRatio)
 				} else {
 					renderHeight = availableHeight * 10
@@ -812,7 +821,7 @@ func readSVGInfo(path string, fileSize int64, maxPreviewHeight int) (*ImageInfo,
 						Rows:   []string{fmt.Sprintf("[SVG rendering error: %v]", renderErr)},
 					}
 				} else {
-					info.Preview = generateImagePreview(img, maxWidth, availableHeight)
+					info.Preview = generateImagePreview(img, availableWidth, availableHeight)
 				}
 			}
 		}

@@ -237,19 +237,20 @@ type fetchFileContentMsg struct {
 // fetchFileContentCmd fetches the content of a file for viewing
 func (m Model) fetchFileContentCmd(path string, offset int) tea.Cmd {
 	return func() tea.Msg {
-		// For images, pass the actual terminal height so preview is sized correctly
+		// For images, pass the actual terminal dimensions so preview is sized correctly
 		// For text files, use 500 lines per chunk
 		maxLines := 500
+		maxWidth := m.width - 6 // Same as contentWidth in view.go
 		fileType := simulator.DetectFileType(path)
 		if fileType == simulator.FileTypeImage {
 			// Pass terminal height minus UI overhead
-			// Account for: header (3), metadata box (8), spacing (4), preview box borders (2), footer (2)
-			maxLines = m.height - 19
+			// Account for: title (4), footer (4), border (0 - handled by contentHeight)
+			maxLines = m.height - 8
 			if maxLines < 20 {
 				maxLines = 20
 			}
 		}
-		content, err := simulator.ReadFileContent(path, offset, maxLines)
+		content, err := simulator.ReadFileContent(path, offset, maxLines, maxWidth)
 		return fetchFileContentMsg{content: content, err: err}
 	}
 }
