@@ -70,7 +70,7 @@ func TestReadSVGInfo(t *testing.T) {
 	}
 
 	// Test reading SVG info without preview
-	info, err := readSVGInfo(svgPath, int64(len(svgContent)), 10)
+	info, err := readSVGInfo(svgPath, int64(len(svgContent)), 10, 80)
 	if err != nil {
 		t.Fatalf("readSVGInfo failed: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestReadSVGInfo(t *testing.T) {
 	}
 
 	// Test with preview generation
-	info, err = readSVGInfo(svgPath, int64(len(svgContent)), 30)
+	info, err = readSVGInfo(svgPath, int64(len(svgContent)), 30, 80)
 	if err != nil {
 		t.Fatalf("readSVGInfo with preview failed: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestReadSVGInfo_InvalidSVG(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info, err := readSVGInfo(svgPath, int64(len(invalidSVG)), 30)
+	info, err := readSVGInfo(svgPath, int64(len(invalidSVG)), 30, 80)
 	if err == nil {
 		// Some SVG parsers might be lenient, check if dimensions are set to defaults
 		if info != nil && info.Width == 256 && info.Height == 256 {
@@ -157,7 +157,7 @@ func TestReadSVGInfo_NoViewBox(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info, err := readSVGInfo(svgPath, int64(len(svgContent)), 30)
+	info, err := readSVGInfo(svgPath, int64(len(svgContent)), 30, 80)
 	if err != nil {
 		t.Fatalf("readSVGInfo failed: %v", err)
 	}

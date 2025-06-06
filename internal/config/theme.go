@@ -64,7 +64,8 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 		if fbg.Background.IsSet() {
 			tc.Background = colorToHex(fbg.Background)
 		} else {
-			tc.Background = tc.Background // This should never happen with monokai/github
+			// This should never happen with monokai/github
+			// tc.Background is already set to default
 		}
 	}
 	
