@@ -15,7 +15,15 @@ func (fv *FileViewer) renderText() string {
 	innerWidth := fv.Width - 4 // Account for content box padding
 
 	// File info header
-	info := fmt.Sprintf("Text file • %d lines • %s",
+	fileType := "Text file"
+	if fv.Content.IsBinaryPlist {
+		fileType = "Binary plist (converted to XML)"
+	} else if strings.HasSuffix(strings.ToLower(fv.File.Path), ".plist") {
+		fileType = "Property list (XML)"
+	}
+	
+	info := fmt.Sprintf("%s • %d lines • %s",
+		fileType,
 		fv.Content.TotalLines,
 		simulator.FormatSize(fv.File.Size))
 	s.WriteString(ui.DetailStyle().Render(info))

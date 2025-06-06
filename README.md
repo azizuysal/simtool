@@ -33,6 +33,10 @@ A terminal UI application for managing iOS simulators on macOS.
 - **Text files**: Syntax highlighting for 100+ languages using chroma
   - Supports TypeScript, TSX, JavaScript, JSX, Swift, Objective-C, Objective-C++, and many more
   - Theme-aware syntax colors that adapt to dark/light mode
+- **Property list files**: Automatic handling of both XML and binary plist formats
+  - Binary plists automatically converted to XML for viewing using macOS plutil
+  - XML syntax highlighting for all plist files
+  - Clear indication when viewing converted binary plists
 - **Images**: Terminal-based previews for PNG, JPEG, GIF, BMP, TIFF, WebP
 - **SVG files**: ASCII art previews with dimension information
 - **Binary files**: Hex dump format with offset and ASCII preview
@@ -259,6 +263,7 @@ Example customizations:
 
 #### File Viewer
 - **Text files**: Line numbers with syntax-highlighted content, lazy-loaded in chunks
+- **Property list files**: XML syntax highlighting with automatic binary plist conversion
 - **Images**: Metadata box and terminal-based preview
 - **Binary files**: Hex dump with ASCII representation
 - **ZIP archives**: Tree view with file/folder counts and overall compression ratio

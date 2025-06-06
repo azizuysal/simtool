@@ -12,6 +12,7 @@ import (
 	_ "image/png"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -53,6 +54,7 @@ type FileContent struct {
 	TotalSize   int64    // Total size of the file (for binary files)
 	ArchiveInfo *ArchiveInfo // For archive files
 	DatabaseInfo *DatabaseInfo // For database files
+	IsBinaryPlist bool    // Whether this was converted from binary plist
 	Error       error
 }
 
@@ -252,9 +254,10 @@ func ReadFileContent(path string, startLine, maxLines, maxWidth int) (*FileConte
 	
 	switch fileType {
 	case FileTypeText:
-		lines, totalLines, err := readTextFile(path, startLine, maxLines)
+		lines, totalLines, isBinaryPlist, err := readTextFile(path, startLine, maxLines)
 		content.Lines = lines
 		content.TotalLines = totalLines
+		content.IsBinaryPlist = isBinaryPlist
 		content.Error = err
 		
 	case FileTypeImage:
@@ -309,10 +312,33 @@ func ReadFileContent(path string, startLine, maxLines, maxWidth int) (*FileConte
 }
 
 // readTextFile reads a text file with pagination support
-func readTextFile(path string, startLine, maxLines int) ([]string, int, error) {
+// Returns lines, totalLines, isBinaryPlist, error
+func readTextFile(path string, startLine, maxLines int) ([]string, int, bool, error) {
+	isBinaryPlist := false
+	
+	// Check if it's a plist file
+	if strings.HasSuffix(strings.ToLower(path), ".plist") {
+		// Check if it's a binary plist by reading first few bytes
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		
+		magic := make([]byte, 6)
+		n, err := file.Read(magic)
+		file.Close()
+		
+		if err == nil && n >= 6 && string(magic) == "bplist" {
+			// It's a binary plist, convert it to XML for viewing
+			lines, total, err := readBinaryPlist(path, startLine, maxLines)
+			return lines, total, true, err
+		}
+		// Otherwise, fall through to read as normal text file
+	}
+	
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, false, err
 	}
 	defer file.Close()
 	
@@ -340,7 +366,45 @@ func readTextFile(path string, startLine, maxLines int) ([]string, int, error) {
 	}
 	
 	if err := scanner.Err(); err != nil {
-		return lines, totalLines, err
+		return lines, totalLines, isBinaryPlist, err
+	}
+	
+	return lines, totalLines, isBinaryPlist, nil
+}
+
+// readBinaryPlist converts a binary plist to XML and reads it
+func readBinaryPlist(path string, startLine, maxLines int) ([]string, int, error) {
+	// Use plutil to convert binary plist to XML
+	cmd := exec.Command("plutil", "-convert", "xml1", "-o", "-", path)
+	output, err := cmd.Output()
+	if err != nil {
+		// If conversion fails, return an error message
+		return []string{fmt.Sprintf("Error converting binary plist: %v", err)}, 1, nil
+	}
+	
+	// Split the XML output into lines
+	allLines := strings.Split(string(output), "\n")
+	totalLines := len(allLines)
+	
+	// Handle empty output
+	if totalLines == 0 {
+		return []string{}, 0, nil
+	}
+	
+	// Apply pagination
+	endLine := startLine + maxLines
+	if endLine > totalLines {
+		endLine = totalLines
+	}
+	
+	lines := make([]string, 0, endLine-startLine)
+	for i := startLine; i < endLine; i++ {
+		line := allLines[i]
+		// Truncate very long lines for display
+		if len(line) > 2000 {
+			line = line[:2000] + "..."
+		}
+		lines = append(lines, line)
 	}
 	
 	return lines, totalLines, nil
@@ -617,6 +681,8 @@ func getLexerForExtension(fileExt string) chroma.Lexer {
 			lexer = lexers.Get("typescript")
 		case ".jsx":
 			lexer = lexers.Get("react")
+		case ".plist":
+			lexer = lexers.Get("xml")
 		}
 	}
 	

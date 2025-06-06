@@ -220,6 +220,10 @@ The application follows clean architecture principles with clear separation of c
   - Support for TypeScript, TSX, JavaScript, JSX, Swift, Objective-C, Objective-C++, and 100+ more languages
   - Theme-aware colors that adapt to terminal dark/light mode
   - ANSI escape sequences for terminal rendering
+- Property list files: Automatic handling of both XML and binary plist formats
+  - Binary plists automatically converted to XML for viewing using macOS plutil
+  - XML syntax highlighting for all plist files
+  - Clear indication when viewing converted binary plists
 - Images: Terminal-based previews for PNG, JPEG, GIF, BMP, TIFF, WebP
 - SVG files: ASCII art previews with viewBox information
 - Binary files: Hex dump format with offset and ASCII preview
