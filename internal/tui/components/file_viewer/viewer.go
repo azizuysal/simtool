@@ -3,7 +3,9 @@ package file_viewer
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
+	"simtool/internal/config"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
@@ -17,6 +19,7 @@ type FileViewer struct {
 	ContentViewport int
 	ContentOffset   int
 	SVGWarning     string
+	Keys           *config.KeysConfig
 }
 
 // NewFileViewer creates a new file viewer
@@ -28,12 +31,13 @@ func NewFileViewer(width, height int) *FileViewer {
 }
 
 // Update updates the viewer data
-func (fv *FileViewer) Update(file *simulator.FileInfo, content *simulator.FileContent, viewport, offset int, svgWarning string) {
+func (fv *FileViewer) Update(file *simulator.FileInfo, content *simulator.FileContent, viewport, offset int, svgWarning string, keys *config.KeysConfig) {
 	fv.File = file
 	fv.Content = content
 	fv.ContentViewport = viewport
 	fv.ContentOffset = offset
 	fv.SVGWarning = svgWarning
+	fv.Keys = keys
 }
 
 // Render renders the file content based on type
@@ -68,12 +72,47 @@ func (fv *FileViewer) GetTitle() string {
 
 // GetFooter returns the footer for the file viewer
 func (fv *FileViewer) GetFooter() string {
-	footer := "↑/k: scroll up • ↓/j: scroll down • ←/h: back • q: quit"
+	if fv.Keys == nil {
+		// Fallback to default if keys not set
+		footer := "↑/k: scroll up • ↓/j: scroll down • ←/h: back • q: quit"
+
+		// Add scroll indicator
+		scrollInfo := fv.getScrollInfo()
+		if scrollInfo != "" {
+			footer += " " + scrollInfo
+		}
+
+		return footer
+	}
+	
+	// Build footer from configured keys
+	var parts []string
+	
+	if up := fv.Keys.FormatKeyAction("up", "scroll up"); up != "" {
+		parts = append(parts, up)
+	}
+	if down := fv.Keys.FormatKeyAction("down", "scroll down"); down != "" {
+		parts = append(parts, down)
+	}
+	if left := fv.Keys.FormatKeyAction("left", "back"); left != "" {
+		parts = append(parts, left)
+	}
+	if quit := fv.Keys.FormatKeyAction("quit", "quit"); quit != "" {
+		parts = append(parts, quit)
+	}
+	
+	footer := ""
+	if len(parts) > 0 {
+		footer = strings.Join(parts, " • ")
+	}
 
 	// Add scroll indicator
 	scrollInfo := fv.getScrollInfo()
 	if scrollInfo != "" {
-		footer += " " + scrollInfo
+		if footer != "" {
+			footer += " "
+		}
+		footer += scrollInfo
 	}
 
 	return footer

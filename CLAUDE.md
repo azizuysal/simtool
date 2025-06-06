@@ -251,10 +251,12 @@ The application follows clean architecture principles with clear separation of c
 
 ## Configuration
 
-The application supports theme-based customization through TOML configuration:
+The application supports extensive customization through TOML configuration:
 
 - Config location: `~/.config/simtool/config.toml` (or `$XDG_CONFIG_HOME/simtool/config.toml`)
 - Generate example: `simtool --generate-config`
+
+### Theme Configuration
 - All UI colors are derived from the selected syntax highlighting theme
 - No hardcoded colors - everything is theme-based
 - Supports 60+ built-in themes from the chroma library
@@ -269,6 +271,13 @@ The application supports theme-based customization through TOML configuration:
 - Theme colors are intelligently extracted to create a cohesive color scheme
 - Contrast adjustments ensure readability in both light and dark themes
 - All styles are generated dynamically using getter functions for real-time updates
+
+### Keyboard Shortcuts
+- Fully customizable keyboard shortcuts
+- Each action can have multiple keys assigned
+- Configure in the `[keys]` section of config.toml
+- Default bindings include both arrow keys and vim-style navigation
+- Can disable shortcuts by assigning empty array: `filter = []`
 
 ## Key Dependencies
 

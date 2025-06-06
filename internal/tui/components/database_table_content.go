@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode"
 
+	"simtool/internal/config"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
@@ -18,6 +19,7 @@ type DatabaseTableContent struct {
 	DatabaseFile    *simulator.FileInfo
 	Viewport        int
 	DataOffset      int
+	Keys            *config.KeysConfig
 }
 
 // NewDatabaseTableContent creates a new database table content renderer
@@ -29,12 +31,13 @@ func NewDatabaseTableContent(width, height int) *DatabaseTableContent {
 }
 
 // Update updates the table data
-func (dtc *DatabaseTableContent) Update(table *simulator.TableInfo, data []map[string]any, dbFile *simulator.FileInfo, viewport, dataOffset int) {
+func (dtc *DatabaseTableContent) Update(table *simulator.TableInfo, data []map[string]any, dbFile *simulator.FileInfo, viewport, dataOffset int, keys *config.KeysConfig) {
 	dtc.Table = table
 	dtc.TableData = data
 	dtc.DatabaseFile = dbFile
 	dtc.Viewport = viewport
 	dtc.DataOffset = dataOffset
+	dtc.Keys = keys
 }
 
 // Render renders the table content
@@ -66,7 +69,44 @@ func (dtc *DatabaseTableContent) GetTitle() string {
 
 // GetFooter returns the footer for the table content view
 func (dtc *DatabaseTableContent) GetFooter() string {
-	footer := "↑/k: scroll up • ↓/j: scroll down • ←/h: back • q: quit"
+	if dtc.Keys == nil {
+		// Fallback to default if keys not set
+		footer := "↑/k: scroll up • ↓/j: scroll down • ←/h: back • q: quit"
+		
+		// Add scroll info for data rows
+		if dtc.Table != nil && dtc.Table.RowCount > 0 {
+			startRow := dtc.DataOffset + 1
+			endRow := dtc.DataOffset + len(dtc.TableData)
+			totalRows := int(dtc.Table.RowCount)
+			
+			if endRow > totalRows {
+				endRow = totalRows
+			}
+			
+			scrollInfo := fmt.Sprintf(" (%d-%d of %d)", startRow, endRow, totalRows)
+			footer += scrollInfo
+		}
+		
+		return footer
+	}
+	
+	// Build footer from configured keys
+	var parts []string
+	
+	if up := dtc.Keys.FormatKeyAction("up", "scroll up"); up != "" {
+		parts = append(parts, up)
+	}
+	if down := dtc.Keys.FormatKeyAction("down", "scroll down"); down != "" {
+		parts = append(parts, down)
+	}
+	if left := dtc.Keys.FormatKeyAction("left", "back"); left != "" {
+		parts = append(parts, left)
+	}
+	if quit := dtc.Keys.FormatKeyAction("quit", "quit"); quit != "" {
+		parts = append(parts, quit)
+	}
+	
+	footer := strings.Join(parts, " • ")
 	
 	// Add scroll info for data rows
 	if dtc.Table != nil && dtc.Table.RowCount > 0 {

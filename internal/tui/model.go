@@ -85,10 +85,24 @@ type Model struct {
 	
 	// Theme state
 	currentThemeMode string               // Current detected theme mode ("dark" or "light")
+	
+	// Configuration
+	config       *config.Config
+	keyMap       *config.KeyMap
 }
 
 // New creates a new Model with the given fetcher
 func New(fetcher simulator.Fetcher) Model {
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		// Use defaults if config fails to load
+		cfg = config.Default()
+	}
+	
+	// Create key map from config
+	keyMap := config.NewKeyMap(cfg.Keys)
+	
 	// Get initial theme mode
 	isDark := config.DetectTerminalDarkMode()
 	themeMode := "light"
@@ -100,6 +114,8 @@ func New(fetcher simulator.Fetcher) Model {
 		fetcher: fetcher,
 		loadingSimulators: true,
 		currentThemeMode: themeMode,
+		config: cfg,
+		keyMap: keyMap,
 	}
 }
 

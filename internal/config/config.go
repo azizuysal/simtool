@@ -11,7 +11,8 @@ import (
 // Config represents the application configuration
 type Config struct {
 	Theme ThemeConfig `toml:"theme"`
-	// Future: Keys, Display options, etc.
+	Keys  KeysConfig  `toml:"keys"`
+	// Future: Display options, etc.
 }
 
 // ThemeConfig defines theme configuration
@@ -32,6 +33,7 @@ func Default() *Config {
 			DarkTheme:  "github-dark",
 			LightTheme: "github",
 		},
+		Keys: DefaultKeys(),
 	}
 }
 
@@ -117,6 +119,37 @@ light_theme = "github"
 # - "gruvbox-light" - light variant of gruvbox
 # - "tango" - GNOME Tango theme
 # - "vs" - Visual Studio theme
+
+[keys]
+# Keyboard shortcuts configuration
+# Each action can have multiple keys assigned
+# Use key names as recognized by Bubble Tea (https://github.com/charmbracelet/bubbletea)
+
+# Navigation keys
+up = ["up", "k"]           # Move cursor up
+down = ["down", "j"]       # Move cursor down
+left = ["left", "h"]       # Go back / navigate left
+right = ["right", "l"]     # Enter / navigate right
+home = ["home"]            # Jump to first item
+end = ["end"]              # Jump to last item
+
+# Action keys
+quit = ["q", "ctrl+c"]     # Quit the application
+boot = [" "]               # Boot simulator (space key)
+open = [" "]               # Open in Finder (space key, context-dependent)
+filter = ["f"]             # Toggle filter (simulator list only)
+search = ["/"]             # Start search mode
+escape = ["esc"]           # Exit search mode / cancel
+enter = ["enter"]          # Select / confirm
+
+# Search mode keys
+backspace = ["backspace"]  # Delete character in search
+
+# Examples of customization:
+# - Use only arrow keys: up = ["up"], down = ["down"]
+# - Use only vim keys: up = ["k"], down = ["j"]
+# - Add custom keys: quit = ["q", "ctrl+c", "ctrl+d"]
+# - Disable a shortcut: filter = []
 `
 	
 	if _, err := file.WriteString(example); err != nil {
@@ -155,6 +188,50 @@ func (c *Config) merge(user *Config) {
 	}
 	if user.Theme.LightTheme != "" {
 		c.Theme.LightTheme = user.Theme.LightTheme
+	}
+	
+	// Merge key settings - only override if user has specified keys
+	if len(user.Keys.Up) > 0 {
+		c.Keys.Up = user.Keys.Up
+	}
+	if len(user.Keys.Down) > 0 {
+		c.Keys.Down = user.Keys.Down
+	}
+	if len(user.Keys.Left) > 0 {
+		c.Keys.Left = user.Keys.Left
+	}
+	if len(user.Keys.Right) > 0 {
+		c.Keys.Right = user.Keys.Right
+	}
+	if len(user.Keys.Home) > 0 {
+		c.Keys.Home = user.Keys.Home
+	}
+	if len(user.Keys.End) > 0 {
+		c.Keys.End = user.Keys.End
+	}
+	if len(user.Keys.Quit) > 0 {
+		c.Keys.Quit = user.Keys.Quit
+	}
+	if len(user.Keys.Boot) > 0 {
+		c.Keys.Boot = user.Keys.Boot
+	}
+	if len(user.Keys.Open) > 0 {
+		c.Keys.Open = user.Keys.Open
+	}
+	if len(user.Keys.Filter) > 0 {
+		c.Keys.Filter = user.Keys.Filter
+	}
+	if len(user.Keys.Search) > 0 {
+		c.Keys.Search = user.Keys.Search
+	}
+	if len(user.Keys.Escape) > 0 {
+		c.Keys.Escape = user.Keys.Escape
+	}
+	if len(user.Keys.Enter) > 0 {
+		c.Keys.Enter = user.Keys.Enter
+	}
+	if len(user.Keys.Backspace) > 0 {
+		c.Keys.Backspace = user.Keys.Backspace
 	}
 }
 

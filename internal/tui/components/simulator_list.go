@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"simtool/internal/config"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
@@ -19,6 +20,7 @@ type SimulatorList struct {
 	FilterActive  bool
 	SearchMode    bool
 	SearchQuery   string
+	Keys          *config.KeysConfig
 }
 
 // NewSimulatorList creates a new simulator list renderer
@@ -30,13 +32,14 @@ func NewSimulatorList(width, height int) *SimulatorList {
 }
 
 // Update updates the list data
-func (sl *SimulatorList) Update(simulators []simulator.Item, cursor, viewport int, filterActive, searchMode bool, searchQuery string) {
+func (sl *SimulatorList) Update(simulators []simulator.Item, cursor, viewport int, filterActive, searchMode bool, searchQuery string, keys *config.KeysConfig) {
 	sl.Simulators = simulators
 	sl.Cursor = cursor
 	sl.Viewport = viewport
 	sl.FilterActive = filterActive
 	sl.SearchMode = searchMode
 	sl.SearchQuery = searchQuery
+	sl.Keys = keys
 }
 
 // Render renders the simulator list content
@@ -70,13 +73,64 @@ func (sl *SimulatorList) GetTitle(totalCount int) string {
 
 // GetFooter returns the footer for the simulator list
 func (sl *SimulatorList) GetFooter() string {
-	footer := ""
-	if sl.SearchMode {
-		footer = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
-	} else {
-		footer = "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • /: search • q: quit"
+	if sl.Keys == nil {
+		// Fallback to default if keys not set
+		footer := ""
+		if sl.SearchMode {
+			footer = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
+		} else {
+			footer = "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • /: search • q: quit"
+		}
+		// Add scroll info
+		itemsPerScreen := sl.calculateItemsPerScreen()
+		scrollInfo := ui.FormatScrollInfo(sl.Viewport, itemsPerScreen, len(sl.Simulators))
+		return footer + scrollInfo
 	}
-
+	
+	// Build footer from configured keys
+	var parts []string
+	
+	if sl.SearchMode {
+		if esc := sl.Keys.FormatKeyAction("escape", "exit search"); esc != "" {
+			parts = append(parts, esc)
+		}
+		if up := sl.Keys.FormatKeyAction("up", "navigate"); up != "" {
+			parts = append(parts, config.FormatKeys(sl.Keys.Up)+"/"+config.FormatKeys(sl.Keys.Down)+": navigate")
+		}
+		if right := sl.Keys.FormatKeyAction("right", "select"); right != "" {
+			enter := config.FormatKeys(sl.Keys.Enter)
+			if enter != "" {
+				parts = append(parts, config.FormatKeys(sl.Keys.Right)+"/"+enter+": select")
+			} else {
+				parts = append(parts, right)
+			}
+		}
+	} else {
+		if up := sl.Keys.FormatKeyAction("up", "up"); up != "" {
+			parts = append(parts, up)
+		}
+		if down := sl.Keys.FormatKeyAction("down", "down"); down != "" {
+			parts = append(parts, down)
+		}
+		if right := sl.Keys.FormatKeyAction("right", "apps"); right != "" {
+			parts = append(parts, right)
+		}
+		if boot := sl.Keys.FormatKeyAction("boot", "run"); boot != "" {
+			parts = append(parts, boot)
+		}
+		if filter := sl.Keys.FormatKeyAction("filter", "filter"); filter != "" {
+			parts = append(parts, filter)
+		}
+		if search := sl.Keys.FormatKeyAction("search", "search"); search != "" {
+			parts = append(parts, search)
+		}
+		if quit := sl.Keys.FormatKeyAction("quit", "quit"); quit != "" {
+			parts = append(parts, quit)
+		}
+	}
+	
+	footer := strings.Join(parts, " • ")
+	
 	// Add scroll info
 	itemsPerScreen := sl.calculateItemsPerScreen()
 	scrollInfo := ui.FormatScrollInfo(sl.Viewport, itemsPerScreen, len(sl.Simulators))

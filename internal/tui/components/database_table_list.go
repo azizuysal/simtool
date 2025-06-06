@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"simtool/internal/config"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
@@ -16,6 +17,7 @@ type DatabaseTableList struct {
 	DatabaseFile *simulator.FileInfo
 	Cursor       int
 	Viewport     int
+	Keys         *config.KeysConfig
 }
 
 // NewDatabaseTableList creates a new database table list renderer
@@ -27,11 +29,12 @@ func NewDatabaseTableList(width, height int) *DatabaseTableList {
 }
 
 // Update updates the list data
-func (dtl *DatabaseTableList) Update(dbInfo *simulator.DatabaseInfo, dbFile *simulator.FileInfo, cursor, viewport int) {
+func (dtl *DatabaseTableList) Update(dbInfo *simulator.DatabaseInfo, dbFile *simulator.FileInfo, cursor, viewport int, keys *config.KeysConfig) {
 	dtl.DatabaseInfo = dbInfo
 	dtl.DatabaseFile = dbFile
 	dtl.Cursor = cursor
 	dtl.Viewport = viewport
+	dtl.Keys = keys
 }
 
 // Render renders the database table list content
@@ -75,12 +78,54 @@ func (dtl *DatabaseTableList) GetTitle() string {
 
 // GetFooter returns the footer for the database table list
 func (dtl *DatabaseTableList) GetFooter() string {
-	footer := "↑/k: up • ↓/j: down"
-	if dtl.DatabaseInfo != nil && len(dtl.DatabaseInfo.Tables) > 0 && dtl.Cursor < len(dtl.DatabaseInfo.Tables) {
-		footer += " • →/l: view table"
-	}
-	footer += " • ←/h: back • q: quit"
+	if dtl.Keys == nil {
+		// Fallback to default if keys not set
+		footer := "↑/k: up • ↓/j: down"
+		if dtl.DatabaseInfo != nil && len(dtl.DatabaseInfo.Tables) > 0 && dtl.Cursor < len(dtl.DatabaseInfo.Tables) {
+			footer += " • →/l: view table"
+		}
+		footer += " • ←/h: back • q: quit"
 
+		// Add scroll info
+		if dtl.DatabaseInfo != nil && len(dtl.DatabaseInfo.Tables) > 0 {
+			headerLines := 6 // Approximate header lines
+			availableHeight := dtl.Height - headerLines
+			itemsPerScreen := availableHeight / 3
+			if itemsPerScreen < 1 {
+				itemsPerScreen = 1
+			}
+			scrollInfo := ui.FormatScrollInfo(dtl.Viewport, itemsPerScreen, len(dtl.DatabaseInfo.Tables))
+			return footer + scrollInfo
+		}
+		
+		return footer
+	}
+	
+	// Build footer from configured keys
+	var parts []string
+	
+	if up := dtl.Keys.FormatKeyAction("up", "up"); up != "" {
+		parts = append(parts, up)
+	}
+	if down := dtl.Keys.FormatKeyAction("down", "down"); down != "" {
+		parts = append(parts, down)
+	}
+	
+	if dtl.DatabaseInfo != nil && len(dtl.DatabaseInfo.Tables) > 0 && dtl.Cursor < len(dtl.DatabaseInfo.Tables) {
+		if right := dtl.Keys.FormatKeyAction("right", "view table"); right != "" {
+			parts = append(parts, right)
+		}
+	}
+	
+	if left := dtl.Keys.FormatKeyAction("left", "back"); left != "" {
+		parts = append(parts, left)
+	}
+	if quit := dtl.Keys.FormatKeyAction("quit", "quit"); quit != "" {
+		parts = append(parts, quit)
+	}
+	
+	footer := strings.Join(parts, " • ")
+	
 	// Add scroll info
 	if dtl.DatabaseInfo != nil && len(dtl.DatabaseInfo.Tables) > 0 {
 		headerLines := 6 // Approximate header lines

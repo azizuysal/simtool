@@ -245,15 +245,18 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleAppSearchInput(msg)
 	}
 	
-	switch msg.String() {
-	case KeyCtrlC, KeyQuit:
+	key := msg.String()
+	action := m.keyMap.GetAction(key)
+	
+	switch action {
+	case "quit":
 		// Don't quit if in search mode
 		if m.simSearchMode || m.appSearchMode {
 			return m, nil
 		}
 		return m, tea.Quit
 
-	case KeyLeft, KeyH:
+	case "left":
 		switch m.viewState {
 		case AppListView:
 			m.viewState = SimulatorListView
@@ -310,10 +313,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		
-	case KeyEnter:
+	case "enter":
 		// Enter key no longer used for viewing files
 
-	case KeyRight, KeyL:
+	case "right":
 		switch m.viewState {
 		case SimulatorListView:
 			filteredSims := m.getFilteredSimulators()
@@ -389,7 +392,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case KeyUp, KeyK:
+	case "up":
 		// Clear status message on navigation
 		m.statusMessage = ""
 		switch m.viewState {
@@ -460,7 +463,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case KeyDown, KeyJ:
+	case "down":
 		// Clear status message on navigation
 		m.statusMessage = ""
 		switch m.viewState {
@@ -578,7 +581,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case KeyHome:
+	case "home":
 		// Clear status message on navigation
 		m.statusMessage = ""
 		switch m.viewState {
@@ -593,7 +596,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.fileViewport = 0
 		}
 
-	case KeyEnd:
+	case "end":
 		// Clear status message on navigation
 		m.statusMessage = ""
 		switch m.viewState {
@@ -614,7 +617,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.updateViewport()
 
-	case KeyF:
+	case "filter":
 		if m.viewState == SimulatorListView {
 			m.filterActive = !m.filterActive
 			// Reset cursor when toggling filter
@@ -623,7 +626,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 
-	case KeySpace:
+	case "boot", "open":
 		switch m.viewState {
 		case SimulatorListView:
 			filteredSims := m.getFilteredSimulators()
@@ -656,7 +659,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		
-	case KeySlash:
+	case "search":
 		switch m.viewState {
 		case SimulatorListView:
 			m.simSearchMode = true
@@ -696,8 +699,11 @@ func (m Model) getFilteredSimulators() []simulator.Item {
 
 // handleSimulatorSearchInput handles keyboard input when in simulator search mode
 func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case KeyEsc:
+	key := msg.String()
+	action := m.keyMap.GetAction(key)
+	
+	switch action {
+	case "escape":
 		// Exit search mode
 		m.simSearchMode = false
 		m.simSearchQuery = ""
@@ -707,7 +713,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.updateViewport()
 		return m, nil
 		
-	case KeyBackspace:
+	case "backspace":
 		// Remove last character from search query
 		if len(m.simSearchQuery) > 0 {
 			m.simSearchQuery = m.simSearchQuery[:len(m.simSearchQuery)-1]
@@ -717,7 +723,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case KeyUp:
+	case "up":
 		// Navigate in search results
 		if m.simCursor > 0 {
 			m.simCursor--
@@ -725,7 +731,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case KeyDown:
+	case "down":
 		// Navigate in search results
 		filteredSims := m.getFilteredAndSearchedSimulators()
 		if m.simCursor < len(filteredSims)-1 {
@@ -734,7 +740,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case KeyEnter, KeyRight:
+	case "enter", "right":
 		// Select simulator while in search
 		filteredSims := m.getFilteredAndSearchedSimulators()
 		if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
@@ -750,7 +756,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case KeySpace:
+	case "boot", "open":
 		// Space is allowed in search
 		m.simSearchQuery += " "
 		m.simCursor = 0
@@ -772,8 +778,11 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // handleAppSearchInput handles keyboard input when in app search mode
 func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case KeyEsc:
+	key := msg.String()
+	action := m.keyMap.GetAction(key)
+	
+	switch action {
+	case "escape":
 		// Exit search mode
 		m.appSearchMode = false
 		m.appSearchQuery = ""
@@ -783,7 +792,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.updateViewport()
 		return m, nil
 		
-	case KeyBackspace:
+	case "backspace":
 		// Remove last character from search query
 		if len(m.appSearchQuery) > 0 {
 			m.appSearchQuery = m.appSearchQuery[:len(m.appSearchQuery)-1]
@@ -793,7 +802,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case KeyUp:
+	case "up":
 		// Navigate in search results
 		if m.appCursor > 0 {
 			m.appCursor--
@@ -801,7 +810,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case KeyDown:
+	case "down":
 		// Navigate in search results
 		filteredApps := m.getFilteredAndSearchedApps()
 		if m.appCursor < len(filteredApps)-1 {
@@ -810,7 +819,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case KeyEnter, KeyRight:
+	case "enter", "right":
 		// Select app while in search
 		filteredApps := m.getFilteredAndSearchedApps()
 		if len(filteredApps) > 0 && m.appCursor < len(filteredApps) {
@@ -831,7 +840,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case KeySpace:
+	case "boot", "open":
 		// Space is allowed in search
 		m.appSearchQuery += " "
 		m.appCursor = 0

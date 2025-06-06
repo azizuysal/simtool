@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"simtool/internal/config"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
@@ -18,6 +19,7 @@ type AppList struct {
 	SearchMode   bool
 	SearchQuery  string
 	SimulatorName string
+	Keys         *config.KeysConfig
 }
 
 // NewAppList creates a new app list renderer
@@ -29,13 +31,14 @@ func NewAppList(width, height int) *AppList {
 }
 
 // Update updates the list data
-func (al *AppList) Update(apps []simulator.App, cursor, viewport int, searchMode bool, searchQuery, simName string) {
+func (al *AppList) Update(apps []simulator.App, cursor, viewport int, searchMode bool, searchQuery, simName string, keys *config.KeysConfig) {
 	al.Apps = apps
 	al.Cursor = cursor
 	al.Viewport = viewport
 	al.SearchMode = searchMode
 	al.SearchQuery = searchQuery
 	al.SimulatorName = simName
+	al.Keys = keys
 }
 
 // Render renders the app list content
@@ -72,13 +75,64 @@ func (al *AppList) GetTitle(totalCount int) string {
 
 // GetFooter returns the footer for the app list
 func (al *AppList) GetFooter() string {
-	footer := ""
-	if al.SearchMode {
-		footer = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
-	} else {
-		footer = "↑/k: up • ↓/j: down • →/l: files • space: open in Finder • /: search • ←/h: back • q: quit"
+	if al.Keys == nil {
+		// Fallback to default if keys not set
+		footer := ""
+		if al.SearchMode {
+			footer = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
+		} else {
+			footer = "↑/k: up • ↓/j: down • →/l: files • space: open in Finder • /: search • ←/h: back • q: quit"
+		}
+		// Add scroll info
+		itemsPerScreen := al.calculateItemsPerScreen()
+		scrollInfo := ui.FormatScrollInfo(al.Viewport, itemsPerScreen, len(al.Apps))
+		return footer + scrollInfo
 	}
-
+	
+	// Build footer from configured keys
+	var parts []string
+	
+	if al.SearchMode {
+		if esc := al.Keys.FormatKeyAction("escape", "exit search"); esc != "" {
+			parts = append(parts, esc)
+		}
+		if up := al.Keys.FormatKeyAction("up", "navigate"); up != "" {
+			parts = append(parts, config.FormatKeys(al.Keys.Up)+"/"+config.FormatKeys(al.Keys.Down)+": navigate")
+		}
+		if right := al.Keys.FormatKeyAction("right", "select"); right != "" {
+			enter := config.FormatKeys(al.Keys.Enter)
+			if enter != "" {
+				parts = append(parts, config.FormatKeys(al.Keys.Right)+"/"+enter+": select")
+			} else {
+				parts = append(parts, right)
+			}
+		}
+	} else {
+		if up := al.Keys.FormatKeyAction("up", "up"); up != "" {
+			parts = append(parts, up)
+		}
+		if down := al.Keys.FormatKeyAction("down", "down"); down != "" {
+			parts = append(parts, down)
+		}
+		if right := al.Keys.FormatKeyAction("right", "files"); right != "" {
+			parts = append(parts, right)
+		}
+		if open := al.Keys.FormatKeyAction("open", "open in Finder"); open != "" {
+			parts = append(parts, open)
+		}
+		if search := al.Keys.FormatKeyAction("search", "search"); search != "" {
+			parts = append(parts, search)
+		}
+		if left := al.Keys.FormatKeyAction("left", "back"); left != "" {
+			parts = append(parts, left)
+		}
+		if quit := al.Keys.FormatKeyAction("quit", "quit"); quit != "" {
+			parts = append(parts, quit)
+		}
+	}
+	
+	footer := strings.Join(parts, " • ")
+	
 	// Add scroll info
 	itemsPerScreen := al.calculateItemsPerScreen()
 	scrollInfo := ui.FormatScrollInfo(al.Viewport, itemsPerScreen, len(al.Apps))

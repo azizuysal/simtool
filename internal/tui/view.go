@@ -55,7 +55,7 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 
 	// Create simulator list component
 	simList := components.NewSimulatorList(contentWidth, contentHeight)
-	simList.Update(filteredSims, m.simCursor, m.simViewport, m.filterActive, m.simSearchMode, m.simSearchQuery)
+	simList.Update(filteredSims, m.simCursor, m.simViewport, m.filterActive, m.simSearchMode, m.simSearchQuery, &m.config.Keys)
 
 	// Get title
 	title = simList.GetTitle(len(m.simulators))
@@ -106,7 +106,7 @@ func (m Model) renderAppListView() (title, content, footer, status string) {
 	if m.selectedSim != nil {
 		simName = m.selectedSim.Name
 	}
-	appList.Update(filteredApps, m.appCursor, m.appViewport, m.appSearchMode, m.appSearchQuery, simName)
+	appList.Update(filteredApps, m.appCursor, m.appViewport, m.appSearchMode, m.appSearchQuery, simName, &m.config.Keys)
 
 	// Get title
 	title = appList.GetTitle(len(m.apps))
@@ -144,7 +144,7 @@ func (m Model) renderFileListView() (title, content, footer, status string) {
 
 	// Create file list component
 	fileList := components.NewFileList(contentWidth, contentHeight)
-	fileList.Update(m.files, m.fileCursor, m.fileViewport, m.selectedApp, m.breadcrumbs)
+	fileList.Update(m.files, m.fileCursor, m.fileViewport, m.selectedApp, m.breadcrumbs, &m.config.Keys)
 
 	// Get title
 	title = fileList.GetTitle()
@@ -180,7 +180,7 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 	
 	// Create file viewer component with content dimensions
 	viewer := file_viewer.NewFileViewer(contentWidth, contentHeight)
-	viewer.Update(m.viewingFile, m.fileContent, m.contentViewport, m.contentOffset, m.svgWarning)
+	viewer.Update(m.viewingFile, m.fileContent, m.contentViewport, m.contentOffset, m.svgWarning, &m.config.Keys)
 
 	// Get title
 	title = viewer.GetTitle()
@@ -219,7 +219,7 @@ func (m Model) renderDatabaseTableListView() (title, content, footer, status str
 
 	// Create database table list component
 	tableList := components.NewDatabaseTableList(contentWidth, contentHeight)
-	tableList.Update(m.databaseInfo, m.viewingDatabase, m.tableCursor, m.tableViewport)
+	tableList.Update(m.databaseInfo, m.viewingDatabase, m.tableCursor, m.tableViewport, &m.config.Keys)
 
 	// Get title
 	title = tableList.GetTitle()
@@ -255,7 +255,7 @@ func (m Model) renderDatabaseTableContentView() (title, content, footer, status 
 
 	// Create database table content component
 	tableContent := components.NewDatabaseTableContent(contentWidth, contentHeight)
-	tableContent.Update(m.selectedTable, m.tableData, m.viewingDatabase, m.tableDataViewport, m.tableDataOffset)
+	tableContent.Update(m.selectedTable, m.tableData, m.viewingDatabase, m.tableDataViewport, m.tableDataOffset, &m.config.Keys)
 
 	// Get title
 	title = tableContent.GetTitle()

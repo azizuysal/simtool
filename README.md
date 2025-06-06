@@ -190,6 +190,8 @@ simtool --list-themes
 
 ### Keyboard Shortcuts
 
+SimTool supports fully customizable keyboard shortcuts. The default shortcuts are:
+
 #### Navigation
 - `↑` / `k` - Move up
 - `↓` / `j` - Move down
@@ -211,6 +213,26 @@ simtool --list-themes
 - `→` / `Enter` - Select item
 - `Backspace` - Delete last character
 - `ESC` - Cancel search
+
+#### Customizing Shortcuts
+
+You can customize any keyboard shortcut in your config file. See the `[keys]` section in the example configuration:
+
+```toml
+[keys]
+# Each action can have multiple keys assigned
+up = ["up", "k"]           # Move cursor up
+down = ["down", "j"]       # Move cursor down
+left = ["left", "h"]       # Go back / navigate left
+right = ["right", "l"]     # Enter / navigate right
+# ... etc
+```
+
+Example customizations:
+- Use only arrow keys: `up = ["up"]`, `down = ["down"]`
+- Use only vim keys: `up = ["k"]`, `down = ["j"]`
+- Add custom keys: `quit = ["q", "ctrl+c", "ctrl+d"]`
+- Disable a shortcut: `filter = []`
 
 ### Display Information
 

@@ -4,10 +4,14 @@ import (
 	"strings"
 	"testing"
 
+	"simtool/internal/config"
 	"simtool/internal/simulator"
 )
 
 func TestView(t *testing.T) {
+	// Create a default config for all tests
+	defaultConfig := config.Default()
+	
 	tests := []struct {
 		name      string
 		model     Model
@@ -18,6 +22,7 @@ func TestView(t *testing.T) {
 			name: "error state",
 			model: Model{
 				err: simulator.ErrSimulatorNotFound,
+				config: defaultConfig,
 			},
 			wantError: true,
 			contains:  []string{"Error:", "simulator not found"},
@@ -37,6 +42,7 @@ func TestView(t *testing.T) {
 				},
 				height: 30,
 				width:  80,
+				config: defaultConfig,
 			},
 			contains: []string{"iOS Simulators"},
 		},
@@ -52,6 +58,7 @@ func TestView(t *testing.T) {
 				},
 				height: 30,
 				width:  80,
+				config: defaultConfig,
 			},
 			contains: []string{"iPhone 15 Apps"},
 		},
@@ -67,6 +74,7 @@ func TestView(t *testing.T) {
 				},
 				height: 30,
 				width:  80,
+				config: defaultConfig,
 			},
 			contains: []string{"TestApp Files"},
 		},
@@ -96,6 +104,7 @@ func TestViewStateIntegration(t *testing.T) {
 	model := Model{
 		height: 30,
 		width:  80,
+		config: config.Default(),
 		simulators: []simulator.Item{
 			{
 				Simulator: simulator.Simulator{
@@ -143,6 +152,7 @@ func TestViewLoadingStates(t *testing.T) {
 	model := Model{
 		height: 30,
 		width:  80,
+		config: config.Default(),
 	}
 
 	// Test loading simulators
@@ -178,6 +188,7 @@ func TestViewSearchMode(t *testing.T) {
 	model := Model{
 		height: 30,
 		width:  80,
+		config: config.Default(),
 		simulators: []simulator.Item{
 			{
 				Simulator: simulator.Simulator{Name: "iPhone 15"},
@@ -198,6 +209,7 @@ func TestViewFilterMode(t *testing.T) {
 	model := Model{
 		height: 30,
 		width:  80,
+		config: config.Default(),
 		simulators: []simulator.Item{
 			{
 				Simulator: simulator.Simulator{Name: "iPhone 15"},

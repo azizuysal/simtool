@@ -95,7 +95,7 @@ func TestSimulatorListRender(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sl := NewSimulatorList(80, 24)
-			sl.Update(tt.simulators, tt.cursor, tt.viewport, false, false, "")
+			sl.Update(tt.simulators, tt.cursor, tt.viewport, false, false, "", nil)
 			
 			result := sl.Render()
 
@@ -160,7 +160,7 @@ func TestSimulatorListGetTitle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sl.Update(tt.simulators, 0, 0, tt.filterActive, false, tt.searchQuery)
+			sl.Update(tt.simulators, 0, 0, tt.filterActive, false, tt.searchQuery, nil)
 			result := sl.GetTitle(tt.totalCount)
 			if result != tt.expected {
 				t.Errorf("Expected title %q, got %q", tt.expected, result)
@@ -191,7 +191,7 @@ func TestSimulatorListGetFooter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sl.Update([]simulator.Item{}, 0, 0, false, tt.searchMode, "")
+			sl.Update([]simulator.Item{}, 0, 0, false, tt.searchMode, "", nil)
 			result := sl.GetFooter()
 			if !strings.Contains(result, tt.expected) {
 				t.Errorf("Expected footer to contain %q, got %q", tt.expected, result)
@@ -242,7 +242,7 @@ func TestSimulatorListGetStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sl.Update([]simulator.Item{}, 0, 0, tt.filterActive, tt.searchMode, tt.searchQuery)
+			sl.Update([]simulator.Item{}, 0, 0, tt.filterActive, tt.searchMode, tt.searchQuery, nil)
 			result := sl.GetStatus()
 			if tt.expected == "" && result != "" {
 				t.Errorf("Expected empty status, got %q", result)

@@ -92,7 +92,7 @@ func TestAppListRender(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			al := NewAppList(80, 24)
-			al.Update(tt.apps, tt.cursor, 0, false, tt.searchQuery, "iPhone 15")
+			al.Update(tt.apps, tt.cursor, 0, false, tt.searchQuery, "iPhone 15", nil)
 			
 			result := al.Render()
 
@@ -141,7 +141,7 @@ func TestAppListGetTitle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			al.Update(tt.apps, 0, 0, false, tt.searchQuery, tt.simName)
+			al.Update(tt.apps, 0, 0, false, tt.searchQuery, tt.simName, nil)
 			result := al.GetTitle(tt.totalCount)
 			if result != tt.expected {
 				t.Errorf("Expected title %q, got %q", tt.expected, result)
@@ -172,7 +172,7 @@ func TestAppListGetFooter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			al.Update([]simulator.App{}, 0, 0, tt.searchMode, "", "iPhone 15")
+			al.Update([]simulator.App{}, 0, 0, tt.searchMode, "", "iPhone 15", nil)
 			result := al.GetFooter()
 			if !strings.Contains(result, tt.expected) {
 				t.Errorf("Expected footer to contain %q, got %q", tt.expected, result)
@@ -212,7 +212,7 @@ func TestAppListGetStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			al.Update([]simulator.App{}, 0, 0, tt.searchMode, tt.searchQuery, "iPhone 15")
+			al.Update([]simulator.App{}, 0, 0, tt.searchMode, tt.searchQuery, "iPhone 15", nil)
 			result := al.GetStatus()
 			if tt.expected == "" && result != "" {
 				t.Errorf("Expected empty status, got %q", result)

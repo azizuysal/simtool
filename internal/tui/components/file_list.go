@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"simtool/internal/config"
 	"simtool/internal/simulator"
 	"simtool/internal/ui"
 )
@@ -17,6 +18,7 @@ type FileList struct {
 	Viewport    int
 	App         *simulator.App
 	Breadcrumbs []string
+	Keys        *config.KeysConfig
 }
 
 // NewFileList creates a new file list renderer
@@ -28,12 +30,13 @@ func NewFileList(width, height int) *FileList {
 }
 
 // Update updates the list data
-func (fl *FileList) Update(files []simulator.FileInfo, cursor, viewport int, app *simulator.App, breadcrumbs []string) {
+func (fl *FileList) Update(files []simulator.FileInfo, cursor, viewport int, app *simulator.App, breadcrumbs []string, keys *config.KeysConfig) {
 	fl.Files = files
 	fl.Cursor = cursor
 	fl.Viewport = viewport
 	fl.App = app
 	fl.Breadcrumbs = breadcrumbs
+	fl.Keys = keys
 }
 
 // Render renders the file list content
@@ -76,17 +79,66 @@ func (fl *FileList) GetTitle() string {
 
 // GetFooter returns the footer for the file list
 func (fl *FileList) GetFooter() string {
-	footer := "↑/k: up • ↓/j: down"
+	if fl.Keys == nil {
+		// Fallback to default if keys not set
+		footer := "↑/k: up • ↓/j: down"
+		if len(fl.Files) > 0 && fl.Cursor < len(fl.Files) {
+			if fl.Files[fl.Cursor].IsDirectory {
+				footer += " • →/l: enter"
+			} else {
+				footer += " • →/l: view file"
+			}
+			footer += " • space: open in Finder"
+		}
+		footer += " • ←/h: back • q: quit"
+
+		// Add scroll info
+		// Calculate actual header lines for this specific render
+		header := fl.buildHeader()
+		headerLines := strings.Count(header, "\n") + 4 // header + separator + padding
+		availableHeight := fl.Height - headerLines
+		itemsPerScreen := availableHeight / 3
+		if itemsPerScreen < 1 {
+			itemsPerScreen = 1
+		}
+		scrollInfo := ui.FormatScrollInfo(fl.Viewport, itemsPerScreen, len(fl.Files))
+		return footer + scrollInfo
+	}
+	
+	// Build footer from configured keys
+	var parts []string
+	
+	if up := fl.Keys.FormatKeyAction("up", "up"); up != "" {
+		parts = append(parts, up)
+	}
+	if down := fl.Keys.FormatKeyAction("down", "down"); down != "" {
+		parts = append(parts, down)
+	}
+	
 	if len(fl.Files) > 0 && fl.Cursor < len(fl.Files) {
 		if fl.Files[fl.Cursor].IsDirectory {
-			footer += " • →/l: enter"
+			if right := fl.Keys.FormatKeyAction("right", "enter"); right != "" {
+				parts = append(parts, right)
+			}
 		} else {
-			footer += " • →/l: view file"
+			if right := fl.Keys.FormatKeyAction("right", "view file"); right != "" {
+				parts = append(parts, right)
+			}
 		}
-		footer += " • space: open in Finder"
+		if open := fl.Keys.FormatKeyAction("open", "open in Finder"); open != "" {
+			parts = append(parts, open)
+		}
 	}
-	footer += " • ←/h: back • q: quit"
-
+	
+	if left := fl.Keys.FormatKeyAction("left", "back"); left != "" {
+		parts = append(parts, left)
+	}
+	if quit := fl.Keys.FormatKeyAction("quit", "quit"); quit != "" {
+		parts = append(parts, quit)
+	}
+	
+	footer := strings.Join(parts, " • ")
+	
 	// Add scroll info
 	// Calculate actual header lines for this specific render
 	header := fl.buildHeader()
