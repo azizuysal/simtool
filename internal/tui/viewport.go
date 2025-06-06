@@ -17,7 +17,13 @@ func (m *Model) updateViewport() {
 
 	switch m.viewState {
 	case SimulatorListView:
-		updateViewportForList(&m.simCursor, &m.simViewport, len(m.simulators), itemsPerScreen)
+		// Calculate items per screen the same way SimulatorList does
+		contentHeight := m.height - 8 // Same calculation as in view.go
+		simItemsPerScreen := (contentHeight - 2) / 3 // Same as SimulatorList.calculateItemsPerScreen
+		if simItemsPerScreen < 1 {
+			simItemsPerScreen = 1
+		}
+		updateViewportForList(&m.simCursor, &m.simViewport, len(m.simulators), simItemsPerScreen)
 	case AppListView:
 		updateViewportForList(&m.appCursor, &m.appViewport, len(m.apps), itemsPerScreen)
 	case FileListView:

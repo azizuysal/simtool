@@ -100,8 +100,8 @@ func (sl *SimulatorList) GetStatus() string {
 // calculateItemsPerScreen calculates how many items fit on screen
 func (sl *SimulatorList) calculateItemsPerScreen() int {
 	// Each item takes 3 lines (name + details + blank line)
-	// Account for borders and padding
-	availableHeight := sl.Height - 2 // Border takes 2 lines
+	// ContentBox will clip content to Height-2, so account for that
+	availableHeight := sl.Height - 2
 	itemsPerScreen := availableHeight / 3
 	if itemsPerScreen < 1 {
 		itemsPerScreen = 1
