@@ -14,21 +14,81 @@ import (
 	"simtool/internal/tui"
 )
 
+const appName = "simtool"
+
+// Build variables - these are set via ldflags during build
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+	builtBy = "unknown"
+)
+
 func main() {
 	// Detect terminal theme before starting TUI
 	config.InitializeThemeDetection()
 	
 	// Define command-line flags
 	var (
-		generateConfig = flag.Bool("generate-config", false, "Generate example configuration file")
-		showConfigPath = flag.Bool("show-config-path", false, "Show configuration file path")
-		listThemes     = flag.Bool("list-themes", false, "List available syntax highlighting themes")
+		generateConfig bool
+		showConfigPath bool
+		listThemes     bool
+		showHelp       bool
+		showVersion    bool
 	)
+	
+	flag.BoolVar(&generateConfig, "generate-config", false, "Generate example configuration file")
+	flag.BoolVar(&generateConfig, "g", false, "Generate example configuration file")
+	
+	flag.BoolVar(&showConfigPath, "show-config-path", false, "Show configuration file path")
+	flag.BoolVar(&showConfigPath, "c", false, "Show configuration file path")
+	
+	flag.BoolVar(&listThemes, "list-themes", false, "List available syntax highlighting themes")
+	flag.BoolVar(&listThemes, "l", false, "List available syntax highlighting themes")
+	
+	flag.BoolVar(&showHelp, "help", false, "Show help message")
+	flag.BoolVar(&showHelp, "h", false, "Show help message")
+	
+	flag.BoolVar(&showVersion, "version", false, "Show version information")
+	flag.BoolVar(&showVersion, "v", false, "Show version information")
+	
+	// Custom usage function
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n\n", appName)
+		fmt.Fprintf(os.Stderr, "A terminal UI application for managing iOS simulators on macOS.\n\n")
+		fmt.Fprintf(os.Stderr, "Options:\n")
+		fmt.Fprintf(os.Stderr, "  -g, --generate-config     Generate example configuration file\n")
+		fmt.Fprintf(os.Stderr, "  -c, --show-config-path    Show configuration file path\n")
+		fmt.Fprintf(os.Stderr, "  -l, --list-themes         List available syntax highlighting themes\n")
+		fmt.Fprintf(os.Stderr, "  -h, --help                Show help message\n")
+		fmt.Fprintf(os.Stderr, "  -v, --version             Show version information\n")
+	}
 	
 	flag.Parse()
 	
+	// Handle help flag
+	if showHelp {
+		flag.Usage()
+		return
+	}
+	
+	// Handle version flag
+	if showVersion {
+		fmt.Printf("%s version %s\n", appName, version)
+		if commit != "none" {
+			fmt.Printf("  commit: %s\n", commit)
+		}
+		if date != "unknown" {
+			fmt.Printf("  built:  %s\n", date)
+		}
+		if builtBy != "unknown" {
+			fmt.Printf("  by:     %s\n", builtBy)
+		}
+		return
+	}
+	
 	// Handle config-related flags
-	if *generateConfig {
+	if generateConfig {
 		if err := config.SaveExample(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error generating config: %v\n", err)
 			os.Exit(1)
@@ -46,7 +106,7 @@ func main() {
 		return
 	}
 	
-	if *showConfigPath {
+	if showConfigPath {
 		configDir := os.Getenv("XDG_CONFIG_HOME")
 		if configDir == "" {
 			home, _ := os.UserHomeDir()
@@ -57,7 +117,7 @@ func main() {
 		return
 	}
 	
-	if *listThemes {
+	if listThemes {
 		fmt.Println("Available syntax highlighting themes:")
 		fmt.Println()
 		

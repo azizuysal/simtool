@@ -87,14 +87,25 @@ make install
 # Or if installed
 simtool
 
+# Show help
+simtool --help
+simtool -h
+
+# Show version
+simtool --version
+simtool -v
+
 # Generate example configuration file
 simtool --generate-config
+simtool -g
 
 # Show configuration file path
 simtool --show-config-path
+simtool -c
 
 # List available syntax highlighting themes
 simtool --list-themes
+simtool -l
 ```
 
 ## Configuration

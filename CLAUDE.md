@@ -119,6 +119,25 @@ make install
 
 # Download dependencies
 make deps
+
+# Build for multiple platforms
+make build-all
+```
+
+### Build System
+
+The Makefile includes build-time version injection:
+- Automatically uses git tags/commits for version information
+- Injects commit hash, build date, and builder information
+- Version format: `git describe --tags --always --dirty`
+- Shows `-dirty` suffix if there are uncommitted changes
+
+Example version output:
+```
+simtool version v1.0.0
+  commit: abc123f
+  built:  2025-06-07T12:00:00Z
+  by:     username
 ```
 
 ## Architecture
@@ -168,10 +187,14 @@ The application follows clean architecture principles with clear separation of c
 
 4. **cmd/simtool**: Application entry point
    - Terminal theme detection initialization
-   - Command-line flag handling
-   - Config file generation (`--generate-config`)
-   - Config path display (`--show-config-path`)
-   - Theme listing (`--list-themes`)
+   - Command-line flag handling with short and long options:
+     - Help display (`--help` / `-h`)
+     - Version information (`--version` / `-v`)
+     - Config file generation (`--generate-config` / `-g`)
+     - Config path display (`--show-config-path` / `-c`)
+     - Theme listing (`--list-themes` / `-l`)
+   - Build-time version injection using ldflags
+   - Custom help formatting
    - Minimal main function
    - Sets up dependencies
    - Runs the TUI application
