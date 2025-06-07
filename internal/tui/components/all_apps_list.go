@@ -25,13 +25,13 @@ func AllAppsListView(
 	
 	// Handle loading state
 	if loading {
-		content := "Loading all apps..."
+		content := "" // Empty content during loading
 		layout := NewLayout(width, height)
 		return layout.Render(
 			"All Apps",
 			content,
 			"Press q to quit",
-			"Loading...",
+			ui.LoadingStyle().Render("Loading all apps..."),
 		)
 	}
 	

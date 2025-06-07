@@ -164,15 +164,18 @@ The application follows clean architecture principles with clear separation of c
    - Defines simulator types and interfaces
    - Fetches simulators via `xcrun simctl list devices --json`
    - Boots simulators and opens Simulator.app
-   - Lists and manages installed apps
+   - Lists and manages installed apps with last modified dates
+   - Provides all apps view aggregating apps from all simulators
    - Browses app container files and directories
    - Reads file content with lazy loading for large files
-   - Provides syntax highlighting for code files using chroma
+   - Provides syntax highlighting for code files using chroma (100+ languages)
+   - Automatic language detection for files without extensions
    - Generates terminal-based image previews
-   - Formats hex dumps for binary files
+   - Formats hex dumps for binary files with automatic fallback
    - Displays ZIP archive contents with file listings
    - Generates SVG previews as ASCII art
    - Provides SQLite database browsing with table navigation and data viewing
+   - Handles binary plist conversion automatically
 
 2. **internal/tui**: Terminal UI logic (Bubble Tea MVU pattern)
    - Model: Application state (simulators, apps, files, cursor, viewport)
@@ -256,15 +259,18 @@ The application follows clean architecture principles with clear separation of c
 
 ### File Viewing
 - Text files: Syntax highlighting for code files using chroma
-  - Support for TypeScript, TSX, JavaScript, JSX, Swift, Objective-C, Objective-C++, and 100+ more languages
+  - Support for TypeScript, TSX, JavaScript, JSX, Swift, Objective-C, Objective-C++, Ruby (.podspec), and 100+ more languages
   - Theme-aware colors that adapt to terminal dark/light mode
   - ANSI escape sequences for terminal rendering
+  - Automatic language detection for files without extensions (HTML, XML, JSON, SVG)
 - Property list files: Automatic handling of both XML and binary plist formats
   - Binary plists automatically converted to XML for viewing using macOS plutil
   - XML syntax highlighting for all plist files
   - Clear indication when viewing converted binary plists
 - Images: Terminal-based previews for PNG, JPEG, GIF, BMP, TIFF, WebP
+  - Automatic fallback to hex view for invalid image files
 - SVG files: ASCII art previews with viewBox information
+  - Automatic detection of SVG files without extensions
 - Binary files: Hex dump format with offset and ASCII preview
 - Archives: Tree structure view for ZIP, JAR, WAR, EAR, IPA, APK, AAR files
 - Database files: SQLite database browser with two-stage navigation
@@ -290,6 +296,8 @@ The application follows clean architecture principles with clear separation of c
 - Theme-aware colored warnings (e.g., SVG rendering limitations)
 - All UI colors automatically adapt to selected theme
 - Dynamic theme switching - UI updates when terminal theme changes
+- Consistent loading indicators in status line only
+- Error messages displayed in distinct error colors (red/bold)
 - Press 'q' or Ctrl+C to quit
 
 ## Configuration

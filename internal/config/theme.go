@@ -143,17 +143,12 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 		}
 	}
 	
-	// Error - use error token color
-	err := theme.Get(chroma.Error)
-	if err.Colour.IsSet() {
-		tc.Error = colorToHex(err.Colour)
+	// Error - Always use a distinct red color for errors
+	// This ensures errors are always visible regardless of theme
+	if isDark {
+		tc.Error = "#ff6b6b" // Light red for dark themes
 	} else {
-		ferr := fallbackTheme.Get(chroma.Error)
-		if ferr.Colour.IsSet() {
-			tc.Error = colorToHex(ferr.Colour)
-		} else {
-			tc.Error = tc.Foreground
-		}
+		tc.Error = "#dc3545" // Bootstrap danger red for light themes
 	}
 	
 	// Warning - use name.constant or number color (often orange/yellow)

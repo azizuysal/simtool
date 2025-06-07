@@ -64,7 +64,13 @@ func (fv *FileViewer) renderText() string {
 			line = line[:maxLineWidth-3] + "..."
 		}
 		
-		highlightedLine := simulator.GetSyntaxHighlightedLine(line, fileExt)
+		// Use detected language if available
+		highlightedLine := ""
+		if fv.Content.DetectedLang != "" {
+			highlightedLine = simulator.GetSyntaxHighlightedLineWithLang(line, fileExt, fv.Content.DetectedLang)
+		} else {
+			highlightedLine = simulator.GetSyntaxHighlightedLine(line, fileExt)
+		}
 		s.WriteString(highlightedLine)
 		lineCount++
 	}

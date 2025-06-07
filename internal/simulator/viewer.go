@@ -55,6 +55,7 @@ type FileContent struct {
 	ArchiveInfo *ArchiveInfo // For archive files
 	DatabaseInfo *DatabaseInfo // For database files
 	IsBinaryPlist bool    // Whether this was converted from binary plist
+	DetectedLang string  // Detected language for syntax highlighting (e.g., "html")
 	Error       error
 }
 
@@ -158,10 +159,16 @@ func DetectFileType(path string) FileType {
 	// Check for known binary extensions first
 	binaryExts := map[string]bool{
 		".exe": true, ".dll": true, ".so": true, ".dylib": true,
-		".bin": true, ".dat": true,
+		".bin": true, ".dat": true, ".cache": true,
 		".o": true, ".a": true, ".lib": true, ".obj": true,
 		".class": true, ".jar": true, ".dex": true,
 		".pyc": true, ".pyo": true, ".wasm": true,
+		".pdf": true, ".doc": true, ".docx": true, ".xls": true,
+		".xlsx": true, ".ppt": true, ".pptx": true,
+		".mp3": true, ".mp4": true, ".avi": true, ".mov": true,
+		".wav": true, ".flac": true, ".ogg": true, ".m4a": true,
+		".ttf": true, ".otf": true, ".woff": true, ".woff2": true,
+		".eot": true, ".pfb": true, ".pfm": true,
 	}
 	
 	if binaryExts[ext] {
@@ -187,6 +194,47 @@ func DetectFileType(path string) FileType {
 		return FileTypeDatabase
 	}
 	
+	// Check for image file signatures
+	imageSignatures := [][]byte{
+		[]byte("\x89PNG\r\n\x1a\n"),              // PNG
+		[]byte("\xFF\xD8\xFF"),                    // JPEG
+		[]byte("GIF87a"), []byte("GIF89a"),       // GIF
+		[]byte("RIFF"),                            // RIFF (might be WebP)
+		[]byte("BM"),                              // BMP
+		[]byte("MM\x00\x2A"), []byte("II\x2A\x00"), // TIFF
+		[]byte("\x00\x00\x01\x00"),                // ICO
+		[]byte("\x00\x00\x02\x00"),                // CUR
+	}
+	
+	for _, sig := range imageSignatures {
+		if n >= len(sig) && bytes.Equal(buffer[:len(sig)], sig) {
+			// For RIFF, check if it's WebP
+			if bytes.Equal(sig, []byte("RIFF")) && n >= 12 {
+				if bytes.Equal(buffer[8:12], []byte("WEBP")) {
+					return FileTypeImage
+				}
+				// Otherwise it might be WAV or AVI, treat as binary
+				return FileTypeBinary
+			}
+			return FileTypeImage
+		}
+	}
+	
+	// Check for archive signatures
+	archiveSignatures := [][]byte{
+		[]byte("PK\x03\x04"), []byte("PK\x05\x06"), // ZIP and variants
+		[]byte("\x1F\x8B"),                         // GZIP
+		[]byte("BZh"),                              // BZIP2
+		[]byte("\xFD7zXZ\x00"),                     // XZ
+		[]byte("Rar!"),                             // RAR
+	}
+	
+	for _, sig := range archiveSignatures {
+		if n >= len(sig) && bytes.Equal(buffer[:len(sig)], sig) {
+			return FileTypeArchive
+		}
+	}
+	
 	// Check if the content is valid UTF-8 and mostly printable
 	if isTextContent(buffer[:n]) {
 		return FileTypeText
@@ -208,10 +256,11 @@ func DetectFileType(path string) FileType {
 		".podfile": true, ".brewfile": true, ".rakefile": true,
 	}
 	
-	if textExts[ext] || ext == "" {
+	if textExts[ext] {
 		return FileTypeText
 	}
 	
+	// Files without extensions should be treated as binary unless content check passed
 	return FileTypeBinary
 }
 
@@ -221,9 +270,48 @@ func isTextContent(data []byte) bool {
 		return true
 	}
 	
-	// Check for binary plist magic bytes
-	if len(data) >= 6 && string(data[:6]) == "bplist" {
-		return false
+	// Check for known binary file signatures/magic bytes
+	binarySignatures := [][]byte{
+		[]byte("bplist"),                          // Binary plist
+		[]byte("\x89PNG\r\n\x1a\n"),              // PNG
+		[]byte("\xFF\xD8\xFF"),                    // JPEG
+		[]byte("GIF87a"), []byte("GIF89a"),       // GIF
+		[]byte("RIFF"),                            // RIFF (WebP, WAV, AVI)
+		[]byte("\x00\x00\x01\x00"),                // ICO
+		[]byte("\x00\x00\x02\x00"),                // CUR
+		[]byte("BM"),                              // BMP
+		[]byte("MM\x00\x2A"), []byte("II\x2A\x00"), // TIFF
+		[]byte("PK\x03\x04"), []byte("PK\x05\x06"), // ZIP and variants
+		[]byte("\xCA\xFE\xBA\xBE"),                // Mach-O binary
+		[]byte("\xCE\xFA\xED\xFE"),                // Mach-O binary (32-bit)
+		[]byte("\xCF\xFA\xED\xFE"),                // Mach-O binary (64-bit)
+		[]byte("\xFE\xED\xFA\xCE"),                // Mach-O binary (big-endian)
+		[]byte("\xFE\xED\xFA\xCF"),                // Mach-O binary (64-bit big-endian)
+		[]byte("SQLite format 3"),                 // SQLite database
+		[]byte("\x1F\x8B"),                        // GZIP
+		[]byte("BZh"),                             // BZIP2
+		[]byte("\xFD7zXZ\x00"),                    // XZ
+		[]byte("Rar!"),                            // RAR
+		[]byte("\x50\x4B"),                        // PKZip
+		[]byte("\x7FELF"),                         // ELF binary
+		[]byte("%PDF-"),                           // PDF
+		[]byte("\x25\x50\x44\x46\x2D"),            // PDF (hex)
+		[]byte("\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"), // Microsoft Office (doc, xls, ppt)
+		[]byte("\x50\x4B\x03\x04"),                // Microsoft Office (docx, xlsx, pptx)
+		[]byte("\x4F\x67\x67\x53"),                // OGG
+		[]byte("\x38\x42\x50\x53"),                // PSD
+		[]byte("\x52\x49\x46\x46"),                // WAV
+		[]byte("\x00\x00\x00\x0C\x6A\x50\x20\x20"), // JPEG 2000
+		[]byte("\x1A\x45\xDF\xA3"),                // MKV, WebM
+		[]byte("\x00\x00\x00\x14\x66\x74\x79\x70"), // MP4, M4V, M4A
+		[]byte("\x49\x44\x33"),                    // MP3
+	}
+	
+	// Check against known signatures
+	for _, sig := range binarySignatures {
+		if len(data) >= len(sig) && bytes.Equal(data[:len(sig)], sig) {
+			return false
+		}
 	}
 	
 	// Check if it's valid UTF-8
@@ -233,11 +321,21 @@ func isTextContent(data []byte) bool {
 	
 	// Count printable vs non-printable characters
 	printable := 0
+	nullBytes := 0
 	for _, b := range data {
+		// Count null bytes as a strong indicator of binary content
+		if b == 0 {
+			nullBytes++
+		}
 		// Allow printable ASCII, newlines, tabs, carriage returns
 		if (b >= 32 && b <= 126) || b == '\n' || b == '\t' || b == '\r' {
 			printable++
 		}
+	}
+	
+	// If there are null bytes, likely binary
+	if nullBytes > 0 {
+		return false
 	}
 	
 	// If more than 90% of characters are printable, consider it text
@@ -260,8 +358,71 @@ func ReadFileContent(path string, startLine, maxLines, maxWidth int) (*FileConte
 		content.IsBinaryPlist = isBinaryPlist
 		content.Error = err
 		
+		// Detect language for files without extensions
+		if filepath.Ext(path) == "" && len(lines) > 0 {
+			// Check first few lines for content type
+			checkContent := strings.Join(lines, "\n")
+			if len(checkContent) > 500 {
+				checkContent = checkContent[:500]
+			}
+			if lang := detectContentLanguage(checkContent); lang != "" {
+				content.DetectedLang = lang
+				// If we detected SVG content, switch to image handling
+				if lang == "svg" {
+					content.Type = FileTypeImage
+					info, err := readImageInfo(path, maxLines, maxWidth)
+					if err != nil && strings.Contains(err.Error(), "not a valid image") {
+						// If SVG parsing fails, keep as text with SVG syntax highlighting
+						content.Type = FileTypeText
+						content.DetectedLang = "xml" // Use XML highlighting for SVG
+					} else {
+						content.ImageInfo = info
+						content.Error = err
+						return content, content.Error
+					}
+				}
+			}
+		}
+		
 	case FileTypeImage:
 		info, err := readImageInfo(path, maxLines, maxWidth) // Pass dimensions for preview size
+		if err != nil && strings.Contains(err.Error(), "not a valid image") {
+			// Fall back to binary view if image decoding fails
+			content.Type = FileTypeBinary
+			
+			// Get file info
+			fileInfo, err := os.Stat(path)
+			if err != nil {
+				content.Error = err
+				return content, err
+			}
+			
+			content.TotalSize = fileInfo.Size()
+			
+			// Calculate the offset based on startLine (each line = 16 bytes)
+			offset := int64(startLine * 16)
+			
+			// Read a chunk of data (8KB) starting from the offset
+			const chunkSize = 8192 // 8KB chunks
+			readSize := chunkSize
+			
+			// Don't read past the end of the file
+			if offset+int64(readSize) > fileInfo.Size() {
+				readSize = int(fileInfo.Size() - offset)
+			}
+			
+			if readSize > 0 {
+				data, err := readBinaryFile(path, offset, readSize)
+				content.BinaryData = data
+				content.BinaryOffset = offset
+				content.Error = err
+			} else {
+				content.BinaryData = []byte{}
+				content.BinaryOffset = offset
+			}
+			
+			return content, content.Error
+		}
 		content.ImageInfo = info
 		content.Error = err
 		
@@ -424,10 +585,28 @@ func readImageInfo(path string, maxPreviewHeight, maxPreviewWidth int) (*ImageIn
 		return nil, err
 	}
 	
-	// Check if it's an SVG file
+	// Check if it's an SVG file by extension or content
 	ext := strings.ToLower(filepath.Ext(path))
 	if ext == ".svg" {
 		return readSVGInfo(path, stat.Size(), maxPreviewHeight, maxPreviewWidth)
+	}
+	
+	// For files without extension, check if content looks like SVG
+	if ext == "" {
+		// Read first 512 bytes to check for SVG content
+		buffer := make([]byte, 512)
+		n, err := file.Read(buffer)
+		if err == nil && n > 0 {
+			content := strings.ToLower(string(buffer[:n]))
+			if strings.Contains(content, "<?xml") && 
+			   (strings.Contains(content, "<svg") || strings.Contains(content, "xmlns=\"http://www.w3.org/2000/svg\"")) {
+				// Reset file position
+				file.Close()
+				return readSVGInfo(path, stat.Size(), maxPreviewHeight, maxPreviewWidth)
+			}
+		}
+		// Reset file position for image decoding
+		file.Seek(0, 0)
 	}
 	
 	// Decode image to get dimensions
@@ -592,6 +771,12 @@ func initChromaStyle() {
 // GetSyntaxHighlightedLine returns a syntax highlighted version of a line
 // This is a simple implementation - could be enhanced with a proper syntax highlighting library
 func GetSyntaxHighlightedLine(line string, fileExt string) string {
+	return GetSyntaxHighlightedLineWithLang(line, fileExt, "")
+}
+
+// GetSyntaxHighlightedLineWithLang returns a syntax highlighted version of a line
+// with support for detected language override
+func GetSyntaxHighlightedLineWithLang(line string, fileExt string, detectedLang string) string {
 	// Initialize style if needed
 	initChromaStyle()
 	
@@ -601,7 +786,18 @@ func GetSyntaxHighlightedLine(line string, fileExt string) string {
 	}
 	
 	// Get or create lexer for this file extension
-	lexer := getLexerForExtension(fileExt)
+	var lexer chroma.Lexer
+	
+	// If we have a detected language, use that first
+	if detectedLang != "" {
+		lexer = lexers.Get(detectedLang)
+	}
+	
+	// Fall back to extension-based detection
+	if lexer == nil {
+		lexer = getLexerForExtension(fileExt)
+	}
+	
 	if lexer == nil {
 		// No lexer found, return plain text
 		return line
@@ -632,6 +828,61 @@ func GetSyntaxHighlightedLine(line string, fileExt string) string {
 	}
 	
 	return strings.TrimRight(result, "\n")
+}
+
+// detectContentLanguage detects the programming/markup language based on content
+func detectContentLanguage(content string) string {
+	trimmed := strings.TrimSpace(strings.ToLower(content))
+	
+	// Check for HTML patterns
+	htmlPatterns := []string{
+		"<!doctype html",
+		"<html",
+		"<head>",
+		"<body>",
+		"<div",
+		"<span",
+		"<p>",
+		"<h1",
+		"<h2",
+		"<h3",
+		"<meta",
+		"<title>",
+		"<script",
+		"<style",
+		"<link",
+	}
+	
+	for _, pattern := range htmlPatterns {
+		if strings.Contains(trimmed, pattern) {
+			return "html"
+		}
+	}
+	
+	// Check for SVG patterns first
+	if strings.HasPrefix(trimmed, "<?xml") {
+		// If it starts with XML declaration, check if it's SVG
+		if strings.Contains(trimmed, "<svg") || strings.Contains(trimmed, "xmlns=\"http://www.w3.org/2000/svg\"") {
+			return "svg"
+		}
+	}
+	
+	// Check for XML patterns (but not HTML or SVG)
+	if strings.HasPrefix(trimmed, "<?xml") || 
+	   (strings.Contains(trimmed, "<") && strings.Contains(trimmed, ">") && 
+	    !strings.Contains(trimmed, "<html") && !strings.Contains(trimmed, "<body") &&
+	    !strings.Contains(trimmed, "<svg")) {
+		// Simple XML detection - has tags but not HTML or SVG tags
+		return "xml"
+	}
+	
+	// Check for JSON patterns
+	if (strings.HasPrefix(trimmed, "{") && strings.Contains(trimmed, ":")) ||
+	   (strings.HasPrefix(trimmed, "[") && strings.Contains(trimmed, "{")) {
+		return "json"
+	}
+	
+	return ""
 }
 
 // getLexerForExtension returns a cached lexer for the given file extension
@@ -683,6 +934,10 @@ func getLexerForExtension(fileExt string) chroma.Lexer {
 			lexer = lexers.Get("react")
 		case ".plist":
 			lexer = lexers.Get("xml")
+		case ".htm", ".html":
+			lexer = lexers.Get("html")
+		case ".podspec":
+			lexer = lexers.Get("ruby")
 		}
 	}
 	

@@ -11,7 +11,7 @@ import (
 // renderDatabase renders database file content
 func (fv *FileViewer) renderDatabase() string {
 	if fv.Content.DatabaseInfo == nil {
-		return ui.DetailStyle().Render("Error loading database")
+		return ui.ErrorStyle().Render("Error loading database")
 	}
 
 	var s strings.Builder

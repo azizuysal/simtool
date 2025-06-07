@@ -32,15 +32,18 @@ A terminal UI application for managing iOS simulators on macOS.
 
 ### File Viewing
 - **Text files**: Syntax highlighting for 100+ languages using chroma
-  - Supports TypeScript, TSX, JavaScript, JSX, Swift, Objective-C, Objective-C++, and many more
+  - Supports TypeScript, TSX, JavaScript, JSX, Swift, Objective-C, Objective-C++, Ruby (.podspec), and many more
   - Theme-aware syntax colors that adapt to dark/light mode
+  - Automatic language detection for files without extensions (HTML, XML, JSON, SVG)
 - **Property list files**: Automatic handling of both XML and binary plist formats
   - Binary plists automatically converted to XML for viewing using macOS plutil
   - XML syntax highlighting for all plist files
   - Clear indication when viewing converted binary plists
 - **Images**: Terminal-based previews for PNG, JPEG, GIF, BMP, TIFF, WebP
 - **SVG files**: ASCII art previews with dimension information
+  - Automatic detection of SVG files without extensions
 - **Binary files**: Hex dump format with offset and ASCII preview
+  - Automatic fallback to hex view when image decoding fails
 - **Archives**: Tree structure view for ZIP, JAR, WAR, EAR, IPA, APK, AAR files
 - **Database files**: SQLite database browser with two-stage navigation
   - Table list view showing all tables in the database
@@ -59,6 +62,8 @@ A terminal UI application for managing iOS simulators on macOS.
 - Theme-aware color scheme that adapts to dark/light mode
 - Dynamic theme switching - automatically updates when terminal theme changes
 - All UI colors derived from syntax highlighting themes for consistency
+- Consistent loading indicators in status line with theme-aware styling
+- Error messages displayed in distinct error colors for better visibility
 
 ## Requirements
 
@@ -87,6 +92,10 @@ make install
 
 # Or if installed
 simtool
+
+# Start with all apps view (skip simulator list)
+simtool --apps
+simtool -a
 
 # Show help
 simtool --help

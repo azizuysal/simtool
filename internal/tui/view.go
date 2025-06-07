@@ -144,7 +144,11 @@ func (m Model) renderAppListView() (title, content, footer, status string) {
 	if m.loadingApps {
 		status = ui.LoadingStyle().Render("Loading apps...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle().Render(m.statusMessage)
+		if strings.Contains(m.statusMessage, "Error") {
+			status = ui.ErrorStyle().Render(m.statusMessage)
+		} else {
+			status = ui.FooterStyle().Render(m.statusMessage)
+		}
 	} else {
 		status = appList.GetStatus()
 	}
@@ -182,7 +186,11 @@ func (m Model) renderFileListView() (title, content, footer, status string) {
 	if m.loadingFiles {
 		status = ui.LoadingStyle().Render("Loading files...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle().Render(m.statusMessage)
+		if strings.Contains(m.statusMessage, "Error") {
+			status = ui.ErrorStyle().Render(m.statusMessage)
+		} else {
+			status = ui.FooterStyle().Render(m.statusMessage)
+		}
 	}
 
 	return
@@ -219,7 +227,11 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 	if m.loadingContent {
 		status = ui.LoadingStyle().Render("Loading file...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle().Render(m.statusMessage)
+		if strings.Contains(m.statusMessage, "Error") {
+			status = ui.ErrorStyle().Render(m.statusMessage)
+		} else {
+			status = ui.FooterStyle().Render(m.statusMessage)
+		}
 	} else if viewerStatus := viewer.GetStatus(); viewerStatus != "" {
 		status = viewerStatus
 	}
@@ -257,7 +269,11 @@ func (m Model) renderDatabaseTableListView() (title, content, footer, status str
 	if m.loadingDatabase {
 		status = ui.LoadingStyle().Render("Loading database...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle().Render(m.statusMessage)
+		if strings.Contains(m.statusMessage, "Error") {
+			status = ui.ErrorStyle().Render(m.statusMessage)
+		} else {
+			status = ui.FooterStyle().Render(m.statusMessage)
+		}
 	}
 
 	return
@@ -293,7 +309,11 @@ func (m Model) renderDatabaseTableContentView() (title, content, footer, status 
 	if m.loadingTableData {
 		status = ui.LoadingStyle().Render("Loading table data...")
 	} else if m.statusMessage != "" {
-		status = ui.FooterStyle().Render(m.statusMessage)
+		if strings.Contains(m.statusMessage, "Error") {
+			status = ui.ErrorStyle().Render(m.statusMessage)
+		} else {
+			status = ui.FooterStyle().Render(m.statusMessage)
+		}
 	}
 
 	return

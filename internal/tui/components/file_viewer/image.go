@@ -11,7 +11,7 @@ import (
 // renderImage renders image file content with preview
 func (fv *FileViewer) renderImage() string {
 	if fv.Content.ImageInfo == nil {
-		return ui.DetailStyle().Render("Error loading image")
+		return ui.ErrorStyle().Render("Error loading image")
 	}
 
 	return fv.renderImageContent()

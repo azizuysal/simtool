@@ -46,6 +46,11 @@ func (fv *FileViewer) Render() string {
 		return ui.DetailStyle().Render("No file selected")
 	}
 
+	// Check for errors in content loading
+	if fv.Content.Error != nil {
+		return ui.ErrorStyle().Render(fmt.Sprintf("Error loading file: %v", fv.Content.Error))
+	}
+
 	switch fv.Content.Type {
 	case simulator.FileTypeText:
 		return fv.renderText()
@@ -58,7 +63,7 @@ func (fv *FileViewer) Render() string {
 	case simulator.FileTypeDatabase:
 		return fv.renderDatabase()
 	default:
-		return ui.DetailStyle().Render("Unknown file type")
+		return ui.ErrorStyle().Render("Unknown file type")
 	}
 }
 

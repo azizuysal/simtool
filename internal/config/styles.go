@@ -67,7 +67,8 @@ func (c *Config) GenerateStyles() *Styles {
 			Foreground(ConvertToLipglossColor(colors.Secondary)),
 		
 		Error: lipgloss.NewStyle().
-			Foreground(ConvertToLipglossColor(colors.Error)),
+			Foreground(ConvertToLipglossColor(colors.Error)).
+			Bold(true),
 		
 		Success: lipgloss.NewStyle().
 			Foreground(ConvertToLipglossColor(colors.Success)),
