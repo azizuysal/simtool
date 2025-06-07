@@ -8,16 +8,20 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 // App represents an installed application
 type App struct {
-	Name      string
-	BundleID  string
-	Version   string
-	Size      int64
-	Path      string
-	Container string
+	Name           string
+	BundleID       string
+	Version        string
+	Size           int64
+	Path           string
+	Container      string
+	SimulatorName  string    // Name of the parent simulator
+	SimulatorUDID  string    // UDID of the parent simulator
+	ModTime        time.Time // Last modified time of the app
 }
 
 // GetAppsForSimulator returns all apps installed on a simulator
@@ -74,6 +78,10 @@ func getAppsFromListApps(udid string) ([]App, error) {
 				// Calculate app size from path
 				if currentApp.Path != "" {
 					currentApp.Size = calculateDirSize(currentApp.Path)
+					// Get modification time
+					if info, err := os.Stat(currentApp.Path); err == nil {
+						currentApp.ModTime = info.ModTime()
+					}
 				}
 				// Use bundle ID as name if display name is empty
 				if currentApp.Name == "" {
@@ -137,6 +145,11 @@ func getAppsFromDataDir(udid string) ([]App, error) {
 					}
 					
 					app.Size = calculateDirSize(app.Path)
+					
+					// Get modification time
+					if info, err := os.Stat(app.Path); err == nil {
+						app.ModTime = info.ModTime()
+					}
 					
 					// For non-running simulators, we need to find the data container
 					// It's in a different location based on the bundle ID
@@ -262,6 +275,44 @@ func FormatSize(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// FormatModTime formats modification time in a human-friendly way
+func FormatModTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	
+	now := time.Now()
+	diff := now.Sub(t)
+	
+	switch {
+	case diff < time.Minute:
+		return "just now"
+	case diff < time.Hour:
+		mins := int(diff.Minutes())
+		if mins == 1 {
+			return "1 minute ago"
+		}
+		return fmt.Sprintf("%d minutes ago", mins)
+	case diff < 24*time.Hour:
+		hours := int(diff.Hours())
+		if hours == 1 {
+			return "1 hour ago"
+		}
+		return fmt.Sprintf("%d hours ago", hours)
+	case diff < 48*time.Hour:
+		return "yesterday"
+	case diff < 7*24*time.Hour:
+		days := int(diff.Hours() / 24)
+		return fmt.Sprintf("%d days ago", days)
+	default:
+		// For older dates, show the actual date
+		if t.Year() == now.Year() {
+			return t.Format("Jan 2")
+		}
+		return t.Format("Jan 2, 2006")
+	}
 }
 
 // appInfo represents the JSON structure from xcrun simctl listapps

@@ -10,7 +10,8 @@ import (
 
 // mockFetcher implements simulator.Fetcher for testing
 type mockFetcher struct {
-	simulators []simulator.Item
+	items      []simulator.Item
+	simulators []simulator.Simulator
 	fetchErr   error
 	bootErr    error
 	bootCalled bool
@@ -18,6 +19,10 @@ type mockFetcher struct {
 }
 
 func (m *mockFetcher) Fetch() ([]simulator.Item, error) {
+	return m.items, m.fetchErr
+}
+
+func (m *mockFetcher) FetchSimulators() ([]simulator.Simulator, error) {
 	return m.simulators, m.fetchErr
 }
 
@@ -29,24 +34,43 @@ func (m *mockFetcher) Boot(udid string) error {
 
 func TestNew(t *testing.T) {
 	fetcher := &mockFetcher{}
-	model := New(fetcher)
 	
-	if model.fetcher != fetcher {
-		t.Error("Expected fetcher to be set")
-	}
+	t.Run("default start with simulators", func(t *testing.T) {
+		model := New(fetcher, false)
+		
+		if model.fetcher != fetcher {
+			t.Error("Expected fetcher to be set")
+		}
+		
+		if model.viewState != SimulatorListView {
+			t.Error("Expected initial view state to be SimulatorListView")
+		}
+		
+		if model.err != nil {
+			t.Error("Expected no initial error")
+		}
+	})
 	
-	if model.viewState != SimulatorListView {
-		t.Error("Expected initial view state to be SimulatorListView")
-	}
-	
-	if model.err != nil {
-		t.Error("Expected no initial error")
-	}
+	t.Run("start with all apps", func(t *testing.T) {
+		model := New(fetcher, true)
+		
+		if model.fetcher != fetcher {
+			t.Error("Expected fetcher to be set")
+		}
+		
+		if model.viewState != AllAppsView {
+			t.Error("Expected initial view state to be AllAppsView")
+		}
+		
+		if model.loadingAllApps != true {
+			t.Error("Expected loadingAllApps to be true when starting with all apps")
+		}
+	})
 }
 
 func TestInit(t *testing.T) {
 	fetcher := &mockFetcher{}
-	model := New(fetcher)
+	model := New(fetcher, false)
 	
 	cmd := model.Init()
 	
@@ -89,8 +113,8 @@ func TestFetchSimulatorsCmd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fetcher := &mockFetcher{
-				simulators: tt.simulators,
-				fetchErr:   tt.err,
+				items:    tt.simulators,
+				fetchErr: tt.err,
 			}
 			
 			cmd := fetchSimulatorsCmd(fetcher)
@@ -324,6 +348,15 @@ func TestMessageTypes(t *testing.T) {
 	if contentMsg.content.Type != simulator.FileTypeText {
 		t.Error("fetchFileContentMsg not properly constructed")
 	}
+	
+	// Test fetchAllAppsMsg
+	allAppsMsg := fetchAllAppsMsg{
+		apps: []simulator.App{{Name: "TestApp"}},
+		err:  nil,
+	}
+	if len(allAppsMsg.apps) != 1 {
+		t.Error("fetchAllAppsMsg not properly constructed")
+	}
 }
 
 func TestViewStateConstants(t *testing.T) {
@@ -333,6 +366,7 @@ func TestViewStateConstants(t *testing.T) {
 		AppListView:       "AppListView",
 		FileListView:      "FileListView",
 		FileViewerView:    "FileViewerView",
+		AllAppsView:       "AllAppsView",
 	}
 	
 	seen := make(map[ViewState]bool)
@@ -416,7 +450,7 @@ func TestCheckThemeChange(t *testing.T) {
 
 func TestNewModelThemeMode(t *testing.T) {
 	fetcher := &mockFetcher{}
-	model := New(fetcher)
+	model := New(fetcher, false)
 	
 	// Model should have a theme mode set
 	if model.currentThemeMode != "dark" && model.currentThemeMode != "light" {

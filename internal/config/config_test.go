@@ -20,6 +20,10 @@ func TestDefault(t *testing.T) {
 	if cfg.Theme.LightTheme != "github" {
 		t.Errorf("Default light theme should be 'github', got %q", cfg.Theme.LightTheme)
 	}
+	
+	if cfg.Startup.InitialView != "simulator_list" {
+		t.Errorf("Default initial view should be 'simulator_list', got %q", cfg.Startup.InitialView)
+	}
 }
 
 func TestGetActiveTheme(t *testing.T) {
@@ -144,6 +148,9 @@ func TestLoadConfig(t *testing.T) {
 mode = "dark"
 dark_theme = "dracula"
 light_theme = "solarized-light"
+
+[startup]
+initial_view = "apps"
 `
 		err := os.WriteFile(configPath, []byte(configContent), 0644)
 		if err != nil {
@@ -163,6 +170,9 @@ light_theme = "solarized-light"
 		}
 		if cfg.Theme.LightTheme != "solarized-light" {
 			t.Errorf("Expected light theme 'solarized-light', got %q", cfg.Theme.LightTheme)
+		}
+		if cfg.Startup.InitialView != "apps" {
+			t.Errorf("Expected initial view 'apps', got %q", cfg.Startup.InitialView)
 		}
 	})
 

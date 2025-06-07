@@ -35,6 +35,7 @@ func main() {
 		listThemes     bool
 		showHelp       bool
 		showVersion    bool
+		startWithApps  bool
 	)
 	
 	flag.BoolVar(&generateConfig, "generate-config", false, "Generate example configuration file")
@@ -52,11 +53,15 @@ func main() {
 	flag.BoolVar(&showVersion, "version", false, "Show version information")
 	flag.BoolVar(&showVersion, "v", false, "Show version information")
 	
+	flag.BoolVar(&startWithApps, "apps", false, "Start with all apps view instead of simulator list")
+	flag.BoolVar(&startWithApps, "a", false, "Start with all apps view instead of simulator list")
+	
 	// Custom usage function
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n\n", appName)
 		fmt.Fprintf(os.Stderr, "A terminal UI application for managing iOS simulators on macOS.\n\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
+		fmt.Fprintf(os.Stderr, "  -a, --apps                Start with all apps view instead of simulator list\n")
 		fmt.Fprintf(os.Stderr, "  -g, --generate-config     Generate example configuration file\n")
 		fmt.Fprintf(os.Stderr, "  -c, --show-config-path    Show configuration file path\n")
 		fmt.Fprintf(os.Stderr, "  -l, --list-themes         List available syntax highlighting themes\n")
@@ -183,7 +188,7 @@ func main() {
 	fetcher := simulator.NewFetcher()
 
 	// Create and run the TUI application
-	model := tui.New(fetcher)
+	model := tui.New(fetcher, startWithApps)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	
 	if _, err := p.Run(); err != nil {

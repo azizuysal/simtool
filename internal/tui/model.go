@@ -15,6 +15,7 @@ type ViewState int
 
 const (
 	SimulatorListView ViewState = iota
+	AllAppsView
 	AppListView
 	FileListView
 	FileViewerView
@@ -41,6 +42,14 @@ type Model struct {
 	filterActive  bool               // Whether to show only sims with apps
 	simSearchMode bool               // Whether search is active in sim list
 	simSearchQuery string            // Current search query for sim list
+	
+	// All apps view state
+	allApps          []simulator.App
+	allAppsCursor    int
+	allAppsViewport  int
+	loadingAllApps   bool
+	allAppsSearchMode bool            // Whether search is active in all apps list
+	allAppsSearchQuery string         // Current search query for all apps list
 	
 	// App list state
 	selectedSim   *simulator.Item
@@ -92,7 +101,7 @@ type Model struct {
 }
 
 // New creates a new Model with the given fetcher
-func New(fetcher simulator.Fetcher) Model {
+func New(fetcher simulator.Fetcher, startWithApps bool) Model {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -110,9 +119,23 @@ func New(fetcher simulator.Fetcher) Model {
 		themeMode = "dark"
 	}
 	
+	// Determine initial view state
+	viewState := SimulatorListView
+	loadingSimulators := true
+	loadingAllApps := false
+	
+	// Check command-line flag first, then config
+	if startWithApps || (cfg.Startup.InitialView == "all_apps") {
+		viewState = AllAppsView
+		loadingSimulators = false
+		loadingAllApps = true
+	}
+	
 	return Model{
 		fetcher: fetcher,
-		loadingSimulators: true,
+		viewState: viewState,
+		loadingSimulators: loadingSimulators,
+		loadingAllApps: loadingAllApps,
 		currentThemeMode: themeMode,
 		config: cfg,
 		keyMap: keyMap,
@@ -121,12 +144,20 @@ func New(fetcher simulator.Fetcher) Model {
 
 // Init initializes the model
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		fetchSimulatorsCmd(m.fetcher),
+	cmds := []tea.Cmd{
 		tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
 			return tickMsg(t)
 		}),
-	)
+	}
+	
+	// Fetch appropriate data based on initial view
+	if m.viewState == AllAppsView {
+		cmds = append(cmds, fetchAllAppsCmd(m.fetcher))
+	} else {
+		cmds = append(cmds, fetchSimulatorsCmd(m.fetcher))
+	}
+	
+	return tea.Batch(cmds...)
 }
 
 // fetchSimulatorsMsg is sent when simulators are fetched
@@ -163,6 +194,12 @@ type fetchAppsMsg struct {
 	err  error
 }
 
+// fetchAllAppsMsg is sent when all apps are fetched
+type fetchAllAppsMsg struct {
+	apps []simulator.App
+	err  error
+}
+
 // tickMsg is sent periodically to refresh simulator status
 type tickMsg time.Time
 
@@ -176,6 +213,14 @@ func (m Model) fetchAppsCmd(sim simulator.Item) tea.Cmd {
 	return func() tea.Msg {
 		apps, err := simulator.GetAppsForSimulator(sim.UDID, sim.IsRunning())
 		return fetchAppsMsg{apps: apps, err: err}
+	}
+}
+
+// fetchAllAppsCmd fetches apps from all simulators
+func fetchAllAppsCmd(fetcher simulator.Fetcher) tea.Cmd {
+	return func() tea.Msg {
+		apps, err := simulator.GetAllApps(fetcher)
+		return fetchAllAppsMsg{apps: apps, err: err}
 	}
 }
 

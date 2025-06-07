@@ -12,6 +12,7 @@ import (
 // Fetcher is responsible for fetching simulator information
 type Fetcher interface {
 	Fetch() ([]Item, error)
+	FetchSimulators() ([]Simulator, error)
 	Boot(udid string) error
 }
 
@@ -21,6 +22,31 @@ type SimctlFetcher struct{}
 // NewFetcher creates a new simulator fetcher
 func NewFetcher() Fetcher {
 	return &SimctlFetcher{}
+}
+
+// FetchSimulators retrieves all available simulators without app counts
+func (f *SimctlFetcher) FetchSimulators() ([]Simulator, error) {
+	cmd := exec.Command("xcrun", "simctl", "list", "devices", "--json")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to run simctl: %w", err)
+	}
+
+	var simctlOutput SimctlOutput
+	if err := json.Unmarshal(output, &simctlOutput); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	var simulators []Simulator
+	for _, sims := range simctlOutput.Devices {
+		for _, sim := range sims {
+			if sim.IsAvailable {
+				simulators = append(simulators, sim)
+			}
+		}
+	}
+
+	return simulators, nil
 }
 
 // Fetch retrieves all available iOS simulators

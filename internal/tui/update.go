@@ -60,6 +60,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.appViewport = 0
 			m.updateViewport()
 		}
+		
+	case fetchAllAppsMsg:
+		m.allApps = msg.apps
+		m.loadingAllApps = false
+		if msg.err != nil {
+			m.err = msg.err
+		} else {
+			m.allAppsCursor = 0
+			m.allAppsViewport = 0
+		}
+		m.updateViewport()
 
 	case bootSimulatorMsg:
 		m.booting = false
@@ -244,6 +255,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.appSearchMode && m.viewState == AppListView {
 		return m.handleAppSearchInput(msg)
 	}
+	if m.allAppsSearchMode && m.viewState == AllAppsView {
+		return m.handleAllAppsSearchInput(msg)
+	}
 	
 	key := msg.String()
 	action := m.keyMap.GetAction(key)
@@ -251,7 +265,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch action {
 	case "quit":
 		// Don't quit if in search mode
-		if m.simSearchMode || m.appSearchMode {
+		if m.simSearchMode || m.appSearchMode || m.allAppsSearchMode {
 			return m, nil
 		}
 		return m, tea.Quit
@@ -300,8 +314,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.loadingFiles = true
 				return m, m.fetchFilesCmd(newPath)
 			} else {
-				// At root level, go back to app list
-				m.viewState = AppListView
+				// At root level, go back to app list or all apps view
+				if m.selectedApp != nil && m.selectedApp.SimulatorUDID != "" {
+					// We came from AllAppsView
+					m.viewState = AllAppsView
+				} else {
+					// We came from regular AppListView
+					m.viewState = AppListView
+				}
 				m.files = nil
 				m.selectedApp = nil
 				m.currentPath = ""
@@ -326,6 +346,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.viewState = AppListView
 				m.loadingApps = true
 				return m, m.fetchAppsCmd(sim)
+			}
+		case AllAppsView:
+			filteredApps := m.getFilteredAndSearchedAllApps()
+			if len(filteredApps) > 0 && m.allAppsCursor < len(filteredApps) {
+				app := filteredApps[m.allAppsCursor]
+				m.selectedApp = &app
+				m.viewState = FileListView
+				m.loadingFiles = true
+				m.currentPath = app.Container
+				m.basePath = app.Container
+				m.breadcrumbs = []string{}
+				m.cursorMemory = make(map[string]int)
+				m.viewportMemory = make(map[string]int)
+				return m, m.fetchFilesCmd(app.Container)
 			}
 		case AppListView:
 			if len(m.apps) > 0 {
@@ -401,6 +435,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.simCursor--
 				m.updateViewport()
 			}
+		case AllAppsView:
+			if m.allAppsCursor > 0 {
+				m.allAppsCursor--
+				m.updateViewport()
+			}
 		case AppListView:
 			if m.appCursor > 0 {
 				m.appCursor--
@@ -471,6 +510,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			filteredSims := m.getFilteredAndSearchedSimulators()
 			if m.simCursor < len(filteredSims)-1 {
 				m.simCursor++
+				m.updateViewport()
+			}
+		case AllAppsView:
+			filteredApps := m.getFilteredAndSearchedAllApps()
+			if m.allAppsCursor < len(filteredApps)-1 {
+				m.allAppsCursor++
 				m.updateViewport()
 			}
 		case AppListView:
@@ -643,6 +688,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					})
 				}
 			}
+		case AllAppsView:
+			filteredApps := m.getFilteredAndSearchedAllApps()
+			if len(filteredApps) > 0 && m.allAppsCursor < len(filteredApps) {
+				app := filteredApps[m.allAppsCursor]
+				if app.Container != "" {
+					// Open the app's container in Finder
+					return m, m.openInFinderCmd(app.Container)
+				}
+			}
 		case AppListView:
 			if len(m.apps) > 0 {
 				app := m.apps[m.appCursor]
@@ -667,6 +721,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// Reset cursor to 0 when starting search
 			m.simCursor = 0
 			m.simViewport = 0
+			m.updateViewport()
+		case AllAppsView:
+			m.allAppsSearchMode = true
+			m.allAppsSearchQuery = ""
+			// Reset cursor to 0 when starting search
+			m.allAppsCursor = 0
+			m.allAppsViewport = 0
 			m.updateViewport()
 		case AppListView:
 			m.appSearchMode = true
@@ -902,6 +963,106 @@ func (m Model) getFilteredAndSearchedApps() []simulator.App {
 		if strings.Contains(strings.ToLower(app.Name), query) ||
 			strings.Contains(strings.ToLower(app.BundleID), query) ||
 			strings.Contains(strings.ToLower(app.Version), query) {
+			searched = append(searched, app)
+		}
+	}
+	
+	return searched
+}
+
+// handleAllAppsSearchInput handles keyboard input when in all apps search mode
+func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+	action := m.keyMap.GetAction(key)
+	
+	switch action {
+	case "escape":
+		// Exit search mode
+		m.allAppsSearchMode = false
+		m.allAppsSearchQuery = ""
+		m.allAppsCursor = 0
+		m.allAppsViewport = 0
+		m.statusMessage = ""
+		m.updateViewport()
+		return m, nil
+		
+	case "backspace":
+		// Remove last character from search query
+		if len(m.allAppsSearchQuery) > 0 {
+			m.allAppsSearchQuery = m.allAppsSearchQuery[:len(m.allAppsSearchQuery)-1]
+			m.allAppsCursor = 0
+			m.allAppsViewport = 0
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case "up":
+		// Navigate in search results
+		if m.allAppsCursor > 0 {
+			m.allAppsCursor--
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case "down":
+		// Navigate in search results
+		filteredApps := m.getFilteredAndSearchedAllApps()
+		if m.allAppsCursor < len(filteredApps)-1 {
+			m.allAppsCursor++
+			m.updateViewport()
+		}
+		return m, nil
+		
+	case "enter", "right":
+		// Select app while in search
+		filteredApps := m.getFilteredAndSearchedAllApps()
+		if len(filteredApps) > 0 && m.allAppsCursor < len(filteredApps) {
+			app := filteredApps[m.allAppsCursor]
+			m.selectedApp = &app
+			m.viewState = FileListView
+			m.loadingFiles = true
+			m.currentPath = app.Container
+			m.basePath = app.Container
+			m.breadcrumbs = []string{}
+			m.cursorMemory = make(map[string]int)
+			m.viewportMemory = make(map[string]int)
+			// Exit search mode
+			m.allAppsSearchMode = false
+			m.allAppsSearchQuery = ""
+			m.statusMessage = ""
+			return m, m.fetchFilesCmd(app.Container)
+		}
+		return m, nil
+		
+	default:
+		// Add any single character to search query (including h, j, k, l, q, etc.)
+		if len(msg.String()) == 1 {
+			m.allAppsSearchQuery += msg.String()
+			m.allAppsCursor = 0
+			m.allAppsViewport = 0
+			m.updateViewport()
+		}
+		return m, nil
+	}
+}
+
+// getFilteredAndSearchedAllApps returns all apps based on search query
+func (m Model) getFilteredAndSearchedAllApps() []simulator.App {
+	// If no search query, return all apps
+	if m.allAppsSearchQuery == "" {
+		return m.allApps
+	}
+	
+	// Apply search filter
+	var searched []simulator.App
+	query := strings.ToLower(m.allAppsSearchQuery)
+	
+	for _, app := range m.allApps {
+		// Search in name, bundle ID, version, and simulator name
+		if strings.Contains(strings.ToLower(app.Name), query) ||
+			strings.Contains(strings.ToLower(app.BundleID), query) ||
+			strings.Contains(strings.ToLower(app.Version), query) ||
+			strings.Contains(strings.ToLower(app.SimulatorName), query) {
 			searched = append(searched, app)
 		}
 	}

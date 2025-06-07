@@ -52,6 +52,7 @@ simtool/
 │   │       ├── layout.go         # Base layout (title, content, footer)
 │   │       ├── simulator_list.go # Simulator list view
 │   │       ├── app_list.go       # App list view
+│   │       ├── all_apps_list.go  # All apps combined view
 │   │       ├── file_list.go      # File browser view
 │   │       ├── database_table_list.go    # Database table list view
 │   │       ├── database_table_content.go # Database table content view  
@@ -97,6 +98,11 @@ go run ./cmd/simtool
 
 # Or after building
 ./simtool
+
+# Start with all apps view (shows all apps from all simulators)
+./simtool --apps
+# or
+./simtool -a
 ```
 
 Note: This is a TUI application that requires a proper terminal environment. It won't run properly in environments without TTY support.
@@ -174,7 +180,7 @@ The application follows clean architecture principles with clear separation of c
    - View: Main view orchestrator using component system
    - Components: Reusable UI components with consistent layout
      - Layout: Base responsive layout with title, content box, and footer
-     - Views: Separated simulator list, app list, file list, database table list, and database table content components
+     - Views: Separated simulator list, app list, all apps list, file list, database table list, and database table content components
      - File viewers: Type-specific renderers for text, image, binary, archive, and database files
    - Viewport: Manages scrolling logic for all views
    - Responsive design that adapts to terminal window size
@@ -193,6 +199,7 @@ The application follows clean architecture principles with clear separation of c
      - Config file generation (`--generate-config` / `-g`)
      - Config path display (`--show-config-path` / `-c`)
      - Theme listing (`--list-themes` / `-l`)
+     - All apps view (`--apps` / `-a`) - starts with all apps from all simulators
    - Build-time version injection using ldflags
    - Custom help formatting
    - Minimal main function
@@ -226,10 +233,19 @@ The application follows clean architecture principles with clear separation of c
 - Filter simulators to show only those with installed apps (press 'f')
 - Search simulators by name, runtime, or state (press '/')
 
+### All Apps View
+- View all apps from all simulators in a single combined list
+- Start directly in all apps view with `--apps` or `-a` flag
+- Shows app name, version, bundle ID, and parent simulator
+- Search across all apps including by simulator name
+- Navigate directly to app files without going through simulator list
+- Configurable as default startup view in config file
+
 ### App Browsing
 - Browse apps installed on each simulator
-- View app details including bundle ID, version, and size
-- Search apps by name, bundle ID, or version (press '/')
+- View all apps from all simulators in a combined list (use `--apps` or `-a` flag)
+- View app details including bundle ID, version, size, and last modified date
+- Search apps by name, bundle ID, version, or simulator name (in all apps view)
 - Open app containers in Finder (press 'space')
 
 ### File Management
@@ -282,6 +298,10 @@ The application supports extensive customization through TOML configuration:
 
 - Config location: `~/.config/simtool/config.toml` (or `$XDG_CONFIG_HOME/simtool/config.toml`)
 - Generate example: `simtool --generate-config`
+
+### Startup Configuration
+- Configure default initial view: `simulator_list` (default) or `all_apps`
+- Command-line flag `--apps` / `-a` overrides the config setting
 
 ### Theme Configuration
 - All UI colors are derived from the selected syntax highlighting theme

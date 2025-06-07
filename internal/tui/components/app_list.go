@@ -173,9 +173,13 @@ func (al *AppList) renderList(startIdx, endIdx int) string {
 
 		// Format app details
 		sizeText := simulator.FormatSize(app.Size)
+		modTimeText := simulator.FormatModTime(app.ModTime)
 		detailText := fmt.Sprintf("%s • %s", app.BundleID, sizeText)
 		if app.Version != "" {
 			detailText = fmt.Sprintf("%s • v%s • %s", app.BundleID, app.Version, sizeText)
+		}
+		if modTimeText != "" {
+			detailText = fmt.Sprintf("%s • %s", detailText, modTimeText)
 		}
 
 		if i == al.Cursor {

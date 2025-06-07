@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -232,6 +233,135 @@ func TestDetectFileType(t *testing.T) {
 			result := DetectFileType(tt.path)
 			if result != tt.expected {
 				t.Errorf("DetectFileType(%s) = %v, want %v", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
+// MockFetcher implements the Fetcher interface for testing
+type MockFetcher struct {
+	items      []Item
+	simulators []Simulator
+	err        error
+}
+
+func (m *MockFetcher) Fetch() ([]Item, error) {
+	return m.items, m.err
+}
+
+func (m *MockFetcher) FetchSimulators() ([]Simulator, error) {
+	return m.simulators, m.err
+}
+
+func (m *MockFetcher) Boot(udid string) error {
+	return nil
+}
+
+func TestGetAllApps(t *testing.T) {
+	// Create a mock fetcher with test data
+	mockFetcher := &MockFetcher{
+		simulators: []Simulator{
+			{
+				UDID:  "test-udid-1",
+				Name:  "iPhone 14",
+				State: "Shutdown",
+			},
+			{
+				UDID:  "test-udid-2",
+				Name:  "iPhone 15",
+				State: "Booted",
+			},
+		},
+	}
+
+	// Note: GetAllApps would normally call GetAppsForSimulator which requires
+	// actual simulator data. For a proper test, we'd need to mock that too.
+	// This test demonstrates the structure and error handling.
+
+	t.Run("successful fetch", func(t *testing.T) {
+		apps, err := GetAllApps(mockFetcher)
+		if err != nil {
+			t.Errorf("GetAllApps() unexpected error: %v", err)
+		}
+		// In a real test environment with mocked GetAppsForSimulator,
+		// we would verify the apps are properly aggregated and sorted.
+		// Since GetAppsForSimulator hits the file system, we just verify
+		// that we get a non-nil slice (even if empty)
+		if apps == nil {
+			t.Error("GetAllApps() returned nil apps slice, expected empty slice")
+		}
+		// Log the length for debugging
+		t.Logf("GetAllApps() returned %d apps", len(apps))
+	})
+
+	t.Run("fetcher error", func(t *testing.T) {
+		errorFetcher := &MockFetcher{
+			err: fmt.Errorf("simctl error"),
+		}
+		_, err := GetAllApps(errorFetcher)
+		if err == nil {
+			t.Error("GetAllApps() expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "fetching simulators") {
+			t.Errorf("GetAllApps() error = %v, want error containing 'fetching simulators'", err)
+		}
+	})
+}
+
+func TestFormatModTime(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name     string
+		time     time.Time
+		expected string
+	}{
+		{
+			name:     "zero time",
+			time:     time.Time{},
+			expected: "",
+		},
+		{
+			name:     "just now",
+			time:     now.Add(-30 * time.Second),
+			expected: "just now",
+		},
+		{
+			name:     "1 minute ago",
+			time:     now.Add(-1 * time.Minute),
+			expected: "1 minute ago",
+		},
+		{
+			name:     "5 minutes ago",
+			time:     now.Add(-5 * time.Minute),
+			expected: "5 minutes ago",
+		},
+		{
+			name:     "1 hour ago",
+			time:     now.Add(-1 * time.Hour),
+			expected: "1 hour ago",
+		},
+		{
+			name:     "3 hours ago",
+			time:     now.Add(-3 * time.Hour),
+			expected: "3 hours ago",
+		},
+		{
+			name:     "yesterday",
+			time:     now.Add(-25 * time.Hour),
+			expected: "yesterday",
+		},
+		{
+			name:     "3 days ago",
+			time:     now.Add(-3 * 24 * time.Hour),
+			expected: "3 days ago",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatModTime(tt.time)
+			if result != tt.expected {
+				t.Errorf("FormatModTime() = %v, want %v", result, tt.expected)
 			}
 		})
 	}

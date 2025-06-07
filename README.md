@@ -18,8 +18,9 @@ A terminal UI application for managing iOS simulators on macOS.
 
 ### App Browsing
 - Browse all apps installed on each simulator
-- View detailed app information (bundle ID, version, size)
-- Search apps by name, bundle ID, or version
+- View all apps from all simulators in a combined list (use `--apps` or `-a` flag)
+- View detailed app information (bundle ID, version, size, last modified date)
+- Search apps by name, bundle ID, version, or simulator name (in all apps view)
 - Open app data containers directly in Finder
 
 ### File Management
@@ -166,6 +167,12 @@ Note: Theme switching works best with terminals that support OSC queries. For te
 ### Configuration Options
 
 ```toml
+[startup]
+# Initial view mode: "simulators" (default) or "apps"
+# "simulators" - Start with simulator list (default behavior)
+# "apps" - Start with all apps from all simulators
+initial_view = "simulators"
+
 [theme]
 # Theme mode: "auto", "dark", or "light"
 mode = "auto"
@@ -265,7 +272,7 @@ Example customizations:
 #### App List
 - **Header**: "[Simulator Name] Apps (X)" or "(X of Y)" when searching
 - **Line 1**: App name
-- **Line 2**: Bundle ID • Version • Size
+- **Line 2**: Bundle ID • Version • Size • Last modified (e.g., "5 minutes ago", "yesterday")
 
 #### File Browser
 - **Header**: "[App Name] Files" with breadcrumb navigation below

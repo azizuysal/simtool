@@ -8,7 +8,8 @@ import (
 
 // mockFetcher implements the Fetcher interface for testing
 type mockFetcher struct {
-	simulators []Item
+	items      []Item
+	simulators []Simulator
 	err        error
 	bootCalled bool
 	bootUDID   string
@@ -16,6 +17,10 @@ type mockFetcher struct {
 }
 
 func (m *mockFetcher) Fetch() ([]Item, error) {
+	return m.items, m.err
+}
+
+func (m *mockFetcher) FetchSimulators() ([]Simulator, error) {
 	return m.simulators, m.err
 }
 
@@ -225,7 +230,7 @@ func TestFetcherInterface(t *testing.T) {
 
 	// Test Fetch method
 	mock := &mockFetcher{
-		simulators: []Item{
+		items: []Item{
 			{
 				Simulator: Simulator{
 					UDID: "123",

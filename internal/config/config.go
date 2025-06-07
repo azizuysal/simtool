@@ -10,8 +10,9 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Theme ThemeConfig `toml:"theme"`
-	Keys  KeysConfig  `toml:"keys"`
+	Theme   ThemeConfig   `toml:"theme"`
+	Keys    KeysConfig    `toml:"keys"`
+	Startup StartupConfig `toml:"startup"`
 	// Future: Display options, etc.
 }
 
@@ -25,6 +26,12 @@ type ThemeConfig struct {
 	LightTheme string `toml:"light_theme"` // Theme to use in light mode
 }
 
+// StartupConfig defines startup behavior
+type StartupConfig struct {
+	// Initial view to show on startup: "simulator_list" (default) or "all_apps"
+	InitialView string `toml:"initial_view"`
+}
+
 // Default returns the default configuration
 func Default() *Config {
 	return &Config{
@@ -34,6 +41,9 @@ func Default() *Config {
 			LightTheme: "github",
 		},
 		Keys: DefaultKeys(),
+		Startup: StartupConfig{
+			InitialView: "simulator_list",
+		},
 	}
 }
 
@@ -120,6 +130,14 @@ light_theme = "github"
 # - "tango" - GNOME Tango theme
 # - "vs" - Visual Studio theme
 
+[startup]
+# Initial view to show when app starts
+# Options: "simulator_list" (default) or "all_apps"
+initial_view = "simulator_list"
+
+# Set to "all_apps" to start with all apps from all simulators
+# This is equivalent to using the --apps/-a command-line flag
+
 [keys]
 # Keyboard shortcuts configuration
 # Each action can have multiple keys assigned
@@ -188,6 +206,11 @@ func (c *Config) merge(user *Config) {
 	}
 	if user.Theme.LightTheme != "" {
 		c.Theme.LightTheme = user.Theme.LightTheme
+	}
+	
+	// Merge startup settings
+	if user.Startup.InitialView != "" {
+		c.Startup.InitialView = user.Startup.InitialView
 	}
 	
 	// Merge key settings - only override if user has specified keys

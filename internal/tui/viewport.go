@@ -24,6 +24,14 @@ func (m *Model) updateViewport() {
 			simItemsPerScreen = 1
 		}
 		updateViewportForList(&m.simCursor, &m.simViewport, len(m.simulators), simItemsPerScreen)
+	case AllAppsView:
+		// Each app entry takes 3 lines (name, bundle ID, simulator name)
+		contentHeight := m.height - 8
+		appItemsPerScreen := contentHeight / 3
+		if appItemsPerScreen < 1 {
+			appItemsPerScreen = 1
+		}
+		updateViewportForList(&m.allAppsCursor, &m.allAppsViewport, len(m.allApps), appItemsPerScreen)
 	case AppListView:
 		updateViewportForList(&m.appCursor, &m.appViewport, len(m.apps), itemsPerScreen)
 	case FileListView:

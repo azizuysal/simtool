@@ -11,8 +11,24 @@ import (
 // View renders the UI using the component system
 func (m Model) View() string {
 	// Handle errors
-	if m.err != nil {
+	if m.err != nil && m.viewState != AllAppsView {
 		return ui.ErrorStyle().Render("Error: " + m.err.Error())
+	}
+
+	// Special handling for AllAppsView which returns complete layout
+	if m.viewState == AllAppsView {
+		return components.AllAppsListView(
+			m.allApps,
+			m.allAppsCursor,
+			m.allAppsViewport,
+			m.width,
+			m.height,
+			m.allAppsSearchMode,
+			m.allAppsSearchQuery,
+			m.loadingAllApps,
+			m.err,
+			&m.config.Keys,
+		)
 	}
 
 	// Create layout
