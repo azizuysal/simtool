@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/simulator"
 )
 
 func TestNewAppList(t *testing.T) {

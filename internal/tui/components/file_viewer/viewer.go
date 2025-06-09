@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"simtool/internal/config"
-	"simtool/internal/simulator"
-	"simtool/internal/ui"
+	"github.com/azizuysal/simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // FileViewer renders file content based on file type

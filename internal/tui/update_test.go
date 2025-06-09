@@ -6,7 +6,7 @@ import (
 	"time"
 	
 	tea "github.com/charmbracelet/bubbletea"
-	"simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/simulator"
 )
 
 func TestUpdateThemeChange(t *testing.T) {

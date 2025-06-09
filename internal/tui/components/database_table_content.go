@@ -5,9 +5,9 @@ import (
 	"strings"
 	"unicode"
 
-	"simtool/internal/config"
-	"simtool/internal/simulator"
-	"simtool/internal/ui"
+	"github.com/azizuysal/simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // DatabaseTableContent renders individual table content view

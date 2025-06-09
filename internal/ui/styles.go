@@ -2,7 +2,7 @@ package ui
 
 import (
 	"log"
-	"simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/config"
 
 	"github.com/charmbracelet/lipgloss"
 )

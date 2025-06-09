@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"simtool/internal/config"
-	"simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/simulator"
 )
 
 func TestView(t *testing.T) {

@@ -45,3 +45,13 @@ simtool-*
 # Temporary files
 *.tmp
 *.temp
+
+# Private/Development files
+CLAUDE.local.md
+TODO.md
+RELEASE_PLAN.md
+.github/development/CLAUDE.local.md
+
+# Build artifacts
+dist/
+build/

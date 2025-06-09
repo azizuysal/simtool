@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"simtool/internal/simulator"
-	"simtool/internal/ui"
+	"github.com/azizuysal/simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // renderText renders text file content with syntax highlighting

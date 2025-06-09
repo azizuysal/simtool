@@ -1,4 +1,4 @@
-module simtool
+module github.com/azizuysal/simtool
 
 go 1.24.3
 

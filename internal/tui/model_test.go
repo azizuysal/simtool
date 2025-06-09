@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/simulator"
 )
 
 // mockFetcher implements simulator.Fetcher for testing

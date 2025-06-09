@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"simtool/internal/config"
-	"simtool/internal/simulator"
-	"simtool/internal/ui"
+	"github.com/azizuysal/simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // SimulatorList renders the simulator list view

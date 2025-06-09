@@ -6,8 +6,8 @@ import (
 	"time"
 	
 	tea "github.com/charmbracelet/bubbletea"
-	"simtool/internal/config"
-	"simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/simulator"
 )
 
 // ViewState represents the current view

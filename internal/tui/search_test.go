@@ -2,7 +2,7 @@ package tui
 
 import (
 	"testing"
-	"simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/simulator"
 )
 
 func TestGetFilteredAndSearchedSimulators(t *testing.T) {

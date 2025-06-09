@@ -9,9 +9,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/alecthomas/chroma/v2/styles"
-	"simtool/internal/config"
-	"simtool/internal/simulator"
-	"simtool/internal/tui"
+	"github.com/azizuysal/simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/tui"
 )
 
 const appName = "simtool"

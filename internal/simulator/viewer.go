@@ -29,7 +29,7 @@ import (
 	"github.com/srwiley/rasterx"
 	_ "golang.org/x/image/webp" // Add WebP support
 	
-	"simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/config"
 )
 
 // FileType represents the type of file for viewing

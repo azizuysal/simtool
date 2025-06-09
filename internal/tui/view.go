@@ -3,9 +3,9 @@ package tui
 import (
 	"strings"
 
-	"simtool/internal/tui/components"
-	"simtool/internal/tui/components/file_viewer"
-	"simtool/internal/ui"
+	"github.com/azizuysal/simtool/internal/tui/components"
+	"github.com/azizuysal/simtool/internal/tui/components/file_viewer"
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // View renders the UI using the component system

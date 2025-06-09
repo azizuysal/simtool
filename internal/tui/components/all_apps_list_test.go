@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"simtool/internal/config"
-	"simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/config"
+	"github.com/azizuysal/simtool/internal/simulator"
 )
 
 func TestAllAppsListView(t *testing.T) {

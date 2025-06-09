@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"simtool/internal/ui"
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // Layout represents the main TUI layout structure

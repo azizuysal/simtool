@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"simtool/internal/simulator"
-	"simtool/internal/ui"
+	"github.com/azizuysal/simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // renderDatabase renders database file content
