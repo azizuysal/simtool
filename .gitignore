@@ -55,3 +55,7 @@ RELEASE_PLAN.md
 # Build artifacts
 dist/
 build/
+
+# Demo generation
+demo.tape
+*.cast
