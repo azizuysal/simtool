@@ -187,22 +187,6 @@ List all themes:
 simtool --list-themes
 ```
 
-## 🔄 Comparison
-
-How does SimTool compare to alternatives?
-
-| Feature | SimTool | Simulator.app | simctl CLI | Control Room |
-|---------|---------|---------------|------------|--------------|
-| TUI Interface | ✅ | ❌ | ❌ | ❌ |
-| File Browser | ✅ | ❌ | ❌ | ✅ |
-| Syntax Highlighting | ✅ | ❌ | ❌ | ❌ |
-| Image Preview | ✅ | ✅ | ❌ | ✅ |
-| Database Browser | ✅ | ❌ | ❌ | ❌ |
-| Keyboard Navigation | ✅ | Limited | ✅ | Limited |
-| Search & Filter | ✅ | ✅ | Limited | ✅ |
-| Themes | 60+ | ❌ | ❌ | ❌ |
-| Terminal-based | ✅ | ❌ | ✅ | ❌ |
-| Open Source | ✅ | ❌ | ✅ | ✅ |
 
 ## 🤝 Contributing
 
