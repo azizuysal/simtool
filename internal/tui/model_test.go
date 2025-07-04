@@ -398,9 +398,9 @@ func TestCheckThemeChange(t *testing.T) {
 	originalOverride := os.Getenv("SIMTOOL_THEME_MODE")
 	defer func() {
 		if originalOverride != "" {
-			os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
+			_ = os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
 		} else {
-			os.Unsetenv("SIMTOOL_THEME_MODE")
+			_ = os.Unsetenv("SIMTOOL_THEME_MODE")
 		}
 	}()
 
@@ -428,9 +428,9 @@ func TestCheckThemeChange(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set up environment
 			if tt.envOverride != "" {
-				os.Setenv("SIMTOOL_THEME_MODE", tt.envOverride)
+				_ = os.Setenv("SIMTOOL_THEME_MODE", tt.envOverride)
 			} else {
-				os.Unsetenv("SIMTOOL_THEME_MODE")
+				_ = os.Unsetenv("SIMTOOL_THEME_MODE")
 			}
 
 			model := &Model{

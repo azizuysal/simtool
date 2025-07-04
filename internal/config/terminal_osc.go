@@ -24,7 +24,7 @@ func QueryTerminalBackgroundColor() (string, error) {
 	
 	// Ensure we restore terminal on exit
 	defer func() {
-		term.Restore(int(os.Stdin.Fd()), oldState)
+		_ = term.Restore(int(os.Stdin.Fd()), oldState)
 	}()
 	
 	// Enter raw mode
@@ -34,8 +34,8 @@ func QueryTerminalBackgroundColor() (string, error) {
 	}
 	
 	// Send OSC 11 query with ST terminator (ESC\)
-	fmt.Fprintf(os.Stdout, "\033]11;?\033\\")
-	os.Stdout.Sync()
+	_, _ = fmt.Fprintf(os.Stdout, "\033]11;?\033\\")
+	_ = os.Stdout.Sync()
 	
 	// Read response with timeout
 	responseChan := make(chan []byte, 1)
@@ -54,7 +54,7 @@ func QueryTerminalBackgroundColor() (string, error) {
 	select {
 	case response := <-responseChan:
 		// Restore terminal before processing
-		term.Restore(int(os.Stdin.Fd()), oldState)
+		_ = term.Restore(int(os.Stdin.Fd()), oldState)
 		return parseOSC11Response(string(response)), nil
 	case err := <-errorChan:
 		return "", err
@@ -99,9 +99,9 @@ func IsColorDark(colorStr string) bool {
 	
 	// Parse hex values (often 16-bit per channel)
 	var r, g, b uint64
-	fmt.Sscanf(parts[0], "%x", &r)
-	fmt.Sscanf(parts[1], "%x", &g)
-	fmt.Sscanf(parts[2], "%x", &b)
+	_, _ = fmt.Sscanf(parts[0], "%x", &r)
+	_, _ = fmt.Sscanf(parts[1], "%x", &g)
+	_, _ = fmt.Sscanf(parts[2], "%x", &b)
 	
 	// Normalize to 0-255 range
 	// Terminal colors can be 8-bit (FF) or 16-bit (FFFF)

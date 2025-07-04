@@ -172,7 +172,7 @@ func formatRuntime(runtime string) string {
 	runtimeName := strings.Replace(runtime, "com.apple.CoreSimulator.SimRuntime.", "", 1)
 	// Format iOS versions
 	runtimeName = strings.Replace(runtimeName, "iOS-", "iOS ", 1)
-	runtimeName = strings.Replace(runtimeName, "-", ".", -1)
+	runtimeName = strings.ReplaceAll(runtimeName, "-", ".")
 	return runtimeName
 }
 

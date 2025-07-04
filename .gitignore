@@ -51,6 +51,7 @@ CLAUDE.local.md
 TODO.md
 RELEASE_PLAN.md
 .github/development/CLAUDE.local.md
+.claude/
 
 # Build artifacts
 dist/

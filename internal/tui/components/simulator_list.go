@@ -198,11 +198,11 @@ func (sl *SimulatorList) renderList(startIdx, endIdx int) string {
 			// Non-selected item
 			var nameStyle, detailStyle lipgloss.Style
 			if sim.IsRunning() {
-				nameStyle = ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Inherit(ui.BootedStyle())
-				detailStyle = ui.ListItemStyle().Copy().Inherit(ui.BootedStyle())
+				nameStyle = ui.ListItemStyle().Inherit(ui.NameStyle()).Inherit(ui.BootedStyle())
+				detailStyle = ui.ListItemStyle().Inherit(ui.BootedStyle())
 			} else {
-				nameStyle = ui.ListItemStyle().Copy().Inherit(ui.NameStyle())
-				detailStyle = ui.ListItemStyle().Copy().Inherit(ui.DetailStyle())
+				nameStyle = ui.ListItemStyle().Inherit(ui.NameStyle())
+				detailStyle = ui.ListItemStyle().Inherit(ui.DetailStyle())
 			}
 
 			s.WriteString(nameStyle.Render(sim.Name))

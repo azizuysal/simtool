@@ -14,17 +14,25 @@ func TestGetFilesForContainer(t *testing.T) {
 	
 	// Create some test files and directories
 	testDir := filepath.Join(tmpDir, "TestDir")
-	os.Mkdir(testDir, 0755)
+	if err := os.Mkdir(testDir, 0755); err != nil {
+		t.Fatal(err)
+	}
 	
 	testFile1 := filepath.Join(tmpDir, "file1.txt")
-	os.WriteFile(testFile1, []byte("test content"), 0644)
+	if err := os.WriteFile(testFile1, []byte("test content"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	
 	testFile2 := filepath.Join(tmpDir, "file2.json")
-	os.WriteFile(testFile2, []byte("{}"), 0644)
+	if err := os.WriteFile(testFile2, []byte("{}"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	
 	// Create a file in subdirectory
 	testFile3 := filepath.Join(testDir, "file3.txt")
-	os.WriteFile(testFile3, []byte("nested file"), 0644)
+	if err := os.WriteFile(testFile3, []byte("nested file"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	
 	tests := []struct {
 		name          string
@@ -124,13 +132,13 @@ func TestCalculateDirSize(t *testing.T) {
 	
 	// Create files with specific sizes
 	file1 := filepath.Join(tmpDir, "file1.txt")
-	os.WriteFile(file1, make([]byte, 1024), 0644) // 1KB
+	_ = os.WriteFile(file1, make([]byte, 1024), 0644) // 1KB
 	
 	subDir := filepath.Join(tmpDir, "subdir")
-	os.Mkdir(subDir, 0755)
+	_ = os.Mkdir(subDir, 0755)
 	
 	file2 := filepath.Join(subDir, "file2.txt")
-	os.WriteFile(file2, make([]byte, 2048), 0644) // 2KB
+	_ = os.WriteFile(file2, make([]byte, 2048), 0644) // 2KB
 	
 	size := calculateDirSize(tmpDir)
 	expectedSize := int64(3072) // 1KB + 2KB

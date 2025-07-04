@@ -190,11 +190,11 @@ func TestDetectFileType(t *testing.T) {
 	// Create a temporary text file for testing
 	tmpDir := t.TempDir()
 	textFile := filepath.Join(tmpDir, "test.txt")
-	os.WriteFile(textFile, []byte("Hello, world!\nThis is a text file."), 0644)
+	_ = os.WriteFile(textFile, []byte("Hello, world!\nThis is a text file."), 0644)
 
 	// Create a temporary binary file for testing
 	binaryFile := filepath.Join(tmpDir, "test.bin")
-	os.WriteFile(binaryFile, []byte{0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE}, 0644)
+	_ = os.WriteFile(binaryFile, []byte{0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE}, 0644)
 
 	tests := []struct {
 		name     string

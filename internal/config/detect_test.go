@@ -12,14 +12,14 @@ func TestInitializeThemeDetection(t *testing.T) {
 	defer func() {
 		// Restore env vars
 		if originalOverride != "" {
-			os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
+			_ = os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
 		} else {
-			os.Unsetenv("SIMTOOL_THEME_MODE")
+			_ = os.Unsetenv("SIMTOOL_THEME_MODE")
 		}
 		if originalDetected != "" {
-			os.Setenv("SIMTOOL_DETECTED_MODE", originalDetected)
+			_ = os.Setenv("SIMTOOL_DETECTED_MODE", originalDetected)
 		} else {
-			os.Unsetenv("SIMTOOL_DETECTED_MODE")
+			_ = os.Unsetenv("SIMTOOL_DETECTED_MODE")
 		}
 	}()
 
@@ -43,13 +43,13 @@ func TestInitializeThemeDetection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clear detected mode
-			os.Unsetenv("SIMTOOL_DETECTED_MODE")
+			_ = os.Unsetenv("SIMTOOL_DETECTED_MODE")
 			
 			// Set override if specified
 			if tt.envOverride != "" {
-				os.Setenv("SIMTOOL_THEME_MODE", tt.envOverride)
+				_ = os.Setenv("SIMTOOL_THEME_MODE", tt.envOverride)
 			} else {
-				os.Unsetenv("SIMTOOL_THEME_MODE")
+				_ = os.Unsetenv("SIMTOOL_THEME_MODE")
 			}
 
 			// Note: InitializeThemeDetection uses sync.Once, so we can't easily test
@@ -74,9 +74,9 @@ func TestGetDetectedMode(t *testing.T) {
 	original := os.Getenv("SIMTOOL_DETECTED_MODE")
 	defer func() {
 		if original != "" {
-			os.Setenv("SIMTOOL_DETECTED_MODE", original)
+			_ = os.Setenv("SIMTOOL_DETECTED_MODE", original)
 		} else {
-			os.Unsetenv("SIMTOOL_DETECTED_MODE")
+			_ = os.Unsetenv("SIMTOOL_DETECTED_MODE")
 		}
 	}()
 
@@ -105,9 +105,9 @@ func TestGetDetectedMode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setMode != "" {
-				os.Setenv("SIMTOOL_DETECTED_MODE", tt.setMode)
+				_ = os.Setenv("SIMTOOL_DETECTED_MODE", tt.setMode)
 			} else {
-				os.Unsetenv("SIMTOOL_DETECTED_MODE")
+				_ = os.Unsetenv("SIMTOOL_DETECTED_MODE")
 			}
 
 			result := GetDetectedMode()

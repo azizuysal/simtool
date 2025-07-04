@@ -93,7 +93,7 @@ func SaveExample() error {
 	if err != nil {
 		return fmt.Errorf("creating example file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	
 	// Write example with comments
 	example := `# SimTool Configuration File

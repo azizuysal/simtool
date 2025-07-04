@@ -6,7 +6,6 @@ import (
 )
 
 var (
-	detectedDarkMode     bool
 	detectedDarkModeOnce sync.Once
 )
 
@@ -24,9 +23,9 @@ func InitializeThemeDetection() {
 			isDark := IsColorDark(bgColor)
 			// Store the result in an environment variable for later use
 			if isDark {
-				os.Setenv("SIMTOOL_DETECTED_MODE", "dark")
+				_ = os.Setenv("SIMTOOL_DETECTED_MODE", "dark")
 			} else {
-				os.Setenv("SIMTOOL_DETECTED_MODE", "light")
+				_ = os.Setenv("SIMTOOL_DETECTED_MODE", "light")
 			}
 		}
 	})

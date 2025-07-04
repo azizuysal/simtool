@@ -180,7 +180,7 @@ func DetectFileType(path string) FileType {
 	if err != nil {
 		return FileTypeBinary
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	
 	// Read first 512 bytes to check content
 	buffer := make([]byte, 512)
@@ -487,7 +487,7 @@ func readTextFile(path string, startLine, maxLines int) ([]string, int, bool, er
 		
 		magic := make([]byte, 6)
 		n, err := file.Read(magic)
-		file.Close()
+		_ = file.Close()
 		
 		if err == nil && n >= 6 && string(magic) == "bplist" {
 			// It's a binary plist, convert it to XML for viewing
@@ -501,7 +501,7 @@ func readTextFile(path string, startLine, maxLines int) ([]string, int, bool, er
 	if err != nil {
 		return nil, 0, false, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	
 	scanner := bufio.NewScanner(file)
 	var lines []string
@@ -577,7 +577,7 @@ func readImageInfo(path string, maxPreviewHeight, maxPreviewWidth int) (*ImageIn
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	
 	// Get file size
 	stat, err := file.Stat()
@@ -601,12 +601,12 @@ func readImageInfo(path string, maxPreviewHeight, maxPreviewWidth int) (*ImageIn
 			if strings.Contains(content, "<?xml") && 
 			   (strings.Contains(content, "<svg") || strings.Contains(content, "xmlns=\"http://www.w3.org/2000/svg\"")) {
 				// Reset file position
-				file.Close()
+				_ = file.Close()
 				return readSVGInfo(path, stat.Size(), maxPreviewHeight, maxPreviewWidth)
 			}
 		}
 		// Reset file position for image decoding
-		file.Seek(0, 0)
+		_, _ = file.Seek(0, 0)
 	}
 	
 	// Decode image to get dimensions
@@ -625,7 +625,7 @@ func readImageInfo(path string, maxPreviewHeight, maxPreviewWidth int) (*ImageIn
 	// Generate preview if requested
 	if maxPreviewHeight > 15 { // Only generate preview if we have reasonable space
 		// Reset file position
-		file.Seek(0, 0)
+		_, _ = file.Seek(0, 0)
 		
 		// Decode full image for preview
 		img, _, err := image.Decode(file)
@@ -655,7 +655,7 @@ func readBinaryFile(path string, offset int64, size int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	
 	// Seek to offset
 	_, err = file.Seek(offset, 0)
@@ -957,7 +957,7 @@ func readArchiveInfo(path string) (*ArchiveInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open archive: %v", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	
 	info := &ArchiveInfo{
 		Format:  "ZIP",
@@ -1252,7 +1252,7 @@ func readDatabaseInfo(path string) (*DatabaseInfo, error) {
 	if err != nil {
 		return &DatabaseInfo{Error: err.Error()}, nil
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	
 	// Test connection
 	if err := db.Ping(); err != nil {
@@ -1309,7 +1309,7 @@ func getAllTables(db *sql.DB) ([]TableInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	
 	var tables []TableInfo
 	for rows.Next() {
@@ -1359,7 +1359,7 @@ func getTableColumns(db *sql.DB, tableName string) ([]ColumnInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	
 	var columns []ColumnInfo
 	for rows.Next() {
@@ -1390,7 +1390,7 @@ func getTableSample(db *sql.DB, tableName string, limit int) ([]map[string]any, 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	
 	// Get column names
 	columns, err := rows.Columns()
@@ -1451,7 +1451,7 @@ func ReadTableData(dbPath, tableName string, offset, limit int) ([]map[string]an
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	
 	if err := db.Ping(); err != nil {
 		return nil, err
@@ -1463,7 +1463,7 @@ func ReadTableData(dbPath, tableName string, offset, limit int) ([]map[string]an
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	
 	// Get column names
 	columns, err := rows.Columns()

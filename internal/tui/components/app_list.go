@@ -196,9 +196,9 @@ func (al *AppList) renderList(startIdx, endIdx int) string {
 			s.WriteString(ui.SelectedStyle().Render(line2))
 		} else {
 			// Non-selected item
-			s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Render(app.Name))
+			s.WriteString(ui.ListItemStyle().Inherit(ui.NameStyle()).Render(app.Name))
 			s.WriteString("\n")
-			s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.DetailStyle()).Render(detailText))
+			s.WriteString(ui.ListItemStyle().Inherit(ui.DetailStyle()).Render(detailText))
 		}
 
 		if i < endIdx-1 {

@@ -235,9 +235,9 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 					colInfo = colInfo[:innerWidth-3] + "..."
 				}
 				
-				s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Render(tableName))
+				s.WriteString(ui.ListItemStyle().Inherit(ui.NameStyle()).Render(tableName))
 				s.WriteString("\n")
-				s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.DetailStyle()).Render(colInfo))
+				s.WriteString(ui.ListItemStyle().Inherit(ui.DetailStyle()).Render(colInfo))
 			}
 		}
 	}

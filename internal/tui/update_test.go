@@ -39,14 +39,14 @@ func TestUpdateTickMsg(t *testing.T) {
 	originalOverride := os.Getenv("SIMTOOL_THEME_MODE")
 	defer func() {
 		if originalOverride != "" {
-			os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
+			_ = os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
 		} else {
-			os.Unsetenv("SIMTOOL_THEME_MODE")
+			_ = os.Unsetenv("SIMTOOL_THEME_MODE")
 		}
 	}()
 
 	// Set override to prevent actual theme detection
-	os.Setenv("SIMTOOL_THEME_MODE", "dark")
+	_ = os.Setenv("SIMTOOL_THEME_MODE", "dark")
 
 	model := Model{
 		currentThemeMode: "dark",

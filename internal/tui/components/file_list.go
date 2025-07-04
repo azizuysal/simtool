@@ -180,15 +180,6 @@ func (fl *FileList) buildHeader() string {
 	return s.String()
 }
 
-// calculateItemsPerScreen calculates how many items fit on screen
-func (fl *FileList) calculateItemsPerScreen(availableHeight int) int {
-	// Each item takes 3 lines (name + details + blank line)
-	itemsPerScreen := availableHeight / 3
-	if itemsPerScreen < 1 {
-		itemsPerScreen = 1
-	}
-	return itemsPerScreen
-}
 
 // renderWithHeader renders the file list with header
 func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availableHeight int) string {
@@ -209,7 +200,6 @@ func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availa
 	// Render file list
 	if len(fl.Files) == 0 {
 		s.WriteString(ui.DetailStyle().Render("No files in folder"))
-		linesUsed = 1
 	} else {
 		for i := startIdx; i < endIdx && linesUsed < availableHeight; i++ {
 			file := fl.Files[i]
@@ -247,12 +237,12 @@ func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availa
 			} else {
 				// Non-selected item
 				if file.IsDirectory {
-					s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.FolderStyle()).Render(fileName))
+					s.WriteString(ui.ListItemStyle().Inherit(ui.FolderStyle()).Render(fileName))
 				} else {
-					s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Render(fileName))
+					s.WriteString(ui.ListItemStyle().Inherit(ui.NameStyle()).Render(fileName))
 				}
 				s.WriteString("\n")
-				s.WriteString(ui.ListItemStyle().Copy().Inherit(ui.DetailStyle()).Render(detailText))
+				s.WriteString(ui.ListItemStyle().Inherit(ui.DetailStyle()).Render(detailText))
 			}
 			linesUsed += 2 // Each item uses 2 lines
 		}

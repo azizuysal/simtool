@@ -96,7 +96,7 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 		if strings.Contains(m.statusMessage, "Error") || strings.Contains(m.statusMessage, "No apps installed") {
 			status = ui.ErrorStyle().Render(m.statusMessage)
 		} else if strings.Contains(m.statusMessage, "successfully") {
-			status = ui.FooterStyle().Copy().Foreground(ui.SuccessColor()).Render(m.statusMessage)
+			status = ui.FooterStyle().Foreground(ui.SuccessColor()).Render(m.statusMessage)
 		} else {
 			status = ui.FooterStyle().Render(m.statusMessage)
 		}

@@ -32,14 +32,14 @@ func TestGetActiveTheme(t *testing.T) {
 	originalDetected := os.Getenv("SIMTOOL_DETECTED_MODE")
 	defer func() {
 		if originalOverride != "" {
-			os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
+			_ = os.Setenv("SIMTOOL_THEME_MODE", originalOverride)
 		} else {
-			os.Unsetenv("SIMTOOL_THEME_MODE")
+			_ = os.Unsetenv("SIMTOOL_THEME_MODE")
 		}
 		if originalDetected != "" {
-			os.Setenv("SIMTOOL_DETECTED_MODE", originalDetected)
+			_ = os.Setenv("SIMTOOL_DETECTED_MODE", originalDetected)
 		} else {
-			os.Unsetenv("SIMTOOL_DETECTED_MODE")
+			_ = os.Unsetenv("SIMTOOL_DETECTED_MODE")
 		}
 	}()
 
@@ -88,15 +88,15 @@ func TestGetActiveTheme(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set up environment
 			if tt.envOverride != "" {
-				os.Setenv("SIMTOOL_THEME_MODE", tt.envOverride)
+				_ = os.Setenv("SIMTOOL_THEME_MODE", tt.envOverride)
 			} else {
-				os.Unsetenv("SIMTOOL_THEME_MODE")
+				_ = os.Unsetenv("SIMTOOL_THEME_MODE")
 			}
 			
 			if tt.envDetected != "" {
-				os.Setenv("SIMTOOL_DETECTED_MODE", tt.envDetected)
+				_ = os.Setenv("SIMTOOL_DETECTED_MODE", tt.envDetected)
 			} else {
-				os.Unsetenv("SIMTOOL_DETECTED_MODE")
+				_ = os.Unsetenv("SIMTOOL_DETECTED_MODE")
 			}
 
 			cfg := &Config{
@@ -126,8 +126,8 @@ func TestLoadConfig(t *testing.T) {
 
 	// Save original HOME
 	originalHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", originalHome)
+	_ = os.Setenv("HOME", tmpDir)
+	defer func() { _ = os.Setenv("HOME", originalHome) }()
 
 	t.Run("no config file - use defaults", func(t *testing.T) {
 		cfg, err := Load()

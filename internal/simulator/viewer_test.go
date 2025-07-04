@@ -374,13 +374,13 @@ func TestDetectFileTypeForArchives(t *testing.T) {
 			switch tt.expected {
 			case FileTypeArchive:
 				// ZIP file signature: "PK\x03\x04"
-				os.WriteFile(tmpFile, []byte("PK\x03\x04"), 0644)
+				_ = os.WriteFile(tmpFile, []byte("PK\x03\x04"), 0644)
 			case FileTypeBinary:
 				// Write actual binary content
-				os.WriteFile(tmpFile, []byte{0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD}, 0644)
+				_ = os.WriteFile(tmpFile, []byte{0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD}, 0644)
 			default:
 				// Text content
-				os.WriteFile(tmpFile, []byte("test content"), 0644)
+				_ = os.WriteFile(tmpFile, []byte("test content"), 0644)
 			}
 			
 			result := DetectFileType(tmpFile)
@@ -397,15 +397,15 @@ func TestDetectFileTypeWithContent(t *testing.T) {
 
 	// Create a text file with .bin extension to test content detection
 	binTextFile := filepath.Join(tmpDir, "text.bin")
-	os.WriteFile(binTextFile, []byte("This is actually a text file"), 0644)
+	_ = os.WriteFile(binTextFile, []byte("This is actually a text file"), 0644)
 
 	// Create a binary file with .txt extension
 	txtBinaryFile := filepath.Join(tmpDir, "binary.txt")
-	os.WriteFile(txtBinaryFile, []byte{0x00, 0x01, 0x02, 0x03, 0xFF}, 0644)
+	_ = os.WriteFile(txtBinaryFile, []byte{0x00, 0x01, 0x02, 0x03, 0xFF}, 0644)
 
 	// Create an empty file
 	emptyFile := filepath.Join(tmpDir, "empty.dat")
-	os.WriteFile(emptyFile, []byte{}, 0644)
+	_ = os.WriteFile(emptyFile, []byte{}, 0644)
 
 	tests := []struct {
 		name     string

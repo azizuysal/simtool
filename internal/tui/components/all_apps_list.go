@@ -131,9 +131,9 @@ func AllAppsListView(
 				listContent.WriteString(ui.SelectedStyle().Render(line2))
 			} else {
 				// Non-selected item
-				listContent.WriteString(ui.ListItemStyle().Copy().Inherit(ui.NameStyle()).Render(app.Name))
+				listContent.WriteString(ui.ListItemStyle().Inherit(ui.NameStyle()).Render(app.Name))
 				listContent.WriteString("\n")
-				listContent.WriteString(ui.ListItemStyle().Copy().Inherit(ui.DetailStyle()).Render(detailText))
+				listContent.WriteString(ui.ListItemStyle().Inherit(ui.DetailStyle()).Render(detailText))
 			}
 			
 			if i < endIdx-1 {
@@ -233,13 +233,3 @@ func buildAllAppsFooter(searchMode bool, appCount int, keys *config.KeysConfig, 
 	return footer + scrollInfo
 }
 
-// truncateStr truncates a string to a maximum length
-func truncateStr(s string, max int) string {
-	if len(s) <= max {
-		return s
-	}
-	if max <= 3 {
-		return "..."
-	}
-	return s[:max-3] + "..."
-}

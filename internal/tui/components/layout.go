@@ -55,7 +55,7 @@ func (l *Layout) renderTitle(title string) string {
 	s.WriteString("\n")
 	
 	// Use the theme-based header style
-	headerStyle := ui.HeaderStyle().Copy().MarginBottom(0)
+	headerStyle := ui.HeaderStyle().MarginBottom(0)
 	
 	header := headerStyle.Render(title)
 	headerWidth := lipgloss.Width(header)

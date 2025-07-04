@@ -221,7 +221,6 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 				remainingSpace := effectiveWidth - totalUsedWidth - separatorWidth
 				if remainingSpace >= 10 { // Only add if we have at least 10 chars for readability
 					columnWidths = append(columnWidths, remainingSpace)
-					totalUsedWidth += separatorWidth + remainingSpace
 					visibleColumns++
 				}
 				break

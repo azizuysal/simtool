@@ -36,7 +36,7 @@ func TestReadBinaryPlist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create a simple XML plist first
 	xmlPlist := `<?xml version="1.0" encoding="UTF-8"?>
@@ -97,7 +97,7 @@ func TestDetectFileTypeWithPlist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create XML plist
 	xmlPlist := `<?xml version="1.0" encoding="UTF-8"?>
@@ -145,7 +145,7 @@ func TestReadFileContentWithBinaryPlist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create XML plist
 	xmlPlist := `<?xml version="1.0" encoding="UTF-8"?>

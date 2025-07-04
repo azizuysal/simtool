@@ -185,7 +185,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 				schemaPreview = schemaPreview[:remainingWidth-3] + "..."
 			}
 			
-			s.WriteString(ui.DetailStyle().Copy().Foreground(ui.DetailStyle().GetForeground()).Render(schemaPrefix + schemaPreview))
+			s.WriteString(ui.DetailStyle().Foreground(ui.DetailStyle().GetForeground()).Render(schemaPrefix + schemaPreview))
 			linesUsed += 2
 		}
 	}

@@ -182,7 +182,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create debug log: %s", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Create simulator fetcher
 	fetcher := simulator.NewFetcher()

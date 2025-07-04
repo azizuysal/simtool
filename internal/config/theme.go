@@ -63,9 +63,6 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 		fbg := fallbackTheme.Get(chroma.Background)
 		if fbg.Background.IsSet() {
 			tc.Background = colorToHex(fbg.Background)
-		} else {
-			// This should never happen with monokai/github
-			// tc.Background is already set to default
 		}
 	}
 	
@@ -319,9 +316,10 @@ func DetectTerminalDarkMode() bool {
 	
 	// Try OS-specific detection
 	result := QueryTerminalBackground()
-	if result == "light" {
+	switch result {
+	case "light":
 		return false
-	} else if result == "dark" {
+	case "dark":
 		return true
 	}
 	
@@ -345,9 +343,10 @@ func DetectTerminalDarkModeLive() bool {
 	// Skip cached result and do live detection
 	// Use the live version that works in TUI
 	result := QueryTerminalBackgroundLive()
-	if result == "light" {
+	switch result {
+	case "light":
 		return false
-	} else if result == "dark" {
+	case "dark":
 		return true
 	}
 	
