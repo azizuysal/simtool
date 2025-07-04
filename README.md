@@ -4,8 +4,9 @@
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="macOS">
   <img src="https://img.shields.io/badge/go-%3E%3D1.24.4-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/github/license/azizuysal/simtool" alt="License">
-  <img src="https://img.shields.io/github/v/release/azizuysal/simtool?include_prereleases" alt="Release">
+  <img src="https://img.shields.io/github/v/release/azizuysal/simtool" alt="Release">
   <a href="https://codecov.io/gh/azizuysal/simtool"><img src="https://codecov.io/gh/azizuysal/simtool/branch/main/graph/badge.svg" alt="codecov"></a>
+  <img src="https://img.shields.io/github/downloads/azizuysal/simtool/total" alt="Downloads">
 </p>
 
 <p align="center">
