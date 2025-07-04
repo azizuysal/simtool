@@ -1,5 +1,4 @@
-# This config is for golangci-lint v2.x
-version: 2
+# This config is for golangci-lint
 linters:
   enable:
     - errcheck
