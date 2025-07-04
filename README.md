@@ -2,9 +2,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="macOS">
-  <img src="https://img.shields.io/badge/go-%3E%3D1.21-00ADD8?logo=go" alt="Go">
+  <img src="https://img.shields.io/badge/go-%3E%3D1.24.4-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/github/license/azizuysal/simtool" alt="License">
-  <img src="https://img.shields.io/badge/release-coming%20soon-orange" alt="Release">
+  <img src="https://img.shields.io/github/v/release/azizuysal/simtool?include_prereleases" alt="Release">
+  <a href="https://codecov.io/gh/azizuysal/simtool"><img src="https://codecov.io/gh/azizuysal/simtool/branch/main/graph/badge.svg" alt="codecov"></a>
 </p>
 
 <p align="center">
@@ -90,6 +91,12 @@
 - **Vim Navigation**: Full keyboard control with customizable shortcuts
 - **Responsive Design**: Adapts to any terminal size
 - **Lightning Fast**: Instant navigation and lazy loading
+
+## 📋 Requirements
+
+- macOS 10.15 or later
+- Xcode Command Line Tools
+- Go 1.24.4 or later (for building from source)
 
 ## 🚀 Installation
 
