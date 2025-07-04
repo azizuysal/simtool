@@ -1,0 +1,41 @@
+linters:
+  enable:
+    - gofmt
+    - golint
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - unused
+    - misspell
+    - gocyclo
+    - dupl
+    - gosec
+    - unconvert
+    - goconst
+    - goimports
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+    - linters:
+        - gosec
+      text: "G104: Errors unhandled"
+      source: "defer"
+
+run:
+  timeout: 5m
+  tests: true

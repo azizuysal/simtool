@@ -1,0 +1,119 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: simtool
+    main: ./cmd/simtool
+    binary: simtool
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+      - -X main.builtBy=goreleaser
+
+universal_binaries:
+  - id: simtool
+    replace: true
+
+archives:
+  - id: simtool
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: azizuysal
+    name: simtool
+  
+  header: |
+    ## SimTool {{ .Tag }}
+    
+    Terminal UI for iOS Simulator management with powerful app browsing and file viewing capabilities.
+    
+  footer: |
+    ## Installation
+    
+    ### Homebrew
+    ```bash
+    brew tap azizuysal/simtool
+    brew install simtool
+    ```
+    
+    ### Direct Download
+    Download the appropriate archive for your system from the assets below and extract it.
+    
+    ### From Source
+    ```bash
+    go install github.com/azizuysal/simtool/cmd/simtool@{{ .Tag }}
+    ```
+    
+    ---
+    **Full Changelog**: https://github.com/azizuysal/simtool/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+brews:
+  - name: simtool
+    repository:
+      owner: azizuysal
+      name: homebrew-simtool
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    
+    directory: Formula
+    
+    homepage: "https://github.com/azizuysal/simtool"
+    description: "Terminal UI for iOS Simulator management"
+    license: "MIT"
+    
+    test: |
+      system "#{bin}/simtool", "--version"
+    
+    dependencies:
+      - name: go
+        type: build
