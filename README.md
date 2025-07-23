@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/github/license/azizuysal/simtool" alt="License">
   <img src="https://img.shields.io/github/v/release/azizuysal/simtool" alt="Release">
   <a href="https://codecov.io/gh/azizuysal/simtool"><img src="https://codecov.io/gh/azizuysal/simtool/branch/main/graph/badge.svg" alt="codecov"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=azizuysal_simtool"><img src="https://sonarcloud.io/api/project_badges/quality_gate?project=azizuysal_simtool" alt="Quality Gate Status"></a>
   <img src="https://img.shields.io/github/downloads/azizuysal/simtool/total" alt="Downloads">
 </p>
 
