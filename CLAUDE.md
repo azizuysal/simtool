@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI assistants when working with the SimTool codebase. It consolidates project knowledge, development guidelines, and current status.
 
 ## Project Overview
 
@@ -341,3 +341,53 @@ The application supports extensive customization through TOML configuration:
 - `github.com/alecthomas/chroma/v2` - Syntax highlighting library
 - `github.com/mattn/go-sqlite3` - SQLite database driver for database file viewing
 - `github.com/BurntSushi/toml` - TOML configuration parsing
+
+## Project Status
+
+**Current Version**: v1.0.2 (Released July 4, 2025)  
+**Status**: Fully deployed and operational  
+**Go Version**: 1.24.4
+
+### Release Information
+- Initial release v1.0.0 completed with all planned features
+- Automated release process via GoReleaser
+- Homebrew tap with automatic formula updates
+- Multiple installation methods verified and working
+
+### Distribution
+- **Homebrew**: `brew install azizuysal/simtool/simtool`
+- **Direct Download**: Available from GitHub Releases
+- **Go Install**: `go install github.com/azizuysal/simtool/cmd/simtool@latest`
+
+### Quality Metrics
+- All tests passing (100% success rate)
+- Code coverage integrated with Codecov
+- Security scanning with CodeQL
+- Automated linting with golangci-lint
+- SonarCloud automatic analysis enabled
+
+## Development Guidelines
+
+### Important Instructions
+- Do not mention Claude in commit messages
+- Do not git commit without being explicitly asked to do so
+- Fix root causes when updating tests, never just alter tests to pass
+- Always update tests when making code changes
+- Remove temporary/debug files after implementation
+- Prefer editing existing files over creating new ones
+- Never proactively create documentation unless requested
+
+### CI/CD Infrastructure
+- GitHub Actions workflows for test, lint, coverage, and release
+- Branch protection with required status checks
+- Automated binary builds for multiple platforms
+- Homebrew formula automation with HOMEBREW_TAP_GITHUB_TOKEN
+
+## Important URLs
+
+- **Repository**: https://github.com/azizuysal/simtool
+- **Releases**: https://github.com/azizuysal/simtool/releases
+- **Homebrew Tap**: https://github.com/azizuysal/homebrew-simtool
+- **Issues**: https://github.com/azizuysal/simtool/issues
+- **Codecov**: https://codecov.io/gh/azizuysal/simtool
+- **SonarCloud**: https://sonarcloud.io/project/overview?id=azizuysal_simtool
