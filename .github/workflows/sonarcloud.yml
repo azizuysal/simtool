@@ -7,15 +7,14 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  sonarcloud:
-    name: SonarCloud Analysis
+  test:
+    name: Test
     runs-on: macos-latest
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+        fetch-depth: 0
     
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -29,6 +28,28 @@ jobs:
       run: |
         go test -v -coverprofile=coverage.out -covermode=atomic ./...
         go tool cover -func=coverage.out
+    
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage
+        path: coverage.out
+
+  sonarcloud:
+    name: SonarCloud Analysis
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+    
+    - name: Download coverage artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: coverage
     
     - name: SonarCloud Scan
       uses: SonarSource/sonarqube-scan-action@v3.1.0
