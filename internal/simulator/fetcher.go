@@ -16,18 +16,47 @@ type Fetcher interface {
 	Boot(udid string) error
 }
 
+// CommandExecutor handles execution of external commands
+type CommandExecutor interface {
+	Execute(name string, args ...string) ([]byte, error)
+	Run(name string, args ...string) error
+}
+
+// RealCommandExecutor implements CommandExecutor using os/exec
+type RealCommandExecutor struct{}
+
+func (e *RealCommandExecutor) Execute(name string, args ...string) ([]byte, error) {
+	cmd := exec.Command(name, args...)
+	return cmd.Output()
+}
+
+func (e *RealCommandExecutor) Run(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	return cmd.Run()
+}
+
 // SimctlFetcher fetches simulators using xcrun simctl
-type SimctlFetcher struct{}
+type SimctlFetcher struct {
+	executor CommandExecutor
+}
 
 // NewFetcher creates a new simulator fetcher
 func NewFetcher() Fetcher {
-	return &SimctlFetcher{}
+	return &SimctlFetcher{
+		executor: &RealCommandExecutor{},
+	}
+}
+
+// NewFetcherWithExecutor creates a new simulator fetcher with a custom executor
+func NewFetcherWithExecutor(executor CommandExecutor) Fetcher {
+	return &SimctlFetcher{
+		executor: executor,
+	}
 }
 
 // FetchSimulators retrieves all available simulators without app counts
 func (f *SimctlFetcher) FetchSimulators() ([]Simulator, error) {
-	cmd := exec.Command("xcrun", "simctl", "list", "devices", "--json")
-	output, err := cmd.Output()
+	output, err := f.executor.Execute("xcrun", "simctl", "list", "devices", "--json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to run simctl: %w", err)
 	}
@@ -51,8 +80,7 @@ func (f *SimctlFetcher) FetchSimulators() ([]Simulator, error) {
 
 // Fetch retrieves all available iOS simulators
 func (f *SimctlFetcher) Fetch() ([]Item, error) {
-	cmd := exec.Command("xcrun", "simctl", "list", "devices", "--json")
-	output, err := cmd.Output()
+	output, err := f.executor.Execute("xcrun", "simctl", "list", "devices", "--json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to run simctl: %w", err)
 	}
@@ -88,8 +116,7 @@ func (f *SimctlFetcher) Fetch() ([]Item, error) {
 // Boot starts the simulator with the given UDID
 func (f *SimctlFetcher) Boot(udid string) error {
 	// First boot the simulator
-	cmd := exec.Command("xcrun", "simctl", "boot", udid)
-	output, err := cmd.CombinedOutput()
+	output, err := f.executor.Execute("xcrun", "simctl", "boot", udid)
 	if err != nil {
 		// Check if already booted
 		if strings.Contains(string(output), "Unable to boot device in current state: Booted") {
@@ -105,8 +132,7 @@ func (f *SimctlFetcher) Boot(udid string) error {
 
 // openSimulatorApp opens the Simulator application
 func (f *SimctlFetcher) openSimulatorApp() error {
-	cmd := exec.Command("open", "-a", "Simulator")
-	if err := cmd.Run(); err != nil {
+	if err := f.executor.Run("open", "-a", "Simulator"); err != nil {
 		return fmt.Errorf("failed to open Simulator app: %w", err)
 	}
 	return nil
@@ -115,8 +141,7 @@ func (f *SimctlFetcher) openSimulatorApp() error {
 // getAppCount returns the number of installed apps on a simulator
 func (f *SimctlFetcher) getAppCount(udid string) int {
 	// First try to get apps using listapps (works for booted simulators)
-	cmd := exec.Command("xcrun", "simctl", "listapps", udid)
-	output, err := cmd.Output()
+	output, err := f.executor.Execute("xcrun", "simctl", "listapps", udid)
 	if err == nil {
 		// Parse the plist-style output
 		outputStr := string(output)

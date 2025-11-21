@@ -2,32 +2,107 @@ package simulator
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"testing"
 )
 
-// mockFetcher implements the Fetcher interface for testing
-type mockFetcher struct {
-	items      []Item
-	simulators []Simulator
-	err        error
-	bootCalled bool
-	bootUDID   string
-	bootErr    error
+// MockCommandExecutor implements CommandExecutor for testing
+type MockCommandExecutor struct {
+	ExecuteFunc func(name string, args ...string) ([]byte, error)
+	RunFunc     func(name string, args ...string) error
 }
 
-func (m *mockFetcher) Fetch() ([]Item, error) {
-	return m.items, m.err
+func (m *MockCommandExecutor) Execute(name string, args ...string) ([]byte, error) {
+	if m.ExecuteFunc != nil {
+		return m.ExecuteFunc(name, args...)
+	}
+	return nil, nil
 }
 
-func (m *mockFetcher) FetchSimulators() ([]Simulator, error) {
-	return m.simulators, m.err
+func (m *MockCommandExecutor) Run(name string, args ...string) error {
+	if m.RunFunc != nil {
+		return m.RunFunc(name, args...)
+	}
+	return nil
 }
 
-func (m *mockFetcher) Boot(udid string) error {
-	m.bootCalled = true
-	m.bootUDID = udid
-	return m.bootErr
+func TestSimctlFetcher_Fetch(t *testing.T) {
+	mockExecutor := &MockCommandExecutor{}
+	fetcher := NewFetcherWithExecutor(mockExecutor)
+
+	// Mock successful fetch
+	mockExecutor.ExecuteFunc = func(name string, args ...string) ([]byte, error) {
+		if name == "xcrun" && args[0] == "simctl" && args[1] == "list" && args[2] == "devices" {
+			output := SimctlOutput{
+				Devices: map[string][]Simulator{
+					"iOS 17.0": {
+						{
+							UDID:        "123",
+							Name:        "iPhone 15",
+							State:       "Booted",
+							IsAvailable: true,
+						},
+					},
+				},
+			}
+			return json.Marshal(output)
+		}
+		if name == "xcrun" && args[0] == "simctl" && args[1] == "listapps" {
+			return []byte(`CFBundleIdentifier = "com.example.app";`), nil
+		}
+		return nil, fmt.Errorf("unexpected command: %s %v", name, args)
+	}
+
+	items, err := fetcher.Fetch()
+	if err != nil {
+		t.Fatalf("Fetch() error = %v", err)
+	}
+
+	if len(items) != 1 {
+		t.Errorf("Expected 1 item, got %d", len(items))
+	}
+	if items[0].Name != "iPhone 15" {
+		t.Errorf("Expected name iPhone 15, got %s", items[0].Name)
+	}
+	if items[0].AppCount != 1 {
+		t.Errorf("Expected 1 app, got %d", items[0].AppCount)
+	}
+}
+
+func TestSimctlFetcher_Boot(t *testing.T) {
+	mockExecutor := &MockCommandExecutor{}
+	fetcher := NewFetcherWithExecutor(mockExecutor)
+
+	bootCalled := false
+	openCalled := false
+
+	mockExecutor.ExecuteFunc = func(name string, args ...string) ([]byte, error) {
+		if name == "xcrun" && args[0] == "simctl" && args[1] == "boot" && args[2] == "123" {
+			bootCalled = true
+			return []byte{}, nil
+		}
+		return nil, fmt.Errorf("unexpected command: %s %v", name, args)
+	}
+
+	mockExecutor.RunFunc = func(name string, args ...string) error {
+		if name == "open" && args[0] == "-a" && args[1] == "Simulator" {
+			openCalled = true
+			return nil
+		}
+		return fmt.Errorf("unexpected command: %s %v", name, args)
+	}
+
+	err := fetcher.Boot("123")
+	if err != nil {
+		t.Errorf("Boot() error = %v", err)
+	}
+
+	if !bootCalled {
+		t.Error("Expected boot command to be called")
+	}
+	if !openCalled {
+		t.Error("Expected open command to be called")
+	}
 }
 
 func TestParseSimulatorJSON(t *testing.T) {
@@ -221,55 +296,6 @@ func TestParseRuntimeVersion(t *testing.T) {
 				t.Errorf("parseRuntimeVersion(%s) = %v, want %v", tt.runtime, result, tt.expected)
 			}
 		})
-	}
-}
-
-func TestFetcherInterface(t *testing.T) {
-	// Test that mockFetcher implements the Fetcher interface
-	var _ Fetcher = &mockFetcher{}
-
-	// Test Fetch method
-	mock := &mockFetcher{
-		items: []Item{
-			{
-				Simulator: Simulator{
-					UDID: "123",
-					Name: "iPhone 15",
-					State: "Booted",
-				},
-				Runtime: "iOS 17.0",
-				AppCount: 0,
-			},
-		},
-		err: nil,
-	}
-
-	items, err := mock.Fetch()
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-	if len(items) != 1 {
-		t.Errorf("Expected 1 item, got %d", len(items))
-	}
-
-	// Test Fetch with error
-	mock.err = errors.New("fetch error")
-	_, err = mock.Fetch()
-	if err == nil || err.Error() != "fetch error" {
-		t.Errorf("Expected fetch error, got %v", err)
-	}
-
-	// Test Boot method
-	mock.bootErr = nil
-	err = mock.Boot("test-udid")
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-	if !mock.bootCalled {
-		t.Error("Expected Boot to be called")
-	}
-	if mock.bootUDID != "test-udid" {
-		t.Errorf("Expected boot UDID to be test-udid, got %s", mock.bootUDID)
 	}
 }
 
