@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -27,7 +28,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
-	_ "golang.org/x/image/webp" // Add WebP support
+	_ "golang.org/x/image/webp"
 
 	"github.com/azizuysal/simtool/internal/config"
 )
@@ -185,7 +186,7 @@ func DetectFileType(path string) FileType {
 	// Read first 512 bytes to check content
 	buffer := make([]byte, 512)
 	n, err := file.Read(buffer)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return FileTypeBinary
 	}
 
@@ -666,7 +667,7 @@ func readBinaryFile(path string, offset int64, size int) ([]byte, error) {
 	// Read chunk
 	data := make([]byte, size)
 	n, err := file.Read(data)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 
@@ -955,7 +956,7 @@ func readArchiveInfo(path string) (*ArchiveInfo, error) {
 	// Open the ZIP file
 	reader, err := zip.OpenReader(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open archive: %v", err)
+		return nil, fmt.Errorf("failed to open archive: %w", err)
 	}
 	defer func() { _ = reader.Close() }()
 
@@ -1233,13 +1234,6 @@ func rasterizeSVG(icon *oksvg.SvgIcon, width, height int) (image.Image, error) {
 	return img, nil
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // ReadDatabaseContent reads information from a database file
 func ReadDatabaseContent(path string) (*DatabaseInfo, error) {
 	return readDatabaseInfo(path)
@@ -1344,17 +1338,25 @@ func getAllTables(db *sql.DB) ([]TableInfo, error) {
 	return tables, nil
 }
 
+// quoteSQLiteIdentifier returns name safely double-quoted as a SQLite
+// identifier. Embedded double quotes are doubled per SQL standard.
+// SQLite does not allow parameterizing identifiers, so this is the
+// only safe way to interpolate a table name into a query.
+func quoteSQLiteIdentifier(name string) string {
+	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+}
+
 // getTableRowCount gets the number of rows in a table
 func getTableRowCount(db *sql.DB, tableName string) (int64, error) {
 	var count int64
-	query := fmt.Sprintf("SELECT COUNT(*) FROM \"%s\"", tableName)
+	query := "SELECT COUNT(*) FROM " + quoteSQLiteIdentifier(tableName)
 	err := db.QueryRow(query).Scan(&count)
 	return count, err
 }
 
 // getTableColumns gets information about table columns
 func getTableColumns(db *sql.DB, tableName string) ([]ColumnInfo, error) {
-	query := fmt.Sprintf("PRAGMA table_info(\"%s\")", tableName)
+	query := "PRAGMA table_info(" + quoteSQLiteIdentifier(tableName) + ")"
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
@@ -1385,7 +1387,8 @@ func getTableColumns(db *sql.DB, tableName string) ([]ColumnInfo, error) {
 
 // getTableSample gets sample data from a table
 func getTableSample(db *sql.DB, tableName string, limit int) ([]map[string]any, error) {
-	query := fmt.Sprintf("SELECT * FROM \"%s\" LIMIT %d", tableName, limit)
+	query := "SELECT * FROM " + quoteSQLiteIdentifier(tableName) +
+		" LIMIT " + strconv.Itoa(limit)
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
@@ -1458,7 +1461,9 @@ func ReadTableData(dbPath, tableName string, offset, limit int) ([]map[string]an
 	}
 
 	// Build query with pagination
-	query := fmt.Sprintf("SELECT * FROM \"%s\" LIMIT %d OFFSET %d", tableName, limit, offset)
+	query := "SELECT * FROM " + quoteSQLiteIdentifier(tableName) +
+		" LIMIT " + strconv.Itoa(limit) +
+		" OFFSET " + strconv.Itoa(offset)
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err

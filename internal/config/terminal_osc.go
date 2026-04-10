@@ -106,13 +106,13 @@ func IsColorDark(colorStr string) bool {
 	// Normalize to 0-255 range
 	// Terminal colors can be 8-bit (FF) or 16-bit (FFFF)
 	if r > 255 {
-		r = r >> 8
+		r >>= 8
 	}
 	if g > 255 {
-		g = g >> 8
+		g >>= 8
 	}
 	if b > 255 {
-		b = b >> 8
+		b >>= 8
 	}
 
 	// Calculate perceived brightness using ITU-R BT.709 formula

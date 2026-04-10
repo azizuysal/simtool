@@ -64,17 +64,18 @@ func getAppsFromListApps(udid string) ([]App, error) {
 				}
 			}
 		} else if inApp {
-			if strings.HasPrefix(line, "CFBundleDisplayName = ") {
+			switch {
+			case strings.HasPrefix(line, "CFBundleDisplayName = "):
 				currentApp.Name = strings.Trim(strings.TrimPrefix(line, "CFBundleDisplayName = "), `";`)
-			} else if strings.HasPrefix(line, "CFBundleShortVersionString = ") {
+			case strings.HasPrefix(line, "CFBundleShortVersionString = "):
 				currentApp.Version = strings.Trim(strings.TrimPrefix(line, "CFBundleShortVersionString = "), `";`)
-			} else if strings.HasPrefix(line, "Path = ") {
+			case strings.HasPrefix(line, "Path = "):
 				// Path values are not quoted in the output
 				currentApp.Path = strings.TrimSpace(strings.TrimPrefix(line, "Path = "))
 				currentApp.Path = strings.TrimSuffix(currentApp.Path, ";")
-			} else if strings.HasPrefix(line, "DataContainer = ") {
+			case strings.HasPrefix(line, "DataContainer = "):
 				currentApp.Container = strings.Trim(strings.TrimPrefix(line, "DataContainer = "), `";`)
-			} else if line == "};" && currentApp.BundleID != "" {
+			case line == "};" && currentApp.BundleID != "":
 				// Calculate app size from path
 				if currentApp.Path != "" {
 					currentApp.Size = calculateDirSize(currentApp.Path)
@@ -351,11 +352,12 @@ func parseAppListJSON(data []byte) ([]App, error) {
 		}
 
 		// Determine app name
-		if info.CFBundleDisplayName != "" {
+		switch {
+		case info.CFBundleDisplayName != "":
 			app.Name = info.CFBundleDisplayName
-		} else if info.CFBundleName != "" {
+		case info.CFBundleName != "":
 			app.Name = info.CFBundleName
-		} else {
+		default:
 			app.Name = bundleID
 		}
 

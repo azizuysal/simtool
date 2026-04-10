@@ -244,10 +244,7 @@ func colorToHex(c chroma.Colour) string {
 	if !c.IsSet() {
 		return ""
 	}
-	return fmt.Sprintf("#%02x%02x%02x",
-		uint8(c.Red()),
-		uint8(c.Green()),
-		uint8(c.Blue()))
+	return fmt.Sprintf("#%02x%02x%02x", c.Red(), c.Green(), c.Blue())
 }
 
 // isLightTheme determines if a theme is light based on background brightness

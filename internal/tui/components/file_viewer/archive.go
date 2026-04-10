@@ -127,7 +127,7 @@ func renderTree(node *treeNode, prefix string, isLast bool, lines *[]string) {
 
 		name := node.name
 		if node.isDir {
-			name = name + "/"
+			name += "/"
 		}
 		*lines = append(*lines, line+name)
 	}

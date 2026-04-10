@@ -183,7 +183,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create debug log: %s", err)
 	}
-	defer func() { _ = f.Close() }()
 
 	// Create simulator fetcher
 	fetcher := simulator.NewFetcher()
@@ -192,8 +191,10 @@ func main() {
 	model := tui.New(fetcher, startWithApps)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
-	if _, err := p.Run(); err != nil {
-		log.Printf("Error running program: %s", err)
+	_, runErr := p.Run()
+	_ = f.Close()
+	if runErr != nil {
+		log.Printf("Error running program: %s", runErr)
 		os.Exit(1)
 	}
 }

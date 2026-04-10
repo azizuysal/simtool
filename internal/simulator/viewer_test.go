@@ -337,11 +337,9 @@ func TestGetSyntaxHighlightedLine(t *testing.T) {
 				if strippedResult != tt.line {
 					t.Errorf("Content changed after highlighting: got %v, want %v", strippedResult, tt.line)
 				}
-			} else {
+			} else if result != tt.expected {
 				// For unknown extensions, expect plain text
-				if result != tt.expected {
-					t.Errorf("GetSyntaxHighlightedLine() = %v, want %v", result, tt.expected)
-				}
+				t.Errorf("GetSyntaxHighlightedLine() = %v, want %v", result, tt.expected)
 			}
 		})
 	}

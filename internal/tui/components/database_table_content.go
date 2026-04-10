@@ -294,7 +294,7 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 					if len(runes) > columnWidths[j]-3 {
 						valStr = string(runes[:columnWidths[j]-3]) + "..."
 					} else {
-						valStr = valStr + "..."
+						valStr += "..."
 					}
 				}
 

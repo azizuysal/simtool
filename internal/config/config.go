@@ -83,7 +83,7 @@ func SaveExample() error {
 	}
 
 	// Create config directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
 	}
 

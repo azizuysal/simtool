@@ -90,17 +90,19 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 	footer = simList.GetFooter()
 
 	// Get status
-	if m.loadingSimulators {
+	switch {
+	case m.loadingSimulators:
 		status = ui.LoadingStyle().Render("Loading simulators...")
-	} else if m.statusMessage != "" {
-		if strings.Contains(m.statusMessage, "Error") || strings.Contains(m.statusMessage, "No apps installed") {
+	case m.statusMessage != "":
+		switch {
+		case strings.Contains(m.statusMessage, "Error") || strings.Contains(m.statusMessage, "No apps installed"):
 			status = ui.ErrorStyle().Render(m.statusMessage)
-		} else if strings.Contains(m.statusMessage, "successfully") {
+		case strings.Contains(m.statusMessage, "successfully"):
 			status = ui.FooterStyle().Foreground(ui.SuccessColor()).Render(m.statusMessage)
-		} else {
+		default:
 			status = ui.FooterStyle().Render(m.statusMessage)
 		}
-	} else {
+	default:
 		status = simList.GetStatus()
 	}
 
@@ -141,15 +143,16 @@ func (m Model) renderAppListView() (title, content, footer, status string) {
 	footer = appList.GetFooter()
 
 	// Get status
-	if m.loadingApps {
+	switch {
+	case m.loadingApps:
 		status = ui.LoadingStyle().Render("Loading apps...")
-	} else if m.statusMessage != "" {
+	case m.statusMessage != "":
 		if strings.Contains(m.statusMessage, "Error") {
 			status = ui.ErrorStyle().Render(m.statusMessage)
 		} else {
 			status = ui.FooterStyle().Render(m.statusMessage)
 		}
-	} else {
+	default:
 		status = appList.GetStatus()
 	}
 

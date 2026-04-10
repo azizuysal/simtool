@@ -1,26 +1,91 @@
 version: "2"
+
 linters:
+  default: none
+  enable:
+    # Baseline (match v1 defaults that were previously enabled)
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    # Expansion
+    - bodyclose       # http.Response.Body not closed
+    - errorlint       # error wrapping (%w vs %v, errors.Is/As)
+    - gocritic        # comprehensive diagnostic / style / perf checks
+    - gosec           # security scanner
+    - misspell        # typos in comments and strings
+    - nilerr          # returning nil when err is non-nil
+    - revive          # modern golint replacement
+    - sqlclosecheck   # sql.Rows / sql.Stmt not closed
+    - unconvert       # unnecessary type conversions
+  settings:
+    gosec:
+      # Rules that don't apply well to this codebase. CLAUDE.md forbids
+      # per-line #nosec pragmas, so we disable at config level with a
+      # reason. Other gosec rules (G301 file perms, etc.) stay enabled.
+      excludes:
+        - G115  # integer overflow on syscall/size casts; bounds-checking them is defensive noise
+        - G201  # SQL Sprintf; identifiers are safely escaped via quoteSQLiteIdentifier in viewer.go
+        - G202  # SQL concat; same reason as G201 (sqlite can't parameterize identifiers)
+        - G204  # exec.Command with variable args; we use exec.Command (not sh -c), so no shell injection
+        - G702  # command injection via taint analysis; same rationale as G204
+        - G304  # file inclusion via variable path; the whole point of the viewer is reading user-selected paths
+        - G703  # path traversal via taint analysis; false positives on filepath.Walk and os.Stat callbacks
+    revive:
+      # Disable the documentation-enforcement rules (exported,
+      # package-comments) and the overly strict unused-parameter rule
+      # (which complains about `t *testing.T` in `t.Run` callbacks).
+      # The remaining default rules still catch real issues like
+      # redefines-builtin-id, blank-imports, indent-error-flow, etc.
+      rules:
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: var-declaration
+        - name: var-naming
   exclusions:
     generated: lax
     rules:
+      # defer file.Close() patterns are idiomatic even without error handling
       - linters:
           - errcheck
         source: defer
-      - linters:
+      # tests can be looser about error checking and file/dir perms
+      - path: _test\.go
+        linters:
           - errcheck
-        path: _test\.go
+          - gosec
     paths:
       - third_party$
       - builtin$
       - examples$
+
 formatters:
   enable:
     - gofmt
-    - goimports
+    - gci
   settings:
-    goimports:
-      local-prefixes:
-        - github.com/azizuysal/simtool
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/azizuysal/simtool)
+      custom-order: true
   exclusions:
     generated: lax
     paths:

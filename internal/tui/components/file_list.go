@@ -212,7 +212,7 @@ func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availa
 			// Format file name with directory indicator
 			fileName := file.Name
 			if file.IsDirectory {
-				fileName = fileName + "/"
+				fileName += "/"
 			}
 
 			// Format file details

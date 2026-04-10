@@ -209,13 +209,14 @@ func (fv *FileViewer) getScrollInfo() string {
 		canScrollUp := fv.ContentViewport > 0 || fv.ContentOffset > 0
 		canScrollDown := endLine < totalLines
 
-		if canScrollUp && canScrollDown {
+		switch {
+		case canScrollUp && canScrollDown:
 			return fmt.Sprintf("(%d-%d of %d) ↑↓", startLine, endLine, totalLines)
-		} else if canScrollUp {
+		case canScrollUp:
 			return fmt.Sprintf("(%d-%d of %d) ↑", startLine, endLine, totalLines)
-		} else if canScrollDown {
+		case canScrollDown:
 			return fmt.Sprintf("(%d-%d of %d) ↓", startLine, endLine, totalLines)
-		} else {
+		default:
 			return fmt.Sprintf("(%d-%d of %d)", startLine, endLine, totalLines)
 		}
 	}

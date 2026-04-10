@@ -47,11 +47,12 @@ func FormatScrollInfo(viewport, itemsPerScreen, total int) string {
 		endIdx = total
 	}
 
-	if viewport > 0 && viewport+itemsPerScreen < total {
+	switch {
+	case viewport > 0 && viewport+itemsPerScreen < total:
 		return fmt.Sprintf(" (%d-%d of %d) ↑↓", viewport+1, endIdx, total)
-	} else if viewport > 0 {
+	case viewport > 0:
 		return fmt.Sprintf(" (%d-%d of %d) ↑", viewport+1, endIdx, total)
-	} else if viewport+itemsPerScreen < total {
+	case viewport+itemsPerScreen < total:
 		return fmt.Sprintf(" (%d-%d of %d) ↓", viewport+1, endIdx, total)
 	}
 	return ""

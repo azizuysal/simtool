@@ -49,18 +49,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
 				return clearStatusMsg{}
 			})
-		} else if len(msg.apps) == 0 {
+		}
+		if len(msg.apps) == 0 {
 			m.statusMessage = "No apps installed on this simulator"
 			m.viewState = SimulatorListView
 			m.selectedSim = nil
 			return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
 				return clearStatusMsg{}
 			})
-		} else {
-			m.appCursor = 0
-			m.appViewport = 0
-			m.updateViewport()
 		}
+		m.appCursor = 0
+		m.appViewport = 0
+		m.updateViewport()
 
 	case fetchAllAppsMsg:
 		m.allApps = msg.apps
@@ -80,16 +80,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
 				return clearStatusMsg{}
 			})
-		} else {
-			m.statusMessage = "Simulator booted successfully!"
-			// Refresh simulators to update status AND set up clear timer
-			return m, tea.Batch(
-				fetchSimulatorsCmd(m.fetcher),
-				tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-					return clearStatusMsg{}
-				}),
-			)
 		}
+		m.statusMessage = "Simulator booted successfully!"
+		// Refresh simulators to update status AND set up clear timer
+		return m, tea.Batch(
+			fetchSimulatorsCmd(m.fetcher),
+			tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
+				return clearStatusMsg{}
+			}),
+		)
 
 	case clearStatusMsg:
 		m.statusMessage = ""
@@ -314,24 +313,23 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.currentPath = newPath
 				m.loadingFiles = true
 				return m, m.fetchFilesCmd(newPath)
-			} else {
-				// At root level, go back to app list or all apps view
-				if m.selectedApp != nil && m.selectedApp.SimulatorUDID != "" {
-					// We came from AllAppsView
-					m.viewState = AllAppsView
-				} else {
-					// We came from regular AppListView
-					m.viewState = AppListView
-				}
-				m.files = nil
-				m.selectedApp = nil
-				m.currentPath = ""
-				m.basePath = ""
-				m.breadcrumbs = nil
-				m.cursorMemory = nil
-				m.viewportMemory = nil
-				m.updateViewport()
 			}
+			// At root level, go back to app list or all apps view
+			if m.selectedApp != nil && m.selectedApp.SimulatorUDID != "" {
+				// We came from AllAppsView
+				m.viewState = AllAppsView
+			} else {
+				// We came from regular AppListView
+				m.viewState = AppListView
+			}
+			m.files = nil
+			m.selectedApp = nil
+			m.currentPath = ""
+			m.basePath = ""
+			m.breadcrumbs = nil
+			m.cursorMemory = nil
+			m.viewportMemory = nil
+			m.updateViewport()
 		}
 
 	case "enter":
@@ -392,27 +390,25 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.currentPath = file.Path
 					m.loadingFiles = true
 					return m, m.fetchFilesCmd(file.Path)
-				} else {
-					// Check if it's a database file
-					fileType := simulator.DetectFileType(file.Path)
-					if fileType == simulator.FileTypeDatabase {
-						// View database tables
-						m.viewingDatabase = &file
-						m.viewState = DatabaseTableListView
-						m.loadingDatabase = true
-						m.tableCursor = 0
-						m.tableViewport = 0
-						return m, m.fetchDatabaseInfoCmd(file.Path)
-					} else {
-						// View the file
-						m.viewingFile = &file
-						m.viewState = FileViewerView
-						m.loadingContent = true
-						m.contentOffset = 0
-						m.contentViewport = 0
-						return m, m.fetchFileContentCmd(file.Path, 0)
-					}
 				}
+				// Check if it's a database file
+				fileType := simulator.DetectFileType(file.Path)
+				if fileType == simulator.FileTypeDatabase {
+					// View database tables
+					m.viewingDatabase = &file
+					m.viewState = DatabaseTableListView
+					m.loadingDatabase = true
+					m.tableCursor = 0
+					m.tableViewport = 0
+					return m, m.fetchDatabaseInfoCmd(file.Path)
+				}
+				// View the file
+				m.viewingFile = &file
+				m.viewState = FileViewerView
+				m.loadingContent = true
+				m.contentOffset = 0
+				m.contentViewport = 0
+				return m, m.fetchFileContentCmd(file.Path, 0)
 			}
 		case DatabaseTableListView:
 			if m.databaseInfo != nil && len(m.databaseInfo.Tables) > 0 && m.tableCursor < len(m.databaseInfo.Tables) {
@@ -483,7 +479,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 						m.contentOffset = newOffset
 						m.loadingContent = true
 						// Load with line offset (offset / 16)
-						return m, m.fetchFileContentCmd(m.viewingFile.Path, int(newOffset/16))
+						return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset/16)
 					}
 				case simulator.FileTypeArchive:
 					// Allow scrolling through archive entries
