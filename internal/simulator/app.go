@@ -4,12 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 )
+
+// defaultExecutor is the CommandExecutor used by the package-level
+// simulator/app functions (getAppsFromListApps, readAppInfo,
+// findDataContainer). Tests can swap it with a fake to avoid
+// spawning real subprocesses.
+//
+// This is separate from SimctlFetcher's own executor field: the
+// fetcher is constructed explicitly with an executor, while the
+// app-inspection helpers are free functions that need a shared
+// default.
+var defaultExecutor CommandExecutor = &RealCommandExecutor{}
 
 // App represents an installed application
 type App struct {
@@ -34,8 +44,7 @@ func GetAppsForSimulator(udid string, isRunning bool) ([]App, error) {
 
 // getAppsFromListApps gets apps for running simulators
 func getAppsFromListApps(udid string) ([]App, error) {
-	cmd := exec.Command("xcrun", "simctl", "listapps", udid)
-	output, err := cmd.Output()
+	output, err := defaultExecutor.Execute("xcrun", "simctl", "listapps", udid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list apps: %w", err)
 	}
@@ -185,8 +194,7 @@ type AppInfo struct {
 // readAppInfo reads basic info from Info.plist
 func readAppInfo(appPath string) *AppInfo {
 	plistPath := filepath.Join(appPath, "Info.plist")
-	cmd := exec.Command("plutil", "-convert", "json", "-o", "-", plistPath)
-	output, err := cmd.Output()
+	output, err := defaultExecutor.Execute("plutil", "-convert", "json", "-o", "-", plistPath)
 	if err != nil {
 		return nil
 	}
@@ -243,8 +251,7 @@ func findDataContainer(dataPath string, bundleID string) string {
 			metadataPath := filepath.Join(containerPath, ".com.apple.mobile_container_manager.metadata.plist")
 
 			// Try to read the metadata to verify this is the right container
-			cmd := exec.Command("plutil", "-convert", "json", "-o", "-", metadataPath)
-			output, err := cmd.Output()
+			output, err := defaultExecutor.Execute("plutil", "-convert", "json", "-o", "-", metadataPath)
 			if err != nil {
 				continue
 			}
