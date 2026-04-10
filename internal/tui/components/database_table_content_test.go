@@ -136,6 +136,15 @@ func TestSanitizeForDisplay(t *testing.T) {
 		{"tab control char -> box", "a\tb", "a□b"},
 		{"unicode preserved", "café", "café"},
 		{"trimmed", "  hi  ", "hi"},
+		// Regression: a malicious DB value containing an ANSI escape
+		// sequence must not reach the terminal intact, or it could
+		// inject color/cursor/clear-screen commands into the TUI.
+		// unicode.IsPrint returns false for ESC (category Cc), so the
+		// existing filter already handles this — this case exists to
+		// lock the behavior in.
+		{"ansi escape -> box", "red\x1b[31mtext\x1b[0m", "red□[31mtext□[0m"},
+		{"bel control char -> box", "ding\x07", "ding□"},
+		{"backspace -> box", "a\x08b", "a□b"},
 	}
 
 	for _, tt := range tests {

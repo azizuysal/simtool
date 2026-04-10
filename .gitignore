@@ -42,6 +42,16 @@ simtool-*
 .env
 .env.local
 
+# Secrets and credentials
+*.key
+*.pem
+*.cert
+*.p12
+*.pfx
+credentials*
+.secret*
+*.local
+
 # Temporary files
 *.tmp
 *.temp

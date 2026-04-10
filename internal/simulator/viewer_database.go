@@ -62,7 +62,7 @@ func readDatabaseInfo(path string) (*DatabaseInfo, error) {
 	dbInfo.TableCount = len(tables)
 
 	// Generate schema dump
-	if schema, err := generateSchema(db, tables); err == nil {
+	if schema, err := generateSchema(tables); err == nil {
 		dbInfo.Schema = schema
 	}
 
@@ -216,8 +216,10 @@ func getTableSample(db *sql.DB, tableName string, limit int) ([]map[string]any, 
 	return result, nil
 }
 
-// generateSchema generates a schema dump for the database
-func generateSchema(db *sql.DB, tables []TableInfo) (string, error) {
+// generateSchema generates a schema dump for the database. It operates
+// entirely on the prepared TableInfo slice and does not need a live DB
+// connection.
+func generateSchema(tables []TableInfo) (string, error) {
 	var schema strings.Builder
 
 	schema.WriteString("-- SQLite Database Schema\n\n")

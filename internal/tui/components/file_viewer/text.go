@@ -57,11 +57,13 @@ func (fv *FileViewer) renderText() string {
 		lineNumStr := fmt.Sprintf("%*d", maxLineNumWidth, lineNum)
 		s.WriteString(ui.DetailStyle().Render(lineNumStr + " │ "))
 
-		// Line content with syntax highlighting
+		// Line content with syntax highlighting. Truncate by rune count
+		// so multi-byte characters (emoji, CJK, accents) don't get cut
+		// mid-codepoint.
 		line := fv.Content.Lines[i]
 		maxLineWidth := innerWidth - maxLineNumWidth - 4
-		if len(line) > maxLineWidth {
-			line = line[:maxLineWidth-3] + "..."
+		if runes := []rune(line); len(runes) > maxLineWidth {
+			line = string(runes[:maxLineWidth-3]) + "..."
 		}
 
 		// Use detected language if available

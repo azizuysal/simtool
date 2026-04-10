@@ -178,8 +178,15 @@ func main() {
 		return
 	}
 
-	// Set up debug logging
-	f, err := tea.LogToFile("debug.log", "debug")
+	// Set up debug logging. The file goes under the user cache directory
+	// (e.g. ~/Library/Caches/simtool/debug.log on macOS) rather than the
+	// process working directory, which would pollute wherever the user
+	// invoked simtool and leak TUI state into unrelated project trees.
+	logPath, err := debugLogPath()
+	if err != nil {
+		log.Fatalf("failed to resolve debug log path: %s", err)
+	}
+	f, err := tea.LogToFile(logPath, "debug")
 	if err != nil {
 		log.Fatalf("failed to create debug log: %s", err)
 	}
@@ -197,4 +204,18 @@ func main() {
 		log.Printf("Error running program: %s", runErr)
 		os.Exit(1)
 	}
+}
+
+// debugLogPath returns the path for simtool's debug log file, ensuring
+// the parent directory exists with user-only permissions.
+func debugLogPath() (string, error) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(cacheDir, appName)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "debug.log"), nil
 }

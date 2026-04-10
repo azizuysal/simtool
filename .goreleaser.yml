@@ -3,7 +3,6 @@ version: 2
 before:
   hooks:
     - go mod tidy
-    - go generate ./...
 
 builds:
   - id: simtool
@@ -46,6 +45,11 @@ archives:
 
 checksum:
   name_template: 'checksums.txt'
+
+# Generate a CycloneDX SBOM for each archive. goreleaser installs syft
+# on demand if it isn't already on PATH.
+sboms:
+  - artifacts: archive
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"

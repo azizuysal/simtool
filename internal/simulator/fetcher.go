@@ -123,7 +123,7 @@ func (f *SimctlFetcher) Boot(udid string) error {
 			// If already booted, just open the Simulator app
 			return f.openSimulatorApp()
 		}
-		return fmt.Errorf("failed to boot simulator: %s", string(output))
+		return fmt.Errorf("failed to boot simulator: %w (output: %s)", err, string(output))
 	}
 
 	// Open the Simulator app to show the UI

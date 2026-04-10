@@ -292,7 +292,7 @@ func TestGenerateSchema(t *testing.T) {
 		{Name: "empty", Schema: ""}, // empty schema should be skipped
 	}
 
-	got, err := generateSchema(nil, tables)
+	got, err := generateSchema(tables)
 	if err != nil {
 		t.Fatalf("generateSchema: %v", err)
 	}

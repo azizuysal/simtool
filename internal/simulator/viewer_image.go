@@ -306,8 +306,11 @@ func extractSVGDimensions(svgContent string) (int, int) {
 	return width, height
 }
 
-// rasterizeSVG converts an SVG icon to a raster image using oksvg
-func rasterizeSVG(icon *oksvg.SvgIcon, width, height int) (image.Image, error) {
+// rasterizeSVG converts an SVG icon to a raster image using oksvg.
+// A recovered panic from the rasterizer is returned as an error via
+// the named return rather than printed to stdout — printing would
+// corrupt the TUI since stdout is the rendering surface.
+func rasterizeSVG(icon *oksvg.SvgIcon, width, height int) (img image.Image, err error) {
 	// Limit render size to prevent memory issues
 	maxSize := 1024
 	if width > maxSize || height > maxSize {
@@ -317,26 +320,25 @@ func rasterizeSVG(icon *oksvg.SvgIcon, width, height int) (image.Image, error) {
 	}
 
 	// Create a new RGBA image
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	rgba := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	// Set icon size to fit the canvas
 	icon.SetTarget(0, 0, float64(width), float64(height))
 
 	// Create a rasterizer
-	scanner := rasterx.NewScannerGV(width, height, img, img.Bounds())
+	scanner := rasterx.NewScannerGV(width, height, rgba, rgba.Bounds())
 	raster := rasterx.NewDasher(width, height, scanner)
 
 	// Try to draw the SVG
 	defer func() {
 		if r := recover(); r != nil {
-			// Recover from panics in SVG rendering
-			err := fmt.Errorf("SVG rendering panic: %v", r)
-			fmt.Println(err)
+			img = nil
+			err = fmt.Errorf("SVG rendering panic: %v", r)
 		}
 	}()
 
 	// Draw the icon
 	icon.Draw(raster, 1.0)
 
-	return img, nil
+	return rgba, nil
 }
