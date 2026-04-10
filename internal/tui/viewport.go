@@ -26,7 +26,7 @@ func (m Model) updateViewport() Model {
 		if simItemsPerScreen < 1 {
 			simItemsPerScreen = 1
 		}
-		updateViewportForList(&m.simCursor, &m.simViewport, len(m.simulators), simItemsPerScreen)
+		updateViewportForList(&m.simList.cursor, &m.simList.viewport, len(m.simList.simulators), simItemsPerScreen)
 	case AllAppsView:
 		// Each app entry takes 3 lines (name, bundle ID, simulator name)
 		contentHeight := m.height - 8
@@ -34,16 +34,16 @@ func (m Model) updateViewport() Model {
 		if appItemsPerScreen < 1 {
 			appItemsPerScreen = 1
 		}
-		updateViewportForList(&m.allAppsCursor, &m.allAppsViewport, len(m.allApps), appItemsPerScreen)
+		updateViewportForList(&m.allApps.cursor, &m.allApps.viewport, len(m.allApps.apps), appItemsPerScreen)
 	case AppListView:
-		updateViewportForList(&m.appCursor, &m.appViewport, len(m.apps), itemsPerScreen)
+		updateViewportForList(&m.appList.cursor, &m.appList.viewport, len(m.appList.apps), itemsPerScreen)
 	case FileListView:
 		// Calculate available height for content box
 		contentHeight := m.height - 8 // Title (4) + Footer (4)
 
 		// Account for header inside content box
 		headerLines := 6 // App name (1) + app details (1) + spacing (2) + separator (2)
-		if len(m.breadcrumbs) > 0 {
+		if len(m.fileList.breadcrumbs) > 0 {
 			headerLines += 2 // Breadcrumb line + spacing
 		}
 
@@ -57,7 +57,7 @@ func (m Model) updateViewport() Model {
 			actualFileItems = 1
 		}
 
-		updateViewportForList(&m.fileCursor, &m.fileViewport, len(m.files), actualFileItems)
+		updateViewportForList(&m.fileList.cursor, &m.fileList.viewport, len(m.fileList.files), actualFileItems)
 	}
 	return m
 }

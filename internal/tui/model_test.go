@@ -62,8 +62,8 @@ func TestNew(t *testing.T) {
 			t.Error("Expected initial view state to be AllAppsView")
 		}
 
-		if model.loadingAllApps != true {
-			t.Error("Expected loadingAllApps to be true when starting with all apps")
+		if model.allApps.loading != true {
+			t.Error("Expected allApps.loading to be true when starting with all apps")
 		}
 	})
 }
@@ -266,10 +266,12 @@ func TestFetchFileContentCmd(t *testing.T) {
 func TestModelState(t *testing.T) {
 	model := Model{
 		viewState: SimulatorListView,
-		simCursor: 5,
-		simulators: []simulator.Item{
-			{Simulator: simulator.Simulator{Name: "iPhone 15"}},
-			{Simulator: simulator.Simulator{Name: "iPhone 14"}},
+		simList: simListState{
+			cursor: 5,
+			simulators: []simulator.Item{
+				{Simulator: simulator.Simulator{Name: "iPhone 15"}},
+				{Simulator: simulator.Simulator{Name: "iPhone 14"}},
+			},
 		},
 		height: 30,
 		width:  80,
@@ -281,8 +283,8 @@ func TestModelState(t *testing.T) {
 	}
 
 	// Test cursor position
-	if model.simCursor != 5 {
-		t.Errorf("Expected cursor at 5, got %d", model.simCursor)
+	if model.simList.cursor != 5 {
+		t.Errorf("Expected cursor at 5, got %d", model.simList.cursor)
 	}
 
 	// Test dimensions

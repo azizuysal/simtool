@@ -13,8 +13,10 @@ import (
 func TestUpdateThemeChange(t *testing.T) {
 	model := Model{
 		currentThemeMode: "light",
-		simulators: []simulator.Item{
-			{Simulator: simulator.Simulator{Name: "iPhone 15"}},
+		simList: simListState{
+			simulators: []simulator.Item{
+				{Simulator: simulator.Simulator{Name: "iPhone 15"}},
+			},
 		},
 		height: 30,
 		width:  80,

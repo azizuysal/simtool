@@ -37,7 +37,85 @@ const (
 	DatabaseTableContentView
 )
 
-// Model represents the application state
+// simListState holds the state for the simulator list view.
+type simListState struct {
+	simulators   []simulator.Item
+	cursor       int
+	viewport     int
+	booting      bool
+	loading      bool
+	filterActive bool
+	searchMode   bool
+	searchQuery  string
+}
+
+// allAppsState holds the state for the combined "all apps" view.
+type allAppsState struct {
+	apps        []simulator.App
+	cursor      int
+	viewport    int
+	loading     bool
+	searchMode  bool
+	searchQuery string
+}
+
+// appListState holds the state for a single simulator's app list.
+type appListState struct {
+	selectedSim *simulator.Item
+	apps        []simulator.App
+	cursor      int
+	viewport    int
+	loading     bool
+	searchMode  bool
+	searchQuery string
+}
+
+// fileListState holds the state for the file browser.
+type fileListState struct {
+	selectedApp    *simulator.App
+	files          []simulator.FileInfo
+	cursor         int
+	viewport       int
+	loading        bool
+	currentPath    string
+	basePath       string         // The app's container path
+	breadcrumbs    []string       // Path components from base to current
+	cursorMemory   map[string]int // Remember cursor position for each path
+	viewportMemory map[string]int // Remember viewport position for each path
+}
+
+// fileViewerState holds the state for the file viewer.
+type fileViewerState struct {
+	file            *simulator.FileInfo
+	content         *simulator.FileContent
+	contentOffset   int // Line offset for text, byte offset for binary
+	contentViewport int // Viewport position within the loaded chunk
+	loading         bool
+	svgWarning      string
+}
+
+// dbTableListState holds the state for the database table list view.
+type dbTableListState struct {
+	file     *simulator.FileInfo     // The database file being viewed
+	info     *simulator.DatabaseInfo // Database metadata and table list
+	cursor   int
+	viewport int
+	loading  bool
+}
+
+// dbTableContentState holds the state for the per-table content view.
+type dbTableContentState struct {
+	table    *simulator.TableInfo // Currently selected table
+	data     []map[string]any     // Current page of table data
+	offset   int                  // Row offset for pagination
+	viewport int                  // Viewport position within the loaded page
+	loading  bool
+}
+
+// Model represents the application state. It is grouped into per-
+// view substates; only the substate matching viewState is "live" in
+// the UX sense at any given moment, but all of them persist so that
+// back-navigation can restore cursor positions.
 type Model struct {
 	// Common state
 	viewState     ViewState
@@ -47,64 +125,14 @@ type Model struct {
 	statusMessage string
 	fetcher       simulator.Fetcher
 
-	// Simulator list state
-	simulators        []simulator.Item
-	simCursor         int
-	simViewport       int
-	booting           bool
-	loadingSimulators bool   // Whether simulators are being loaded
-	filterActive      bool   // Whether to show only sims with apps
-	simSearchMode     bool   // Whether search is active in sim list
-	simSearchQuery    string // Current search query for sim list
-
-	// All apps view state
-	allApps            []simulator.App
-	allAppsCursor      int
-	allAppsViewport    int
-	loadingAllApps     bool
-	allAppsSearchMode  bool   // Whether search is active in all apps list
-	allAppsSearchQuery string // Current search query for all apps list
-
-	// App list state
-	selectedSim    *simulator.Item
-	apps           []simulator.App
-	appCursor      int
-	appViewport    int
-	loadingApps    bool
-	appSearchMode  bool   // Whether search is active in app list
-	appSearchQuery string // Current search query for app list
-
-	// File list state
-	selectedApp    *simulator.App
-	files          []simulator.FileInfo
-	fileCursor     int
-	fileViewport   int
-	loadingFiles   bool
-	currentPath    string
-	basePath       string         // The app's container path
-	breadcrumbs    []string       // Path components from base to current
-	cursorMemory   map[string]int // Remember cursor position for each path
-	viewportMemory map[string]int // Remember viewport position for each path
-
-	// File viewer state
-	viewingFile     *simulator.FileInfo
-	fileContent     *simulator.FileContent
-	contentOffset   int // Line offset for text files, byte offset for binary
-	contentViewport int // Viewport position within file content
-	loadingContent  bool
-	svgWarning      string // Warning message for SVG files with unsupported features
-
-	// Database state
-	viewingDatabase   *simulator.FileInfo     // The database file being viewed
-	databaseInfo      *simulator.DatabaseInfo // Database metadata and table list
-	selectedTable     *simulator.TableInfo    // Currently selected table
-	tableData         []map[string]any        // Current page of table data
-	tableCursor       int                     // Cursor in table list
-	tableViewport     int                     // Viewport in table list
-	tableDataOffset   int                     // Row offset for table content pagination
-	tableDataViewport int                     // Viewport position within table content
-	loadingDatabase   bool                    // Whether database info is loading
-	loadingTableData  bool                    // Whether table data is loading
+	// Per-view substates
+	simList    simListState
+	allApps    allAppsState
+	appList    appListState
+	fileList   fileListState
+	fileViewer fileViewerState
+	dbTables   dbTableListState
+	dbContent  dbTableContentState
 
 	// Theme state
 	currentThemeMode string // Current detected theme mode ("dark" or "light")
@@ -133,27 +161,24 @@ func New(fetcher simulator.Fetcher, startWithApps bool) Model {
 		themeMode = "dark"
 	}
 
-	// Determine initial view state
-	viewState := SimulatorListView
-	loadingSimulators := true
-	loadingAllApps := false
+	// Determine initial view state and corresponding loading flag
+	m := Model{
+		fetcher:          fetcher,
+		viewState:        SimulatorListView,
+		simList:          simListState{loading: true},
+		currentThemeMode: themeMode,
+		config:           cfg,
+		keyMap:           keyMap,
+	}
 
 	// Check command-line flag first, then config
 	if startWithApps || (cfg.Startup.InitialView == "all_apps") {
-		viewState = AllAppsView
-		loadingSimulators = false
-		loadingAllApps = true
+		m.viewState = AllAppsView
+		m.simList.loading = false
+		m.allApps.loading = true
 	}
 
-	return Model{
-		fetcher:           fetcher,
-		viewState:         viewState,
-		loadingSimulators: loadingSimulators,
-		loadingAllApps:    loadingAllApps,
-		currentThemeMode:  themeMode,
-		config:            cfg,
-		keyMap:            keyMap,
-	}
+	return m
 }
 
 // Init initializes the model

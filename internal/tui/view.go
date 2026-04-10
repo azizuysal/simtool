@@ -18,14 +18,14 @@ func (m Model) View() string {
 	// Special handling for AllAppsView which returns complete layout
 	if m.viewState == AllAppsView {
 		return components.AllAppsListView(
-			m.allApps,
-			m.allAppsCursor,
-			m.allAppsViewport,
+			m.allApps.apps,
+			m.allApps.cursor,
+			m.allApps.viewport,
 			m.width,
 			m.height,
-			m.allAppsSearchMode,
-			m.allAppsSearchQuery,
-			m.loadingAllApps,
+			m.allApps.searchMode,
+			m.allApps.searchQuery,
+			m.allApps.loading,
 			m.err,
 			&m.config.Keys,
 		)
@@ -71,15 +71,15 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 
 	// Create simulator list component
 	simList := components.NewSimulatorList(contentWidth, contentHeight)
-	simList.Update(filteredSims, m.simCursor, m.simViewport, m.filterActive, m.simSearchMode, m.simSearchQuery, &m.config.Keys)
+	simList.Update(filteredSims, m.simList.cursor, m.simList.viewport, m.simList.filterActive, m.simList.searchMode, m.simList.searchQuery, &m.config.Keys)
 
 	// Get title
-	title = simList.GetTitle(len(m.simulators))
+	title = simList.GetTitle(len(m.simList.simulators))
 
 	// Get content
 	// Create content box
 	contentBox := components.NewContentBox(contentWidth, contentHeight)
-	if m.loadingSimulators {
+	if m.simList.loading {
 		// Show empty content while loading
 		content = contentBox.Render("", "", false)
 	} else {
@@ -91,7 +91,7 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 
 	// Get status
 	switch {
-	case m.loadingSimulators:
+	case m.simList.loading:
 		status = ui.LoadingStyle().Render("Loading simulators...")
 	case m.statusMessage != "":
 		switch {
@@ -121,18 +121,18 @@ func (m Model) renderAppListView() (title, content, footer, status string) {
 	// Create app list component
 	appList := components.NewAppList(contentWidth, contentHeight)
 	simName := ""
-	if m.selectedSim != nil {
-		simName = m.selectedSim.Name
+	if m.appList.selectedSim != nil {
+		simName = m.appList.selectedSim.Name
 	}
-	appList.Update(filteredApps, m.appCursor, m.appViewport, m.appSearchMode, m.appSearchQuery, simName, &m.config.Keys)
+	appList.Update(filteredApps, m.appList.cursor, m.appList.viewport, m.appList.searchMode, m.appList.searchQuery, simName, &m.config.Keys)
 
 	// Get title
-	title = appList.GetTitle(len(m.apps))
+	title = appList.GetTitle(len(m.appList.apps))
 
 	// Get content
 	// Create content box
 	contentBox := components.NewContentBox(contentWidth, contentHeight)
-	if m.loadingApps {
+	if m.appList.loading {
 		// Show empty content while loading
 		content = contentBox.Render("", "", false)
 	} else {
@@ -144,7 +144,7 @@ func (m Model) renderAppListView() (title, content, footer, status string) {
 
 	// Get status
 	switch {
-	case m.loadingApps:
+	case m.appList.loading:
 		status = ui.LoadingStyle().Render("Loading apps...")
 	case m.statusMessage != "":
 		if strings.Contains(m.statusMessage, "Error") {
@@ -167,7 +167,7 @@ func (m Model) renderFileListView() (title, content, footer, status string) {
 
 	// Create file list component
 	fileList := components.NewFileList(contentWidth, contentHeight)
-	fileList.Update(m.files, m.fileCursor, m.fileViewport, m.selectedApp, m.breadcrumbs, &m.config.Keys)
+	fileList.Update(m.fileList.files, m.fileList.cursor, m.fileList.viewport, m.fileList.selectedApp, m.fileList.breadcrumbs, &m.config.Keys)
 
 	// Get title
 	title = fileList.GetTitle()
@@ -175,7 +175,7 @@ func (m Model) renderFileListView() (title, content, footer, status string) {
 	// Get content
 	// Create content box
 	contentBox := components.NewContentBox(contentWidth, contentHeight)
-	if m.loadingFiles {
+	if m.fileList.loading {
 		// Show empty content while loading
 		content = contentBox.Render("", "", false)
 	} else {
@@ -186,7 +186,7 @@ func (m Model) renderFileListView() (title, content, footer, status string) {
 	footer = fileList.GetFooter()
 
 	// Get status
-	if m.loadingFiles {
+	if m.fileList.loading {
 		status = ui.LoadingStyle().Render("Loading files...")
 	} else if m.statusMessage != "" {
 		if strings.Contains(m.statusMessage, "Error") {
@@ -207,7 +207,7 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 
 	// Create file viewer component with content dimensions
 	viewer := file_viewer.NewFileViewer(contentWidth, contentHeight)
-	viewer.Update(m.viewingFile, m.fileContent, m.contentViewport, m.contentOffset, m.svgWarning, &m.config.Keys)
+	viewer.Update(m.fileViewer.file, m.fileViewer.content, m.fileViewer.contentViewport, m.fileViewer.contentOffset, m.fileViewer.svgWarning, &m.config.Keys)
 
 	// Get title
 	title = viewer.GetTitle()
@@ -215,7 +215,7 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 	// Get content
 	// Create content box for all file types
 	contentBox := components.NewContentBox(contentWidth, contentHeight)
-	if m.loadingContent {
+	if m.fileViewer.loading {
 		// Show empty content while loading
 		content = contentBox.Render("", "", false)
 	} else {
@@ -227,7 +227,7 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 	footer = viewer.GetFooter()
 
 	// Get status
-	if m.loadingContent {
+	if m.fileViewer.loading {
 		status = ui.LoadingStyle().Render("Loading file...")
 	} else if m.statusMessage != "" {
 		if strings.Contains(m.statusMessage, "Error") {
@@ -250,7 +250,7 @@ func (m Model) renderDatabaseTableListView() (title, content, footer, status str
 
 	// Create database table list component
 	tableList := components.NewDatabaseTableList(contentWidth, contentHeight)
-	tableList.Update(m.databaseInfo, m.viewingDatabase, m.tableCursor, m.tableViewport, &m.config.Keys)
+	tableList.Update(m.dbTables.info, m.dbTables.file, m.dbTables.cursor, m.dbTables.viewport, &m.config.Keys)
 
 	// Get title
 	title = tableList.GetTitle()
@@ -258,7 +258,7 @@ func (m Model) renderDatabaseTableListView() (title, content, footer, status str
 	// Get content
 	// Create content box
 	contentBox := components.NewContentBox(contentWidth, contentHeight)
-	if m.loadingDatabase {
+	if m.dbTables.loading {
 		// Show empty content while loading
 		content = contentBox.Render("", "", false)
 	} else {
@@ -269,7 +269,7 @@ func (m Model) renderDatabaseTableListView() (title, content, footer, status str
 	footer = tableList.GetFooter()
 
 	// Get status
-	if m.loadingDatabase {
+	if m.dbTables.loading {
 		status = ui.LoadingStyle().Render("Loading database...")
 	} else if m.statusMessage != "" {
 		if strings.Contains(m.statusMessage, "Error") {
@@ -290,7 +290,7 @@ func (m Model) renderDatabaseTableContentView() (title, content, footer, status 
 
 	// Create database table content component
 	tableContent := components.NewDatabaseTableContent(contentWidth, contentHeight)
-	tableContent.Update(m.selectedTable, m.tableData, m.viewingDatabase, m.tableDataViewport, m.tableDataOffset, &m.config.Keys)
+	tableContent.Update(m.dbContent.table, m.dbContent.data, m.dbTables.file, m.dbContent.viewport, m.dbContent.offset, &m.config.Keys)
 
 	// Get title
 	title = tableContent.GetTitle()
@@ -298,7 +298,7 @@ func (m Model) renderDatabaseTableContentView() (title, content, footer, status 
 	// Get content
 	// Create content box
 	contentBox := components.NewContentBox(contentWidth, contentHeight)
-	if m.loadingTableData {
+	if m.dbContent.loading {
 		// Show empty content while loading
 		content = contentBox.Render("", "", false)
 	} else {
@@ -309,7 +309,7 @@ func (m Model) renderDatabaseTableContentView() (title, content, footer, status 
 	footer = tableContent.GetFooter()
 
 	// Get status
-	if m.loadingTableData {
+	if m.dbContent.loading {
 		status = ui.LoadingStyle().Render("Loading table data...")
 	} else if m.statusMessage != "" {
 		if strings.Contains(m.statusMessage, "Error") {

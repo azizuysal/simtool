@@ -104,9 +104,11 @@ func TestGetFilteredAndSearchedSimulators(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			model := Model{
-				simulators:     tt.simulators,
-				filterActive:   tt.filterActive,
-				simSearchQuery: tt.searchQuery,
+				simList: simListState{
+					simulators:   tt.simulators,
+					filterActive: tt.filterActive,
+					searchQuery:  tt.searchQuery,
+				},
 			}
 
 			result := model.getFilteredAndSearchedSimulators()
@@ -214,8 +216,10 @@ func TestGetFilteredAndSearchedApps(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			model := Model{
-				apps:           tt.apps,
-				appSearchQuery: tt.searchQuery,
+				appList: appListState{
+					apps:        tt.apps,
+					searchQuery: tt.searchQuery,
+				},
 			}
 
 			result := model.getFilteredAndSearchedApps()
