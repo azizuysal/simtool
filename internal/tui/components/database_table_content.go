@@ -148,13 +148,7 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 	var s strings.Builder
 	innerWidth := dtc.Width - 4 // Account for padding
 
-	// Add header
-	if header != "" {
-		s.WriteString(header)
-		s.WriteString("\n\n")
-		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
-		s.WriteString("\n\n")
-	}
+	s.WriteString(renderHeaderPrefix(header, innerWidth))
 
 	// Calculate column widths first to align delimiters
 	var columnWidths []int

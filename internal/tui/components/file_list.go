@@ -185,13 +185,7 @@ func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availa
 	var s strings.Builder
 	innerWidth := fl.Width - 4 // Account for padding
 
-	// Add header
-	if header != "" {
-		s.WriteString(header)
-		s.WriteString("\n\n")
-		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
-		s.WriteString("\n\n")
-	}
+	s.WriteString(renderHeaderPrefix(header, innerWidth))
 
 	// Count lines used so far
 	linesUsed := 0

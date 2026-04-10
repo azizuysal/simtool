@@ -7,7 +7,15 @@ import (
 
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/tui/components"
 	"github.com/azizuysal/simtool/internal/ui"
+)
+
+// Compile-time assertions that FileViewer satisfies both the
+// Component interface and the StatusProvider optional extension.
+var (
+	_ components.Component      = (*FileViewer)(nil)
+	_ components.StatusProvider = (*FileViewer)(nil)
 )
 
 // FileViewer renders file content based on file type

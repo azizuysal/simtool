@@ -178,13 +178,7 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 	var s strings.Builder
 	innerWidth := dtl.Width - 4 // Account for padding
 
-	// Add header
-	if header != "" {
-		s.WriteString(header)
-		s.WriteString("\n\n")
-		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
-		s.WriteString("\n\n")
-	}
+	s.WriteString(renderHeaderPrefix(header, innerWidth))
 
 	// Render table list
 	if len(dtl.DatabaseInfo.Tables) == 0 {
