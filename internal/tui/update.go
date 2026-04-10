@@ -373,11 +373,7 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 	switch action {
 	case "left":
 		m.viewState = SimulatorListView
-		m.appList.apps = nil
-		m.appList.selectedSim = nil
-		// Clear app search mode
-		m.appList.searchMode = false
-		m.appList.searchQuery = ""
+		m.appList = appListState{}
 		m = m.updateViewport()
 	case "right":
 		if len(m.appList.apps) > 0 {
@@ -495,21 +491,15 @@ func (m Model) handleFileListKey(action string) (tea.Model, tea.Cmd) {
 			m.fileList.loading = true
 			return m, m.fetchFilesCmd(newPath)
 		}
-		// At root level, go back to app list or all apps view
+		// At root level, go back to app list or all apps view.
+		// Reading selectedApp before the fileList clear is deliberate:
+		// it decides which view we return to.
+		nextView := AppListView
 		if m.fileList.selectedApp != nil && m.fileList.selectedApp.SimulatorUDID != "" {
-			// We came from AllAppsView
-			m.viewState = AllAppsView
-		} else {
-			// We came from regular AppListView
-			m.viewState = AppListView
+			nextView = AllAppsView
 		}
-		m.fileList.files = nil
-		m.fileList.selectedApp = nil
-		m.fileList.currentPath = ""
-		m.fileList.basePath = ""
-		m.fileList.breadcrumbs = nil
-		m.fileList.cursorMemory = nil
-		m.fileList.viewportMemory = nil
+		m.viewState = nextView
+		m.fileList = fileListState{}
 		m = m.updateViewport()
 	case "right":
 		if len(m.fileList.files) > 0 {
@@ -579,11 +569,7 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 	switch action {
 	case "left":
 		m.viewState = FileListView
-		m.fileViewer.file = nil
-		m.fileViewer.content = nil
-		m.fileViewer.contentOffset = 0
-		m.fileViewer.contentViewport = 0
-		m.fileViewer.svgWarning = ""
+		m.fileViewer = fileViewerState{}
 		m = m.updateViewport()
 	case "up":
 		if m.fileViewer.content == nil {
@@ -709,10 +695,7 @@ func (m Model) handleDatabaseTableListKey(action string) (tea.Model, tea.Cmd) {
 	switch action {
 	case "left":
 		m.viewState = FileListView
-		m.dbTables.file = nil
-		m.dbTables.info = nil
-		m.dbTables.cursor = 0
-		m.dbTables.viewport = 0
+		m.dbTables = dbTableListState{}
 		m = m.updateViewport()
 	case "right":
 		if m.dbTables.info != nil && len(m.dbTables.info.Tables) > 0 && m.dbTables.cursor < len(m.dbTables.info.Tables) {
@@ -744,10 +727,7 @@ func (m Model) handleDatabaseTableContentKey(action string) (tea.Model, tea.Cmd)
 	switch action {
 	case "left":
 		m.viewState = DatabaseTableListView
-		m.dbContent.table = nil
-		m.dbContent.data = nil
-		m.dbContent.offset = 0
-		m.dbContent.viewport = 0
+		m.dbContent = dbTableContentState{}
 		m = m.updateViewport()
 	case "up":
 		if m.dbContent.viewport > 0 {
