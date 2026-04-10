@@ -355,7 +355,7 @@ The application supports extensive customization through TOML configuration:
 - Multiple installation methods verified and working
 
 ### Distribution
-- **Homebrew**: `brew install azizuysal/simtool/simtool`
+- **Homebrew**: `brew install azizuysal/tap/simtool`
 - **Direct Download**: Available from GitHub Releases
 - **Go Install**: `go install github.com/azizuysal/simtool/cmd/simtool@latest`
 
@@ -387,7 +387,7 @@ The application supports extensive customization through TOML configuration:
 
 - **Repository**: https://github.com/azizuysal/simtool
 - **Releases**: https://github.com/azizuysal/simtool/releases
-- **Homebrew Tap**: https://github.com/azizuysal/homebrew-simtool
+- **Homebrew Tap**: https://github.com/azizuysal/homebrew-tap
 - **Issues**: https://github.com/azizuysal/simtool/issues
 - **Codecov**: https://codecov.io/gh/azizuysal/simtool
 - **SonarCloud**: https://sonarcloud.io/project/overview?id=azizuysal_simtool

@@ -80,7 +80,7 @@ release:
     
     ### Homebrew
     ```bash
-    brew tap azizuysal/simtool
+    brew tap azizuysal/tap
     brew install simtool
     ```
     
@@ -99,7 +99,7 @@ brews:
   - name: simtool
     repository:
       owner: azizuysal
-      name: homebrew-simtool
+      name: homebrew-tap
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     

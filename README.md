@@ -104,7 +104,7 @@
 
 ### Homebrew (Recommended)
 ```bash
-brew tap azizuysal/simtool
+brew tap azizuysal/tap
 brew install simtool
 ```
 
