@@ -518,9 +518,10 @@ func TestFileViewer_ScrollInfo_Image(t *testing.T) {
 	fv.Update(&file, content, 2, 0, "", nil)
 
 	got := fv.GetFooter()
-	// The scroll info uses a total of 8 + len(Rows) = 48 lines.
-	if !strings.Contains(got, "of 48") {
-		t.Errorf("GetFooter() scroll info = %q, want to include 'of 48'", got)
+	// renderImageContent produces info + separator + blank + N preview
+	// rows, so total lines = 3 + len(Rows) = 43.
+	if !strings.Contains(got, "of 43") {
+		t.Errorf("GetFooter() scroll info = %q, want to include 'of 43'", got)
 	}
 }
 
@@ -544,35 +545,144 @@ func TestFileViewer_ScrollInfo_Binary(t *testing.T) {
 }
 
 func TestFileViewer_ScrollInfo_Archive(t *testing.T) {
+	// Archive with 3 entries nested under a shared prefix. The tree
+	// has 4 unique nodes: "dir", "dir/a.txt", "dir/b.txt", "dir/c.txt".
 	file := simulator.FileInfo{Path: "/x.zip"}
 	content := &simulator.FileContent{
 		Type: simulator.FileTypeArchive,
 		ArchiveInfo: &simulator.ArchiveInfo{
-			Entries: make([]simulator.ArchiveEntry, 30),
+			Entries: []simulator.ArchiveEntry{
+				{Name: "dir/a.txt"},
+				{Name: "dir/b.txt"},
+				{Name: "dir/c.txt"},
+			},
 		},
 	}
 	fv := NewFileViewer(80, 24)
-	fv.Update(&file, content, 5, 0, "", nil)
+	fv.Update(&file, content, 0, 0, "", nil)
 
 	got := fv.GetFooter()
-	if !strings.Contains(got, "of ") {
-		t.Errorf("GetFooter() scroll info = %q, want range indicator", got)
+	if !strings.Contains(got, "of 4") {
+		t.Errorf("GetFooter() scroll info = %q, want to include 'of 4'", got)
 	}
 }
 
 func TestFileViewer_ScrollInfo_Database(t *testing.T) {
+	// Two tables, each with 2 columns and 3 sample rows plus a schema.
+	// Per table (not counting inter-table spacing): 1 header + 1
+	// columns + 1 "Sample data:" + 3 sample + 2 schema = 8 lines.
+	// Two tables = 16 lines, plus 2 lines spacing between them = 18.
 	file := simulator.FileInfo{Path: "/x.db"}
+	tbl := simulator.TableInfo{
+		Name:    "users",
+		Columns: []simulator.ColumnInfo{{Name: "id"}, {Name: "name"}},
+		Sample:  []map[string]any{{}, {}, {}},
+		Schema:  "CREATE TABLE users (id INTEGER, name TEXT)",
+	}
 	content := &simulator.FileContent{
 		Type: simulator.FileTypeDatabase,
 		DatabaseInfo: &simulator.DatabaseInfo{
-			Tables: make([]simulator.TableInfo, 10),
+			Tables: []simulator.TableInfo{tbl, tbl},
 		},
 	}
 	fv := NewFileViewer(80, 24)
-	fv.Update(&file, content, 2, 0, "", nil)
+	fv.Update(&file, content, 0, 0, "", nil)
 
 	got := fv.GetFooter()
-	if !strings.Contains(got, "of ") {
-		t.Errorf("GetFooter() scroll info = %q, want range indicator", got)
+	if !strings.Contains(got, "of 18") {
+		t.Errorf("GetFooter() scroll info = %q, want to include 'of 18'", got)
+	}
+}
+
+// ---------- count helpers ----------
+
+func TestCountArchiveTreeLines(t *testing.T) {
+	tests := []struct {
+		name    string
+		entries []simulator.ArchiveEntry
+		want    int
+	}{
+		{"nil info", nil, 0},
+		{"flat list", []simulator.ArchiveEntry{
+			{Name: "a.txt"},
+			{Name: "b.txt"},
+			{Name: "c.txt"},
+		}, 3},
+		{"shared prefix", []simulator.ArchiveEntry{
+			{Name: "dir/a.txt"},
+			{Name: "dir/b.txt"},
+		}, 3}, // "dir", "dir/a.txt", "dir/b.txt"
+		{"deeply nested", []simulator.ArchiveEntry{
+			{Name: "a/b/c/d.txt"},
+		}, 4}, // "a", "a/b", "a/b/c", "a/b/c/d.txt"
+		{"duplicate paths coalesce", []simulator.ArchiveEntry{
+			{Name: "dir/x.txt"},
+			{Name: "dir/x.txt"},
+		}, 2}, // "dir", "dir/x.txt"
+		{"trailing and leading slashes ignored", []simulator.ArchiveEntry{
+			{Name: "/dir/x.txt"},
+			{Name: "dir/y.txt/"},
+		}, 3}, // "dir", "dir/x.txt", "dir/y.txt" — empty parts are skipped
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var info *simulator.ArchiveInfo
+			if tt.entries != nil {
+				info = &simulator.ArchiveInfo{Entries: tt.entries}
+			}
+			if got := countArchiveTreeLines(info); got != tt.want {
+				t.Errorf("countArchiveTreeLines() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCountDatabaseLines(t *testing.T) {
+	tests := []struct {
+		name string
+		info *simulator.DatabaseInfo
+		want int
+	}{
+		{"nil info", nil, 0},
+		{"empty tables", &simulator.DatabaseInfo{}, 0},
+		{
+			name: "single bare table (header only)",
+			info: &simulator.DatabaseInfo{
+				Tables: []simulator.TableInfo{{Name: "t"}},
+			},
+			want: 1,
+		},
+		{
+			name: "single table with columns + sample + schema",
+			info: &simulator.DatabaseInfo{
+				Tables: []simulator.TableInfo{{
+					Name:    "users",
+					Columns: []simulator.ColumnInfo{{Name: "id"}},
+					Sample:  []map[string]any{{}, {}},
+					Schema:  "CREATE TABLE users (id INTEGER)",
+				}},
+			},
+			// 1 header + 1 cols + 1 sample header + 2 sample rows + 2 schema = 7
+			want: 7,
+		},
+		{
+			name: "two tables with spacing",
+			info: &simulator.DatabaseInfo{
+				Tables: []simulator.TableInfo{
+					{Name: "a"}, // 1 header
+					{Name: "b"}, // 1 header + 2 spacing before
+				},
+			},
+			want: 1 + 2 + 1, // 4
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := countDatabaseLines(tt.info); got != tt.want {
+				t.Errorf("countDatabaseLines() = %d, want %d", got, tt.want)
+			}
+		})
 	}
 }

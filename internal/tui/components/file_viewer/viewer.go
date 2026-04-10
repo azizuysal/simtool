@@ -161,7 +161,9 @@ func (fv *FileViewer) getScrollInfo() string {
 	case simulator.FileTypeImage:
 		if fv.Content.ImageInfo != nil && fv.Content.ImageInfo.Preview != nil {
 			hasContent = true
-			totalLines = 8 + len(fv.Content.ImageInfo.Preview.Rows)
+			// renderImageContent produces: info line + separator line +
+			// a blank line + one line per preview row. That's 3 + N.
+			totalLines = 3 + len(fv.Content.ImageInfo.Preview.Rows)
 			visibleLines := contentHeight - 4 // Account for header
 			startLine = fv.ContentViewport + 1
 			endLine = fv.ContentViewport + visibleLines
@@ -191,8 +193,9 @@ func (fv *FileViewer) getScrollInfo() string {
 	case simulator.FileTypeArchive:
 		if fv.Content.ArchiveInfo != nil {
 			hasContent = true
-			// Count tree lines (this is approximate)
-			totalLines = len(fv.Content.ArchiveInfo.Entries) * 2 // Rough estimate
+			// Count distinct path components across all entries; each
+			// becomes one rendered tree line.
+			totalLines = countArchiveTreeLines(fv.Content.ArchiveInfo)
 			startLine = fv.ContentViewport + 1
 			endLine = startLine + contentHeight - 4
 			if endLine > totalLines {
@@ -202,8 +205,8 @@ func (fv *FileViewer) getScrollInfo() string {
 	case simulator.FileTypeDatabase:
 		if fv.Content.DatabaseInfo != nil {
 			hasContent = true
-			// Each table takes approximately 6-8 lines (header + columns + sample + spacing)
-			totalLines = len(fv.Content.DatabaseInfo.Tables) * 8
+			// Accurate per-table count, mirroring renderDatabaseTables.
+			totalLines = countDatabaseLines(fv.Content.DatabaseInfo)
 			startLine = fv.ContentViewport + 1
 			endLine = startLine + contentHeight - 4
 			if endLine > totalLines {

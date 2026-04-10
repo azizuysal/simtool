@@ -83,6 +83,33 @@ func (fv *FileViewer) renderArchive() string {
 	return s.String()
 }
 
+// countArchiveTreeLines counts how many lines the tree view will
+// produce for a given archive without actually building the tree.
+// Each unique path component (a/, a/b, a/b/c.txt) becomes one
+// rendered line, so the count is the number of distinct paths.
+func countArchiveTreeLines(info *simulator.ArchiveInfo) int {
+	if info == nil {
+		return 0
+	}
+	seen := make(map[string]bool)
+	for _, entry := range info.Entries {
+		parts := strings.Split(entry.Name, "/")
+		var path string
+		for _, part := range parts {
+			if part == "" {
+				continue
+			}
+			if path == "" {
+				path = part
+			} else {
+				path += "/" + part
+			}
+			seen[path] = true
+		}
+	}
+	return len(seen)
+}
+
 // buildTreeFromPaths builds a tree structure from flat paths
 func buildTreeFromPaths(entries []simulator.ArchiveEntry) *treeNode {
 	root := &treeNode{

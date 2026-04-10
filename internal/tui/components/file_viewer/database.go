@@ -43,6 +43,40 @@ func (fv *FileViewer) renderDatabase() string {
 	return s.String() + fv.renderDatabaseTables(dbInfo)
 }
 
+// countDatabaseLines mirrors the line-by-line bookkeeping in
+// renderDatabaseTables so getScrollInfo can report an accurate
+// total-lines count without re-rendering the whole output.
+//
+// Per table (read off the Render path):
+//   - 2 lines of spacing before every table except the first
+//   - 1 header line (table name + row count)
+//   - 1 line for the "Columns: ..." summary (when any columns)
+//   - 1 line for "Sample data:" header + 1 line per sample row
+//   - 2 lines for the schema preview (blank + schema line)
+func countDatabaseLines(info *simulator.DatabaseInfo) int {
+	if info == nil {
+		return 0
+	}
+	total := 0
+	for i, table := range info.Tables {
+		if i > 0 {
+			total += 2
+		}
+		total++ // table header
+		if len(table.Columns) > 0 {
+			total++ // columns line
+		}
+		if len(table.Sample) > 0 {
+			total++ // "Sample data:" label
+			total += len(table.Sample)
+		}
+		if table.Schema != "" {
+			total += 2 // blank + schema preview
+		}
+	}
+	return total
+}
+
 // renderDatabaseTables renders the database tables with scrolling support
 func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) string {
 	if len(dbInfo.Tables) == 0 {
