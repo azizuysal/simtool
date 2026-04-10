@@ -3,23 +3,23 @@ package simulator
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"regexp"
+	"strings"
 	"testing"
 )
 
 func TestFormatHexDump(t *testing.T) {
 	tests := []struct {
-		name     string
-		data     []byte
-		offset   int64
+		name      string
+		data      []byte
+		offset    int64
 		wantLines int
-		check    func(t *testing.T, lines []string)
+		check     func(t *testing.T, lines []string)
 	}{
 		{
-			name:   "simple hex dump",
-			data:   []byte("Hello, World!"),
-			offset: 0,
+			name:      "simple hex dump",
+			data:      []byte("Hello, World!"),
+			offset:    0,
 			wantLines: 1,
 			check: func(t *testing.T, lines []string) {
 				if len(lines) != 1 {
@@ -39,9 +39,9 @@ func TestFormatHexDump(t *testing.T) {
 			},
 		},
 		{
-			name:   "multiple lines",
-			data:   []byte("This is a longer string that spans multiple lines in hex dump"),
-			offset: 0,
+			name:      "multiple lines",
+			data:      []byte("This is a longer string that spans multiple lines in hex dump"),
+			offset:    0,
 			wantLines: 4,
 			check: func(t *testing.T, lines []string) {
 				if len(lines) != 4 {
@@ -55,9 +55,9 @@ func TestFormatHexDump(t *testing.T) {
 			},
 		},
 		{
-			name:   "with offset",
-			data:   []byte("Test data"),
-			offset: 0x100,
+			name:      "with offset",
+			data:      []byte("Test data"),
+			offset:    0x100,
 			wantLines: 1,
 			check: func(t *testing.T, lines []string) {
 				if len(lines) != 1 {
@@ -70,9 +70,9 @@ func TestFormatHexDump(t *testing.T) {
 			},
 		},
 		{
-			name:   "binary data with non-printable chars",
-			data:   []byte{0x00, 0x01, 0x02, 0x03, 0x41, 0x42, 0x43, 0xff},
-			offset: 0,
+			name:      "binary data with non-printable chars",
+			data:      []byte{0x00, 0x01, 0x02, 0x03, 0x41, 0x42, 0x43, 0xff},
+			offset:    0,
 			wantLines: 1,
 			check: func(t *testing.T, lines []string) {
 				if len(lines) != 1 {
@@ -93,9 +93,9 @@ func TestFormatHexDump(t *testing.T) {
 			wantLines: 0,
 		},
 		{
-			name:   "exact 16 bytes",
-			data:   []byte("1234567890123456"),
-			offset: 0,
+			name:      "exact 16 bytes",
+			data:      []byte("1234567890123456"),
+			offset:    0,
 			wantLines: 1,
 			check: func(t *testing.T, lines []string) {
 				if len(lines) != 1 {
@@ -108,7 +108,7 @@ func TestFormatHexDump(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			lines := FormatHexDump(tt.data, tt.offset)
-			
+
 			if len(lines) != tt.wantLines {
 				t.Errorf("FormatHexDump() returned %d lines, want %d", len(lines), tt.wantLines)
 				for i, line := range lines {
@@ -248,8 +248,8 @@ func TestIsTextContent(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "high threshold of non-text",
-			data:     func() []byte {
+			name: "high threshold of non-text",
+			data: func() []byte {
 				// Create data that's just under 30% non-text
 				data := make([]byte, 100)
 				for i := 0; i < 70; i++ {
@@ -317,7 +317,7 @@ func TestGetSyntaxHighlightedLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := GetSyntaxHighlightedLine(tt.line, tt.ext)
-			
+
 			// For empty lines, expect no change
 			if tt.line == "" {
 				if result != tt.expected {
@@ -325,7 +325,7 @@ func TestGetSyntaxHighlightedLine(t *testing.T) {
 				}
 				return
 			}
-			
+
 			// For non-empty lines with known extensions, expect ANSI escape codes
 			if tt.ext == ".go" || tt.ext == ".js" || tt.ext == ".py" || tt.ext == ".json" {
 				// Check that syntax highlighting was applied (contains ANSI escape codes)
@@ -369,7 +369,7 @@ func TestDetectFileTypeForArchives(t *testing.T) {
 			// Create a temporary file with the given name
 			tmpDir := t.TempDir()
 			tmpFile := filepath.Join(tmpDir, tt.filename)
-			
+
 			// Write appropriate content based on expected type
 			switch tt.expected {
 			case FileTypeArchive:
@@ -382,7 +382,7 @@ func TestDetectFileTypeForArchives(t *testing.T) {
 				// Text content
 				_ = os.WriteFile(tmpFile, []byte("test content"), 0644)
 			}
-			
+
 			result := DetectFileType(tmpFile)
 			if result != tt.expected {
 				t.Errorf("DetectFileType(%s) = %v, want %v", tt.filename, result, tt.expected)

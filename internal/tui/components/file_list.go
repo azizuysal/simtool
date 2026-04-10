@@ -43,20 +43,20 @@ func (fl *FileList) Update(files []simulator.FileInfo, cursor, viewport int, app
 func (fl *FileList) Render() string {
 	// Build header content
 	header := fl.buildHeader()
-	
+
 	// Calculate available space for file list
 	headerLines := strings.Count(header, "\n") + 4 // header + separator + padding
 	availableHeight := fl.Height - headerLines
-	
+
 	// Calculate how many complete items we can show (each item = 3 lines)
 	itemsPerScreen := availableHeight / 3
 	if itemsPerScreen < 1 {
 		itemsPerScreen = 1
 	}
-	
+
 	// Ensure we don't show partial items by adjusting availableHeight
 	availableHeight = itemsPerScreen * 3
-	
+
 	startIdx := fl.Viewport
 	endIdx := fl.Viewport + itemsPerScreen
 	if endIdx > len(fl.Files) {
@@ -65,7 +65,7 @@ func (fl *FileList) Render() string {
 
 	// Build content with header
 	content := fl.renderWithHeader(header, startIdx, endIdx, availableHeight)
-	
+
 	return content
 }
 
@@ -104,17 +104,17 @@ func (fl *FileList) GetFooter() string {
 		scrollInfo := ui.FormatScrollInfo(fl.Viewport, itemsPerScreen, len(fl.Files))
 		return footer + scrollInfo
 	}
-	
+
 	// Build footer from configured keys
 	var parts []string
-	
+
 	if up := fl.Keys.FormatKeyAction("up", "up"); up != "" {
 		parts = append(parts, up)
 	}
 	if down := fl.Keys.FormatKeyAction("down", "down"); down != "" {
 		parts = append(parts, down)
 	}
-	
+
 	if len(fl.Files) > 0 && fl.Cursor < len(fl.Files) {
 		if fl.Files[fl.Cursor].IsDirectory {
 			if right := fl.Keys.FormatKeyAction("right", "enter"); right != "" {
@@ -129,16 +129,16 @@ func (fl *FileList) GetFooter() string {
 			parts = append(parts, open)
 		}
 	}
-	
+
 	if left := fl.Keys.FormatKeyAction("left", "back"); left != "" {
 		parts = append(parts, left)
 	}
 	if quit := fl.Keys.FormatKeyAction("quit", "quit"); quit != "" {
 		parts = append(parts, quit)
 	}
-	
+
 	footer := strings.Join(parts, " • ")
-	
+
 	// Add scroll info
 	// Calculate actual header lines for this specific render
 	header := fl.buildHeader()
@@ -163,7 +163,7 @@ func (fl *FileList) buildHeader() string {
 	// App info
 	s.WriteString(ui.NameStyle().Render(fl.App.Name))
 	s.WriteString("\n")
-	
+
 	appDetails := fmt.Sprintf("%s • v%s • %s", fl.App.BundleID, fl.App.Version, simulator.FormatSize(fl.App.Size))
 	if fl.App.Version == "" {
 		appDetails = fmt.Sprintf("%s • %s", fl.App.BundleID, simulator.FormatSize(fl.App.Size))
@@ -179,7 +179,6 @@ func (fl *FileList) buildHeader() string {
 
 	return s.String()
 }
-
 
 // renderWithHeader renders the file list with header
 func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availableHeight int) string {

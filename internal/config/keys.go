@@ -11,7 +11,7 @@ type KeysConfig struct {
 	Right []string `toml:"right"`
 	Home  []string `toml:"home"`
 	End   []string `toml:"end"`
-	
+
 	// Actions
 	Quit   []string `toml:"quit"`
 	Boot   []string `toml:"boot"`   // Boot simulator
@@ -20,7 +20,7 @@ type KeysConfig struct {
 	Search []string `toml:"search"` // Start search
 	Escape []string `toml:"escape"` // Exit search/cancel
 	Enter  []string `toml:"enter"`  // Select/confirm
-	
+
 	// Search mode
 	Backspace []string `toml:"backspace"` // Delete character in search
 }
@@ -35,7 +35,7 @@ func DefaultKeys() KeysConfig {
 		Right: []string{"right", "l"},
 		Home:  []string{"home"},
 		End:   []string{"end"},
-		
+
 		// Actions
 		Quit:   []string{"q", "ctrl+c"},
 		Boot:   []string{" "}, // space
@@ -44,7 +44,7 @@ func DefaultKeys() KeysConfig {
 		Search: []string{"/"},
 		Escape: []string{"esc"},
 		Enter:  []string{"enter"},
-		
+
 		// Search mode
 		Backspace: []string{"backspace"},
 	}
@@ -61,7 +61,7 @@ func NewKeyMap(keys KeysConfig) *KeyMap {
 	km := &KeyMap{
 		bindings: make(map[string]string),
 	}
-	
+
 	// Build the reverse mapping
 	km.addBindings("up", keys.Up)
 	km.addBindings("down", keys.Down)
@@ -77,7 +77,7 @@ func NewKeyMap(keys KeysConfig) *KeyMap {
 	km.addBindings("escape", keys.Escape)
 	km.addBindings("enter", keys.Enter)
 	km.addBindings("backspace", keys.Backspace)
-	
+
 	return km
 }
 
@@ -106,7 +106,7 @@ func FormatKeys(keys []string) string {
 	if len(keys) == 0 {
 		return ""
 	}
-	
+
 	formatted := make([]string, 0, len(keys))
 	for _, key := range keys {
 		// Convert common keys to symbols for better display
@@ -137,7 +137,7 @@ func FormatKeys(keys []string) string {
 			formatted = append(formatted, key)
 		}
 	}
-	
+
 	// Join with slash
 	return strings.Join(formatted, "/")
 }
@@ -146,7 +146,7 @@ func FormatKeys(keys []string) string {
 // e.g. "up", "up" -> "↑/k: up"
 func (kc *KeysConfig) FormatKeyAction(action string, label string) string {
 	var keys []string
-	
+
 	switch action {
 	case "up":
 		keys = kc.Up
@@ -177,10 +177,10 @@ func (kc *KeysConfig) FormatKeyAction(action string, label string) string {
 	case "backspace":
 		keys = kc.Backspace
 	}
-	
+
 	if len(keys) == 0 {
 		return ""
 	}
-	
+
 	return FormatKeys(keys) + ": " + label
 }

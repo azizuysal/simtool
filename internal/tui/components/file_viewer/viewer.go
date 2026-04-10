@@ -12,14 +12,14 @@ import (
 
 // FileViewer renders file content based on file type
 type FileViewer struct {
-	Width          int
-	Height         int
-	File           *simulator.FileInfo
-	Content        *simulator.FileContent
+	Width           int
+	Height          int
+	File            *simulator.FileInfo
+	Content         *simulator.FileContent
 	ContentViewport int
 	ContentOffset   int
-	SVGWarning     string
-	Keys           *config.KeysConfig
+	SVGWarning      string
+	Keys            *config.KeysConfig
 }
 
 // NewFileViewer creates a new file viewer
@@ -89,10 +89,10 @@ func (fv *FileViewer) GetFooter() string {
 
 		return footer
 	}
-	
+
 	// Build footer from configured keys
 	var parts []string
-	
+
 	if up := fv.Keys.FormatKeyAction("up", "scroll up"); up != "" {
 		parts = append(parts, up)
 	}
@@ -105,7 +105,7 @@ func (fv *FileViewer) GetFooter() string {
 	if quit := fv.Keys.FormatKeyAction("quit", "quit"); quit != "" {
 		parts = append(parts, quit)
 	}
-	
+
 	footer := ""
 	if len(parts) > 0 {
 		footer = strings.Join(parts, " • ")
@@ -165,12 +165,12 @@ func (fv *FileViewer) getScrollInfo() string {
 		if fv.Content.BinaryData != nil && fv.Content.TotalSize > 0 {
 			hasContent = true
 			totalLines = int((fv.Content.TotalSize + 15) / 16)
-			
+
 			chunkStartLine := int(fv.Content.BinaryOffset / 16)
 			visibleLines := contentHeight - 4
 			startLine = chunkStartLine + fv.ContentViewport + 1
 			endLine = startLine + visibleLines - 1
-			
+
 			hexLines := simulator.FormatHexDump(fv.Content.BinaryData, fv.Content.BinaryOffset)
 			maxEndLine := chunkStartLine + len(hexLines)
 			if endLine > maxEndLine {

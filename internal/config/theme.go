@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	
+
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/charmbracelet/lipgloss"
@@ -15,20 +15,20 @@ type ThemeColors struct {
 	// Base colors
 	Background string
 	Foreground string
-	
+
 	// UI element colors
-	Selection      string // For selected items
-	SelectionText  string // Text on selected items
-	Border         string // For borders
-	HeaderBg       string // Header background
-	HeaderFg       string // Header foreground
-	
-	// Status colors  
-	Success  string // Success/running status
-	Error    string // Error messages
-	Warning  string // Warnings
-	Info     string // Info messages
-	
+	Selection     string // For selected items
+	SelectionText string // Text on selected items
+	Border        string // For borders
+	HeaderBg      string // Header background
+	HeaderFg      string // Header foreground
+
+	// Status colors
+	Success string // Success/running status
+	Error   string // Error messages
+	Warning string // Warnings
+	Info    string // Info messages
+
 	// Content colors
 	Primary   string // Primary content (names)
 	Secondary string // Secondary content (details)
@@ -42,10 +42,10 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 	if theme == nil || theme == styles.Fallback {
 		return nil, fmt.Errorf("theme %q not found", themeName)
 	}
-	
+
 	tc := &ThemeColors{}
 	isDark := !isLightTheme(theme)
-	
+
 	// For any missing colors, we'll use a fallback theme
 	var fallbackTheme *chroma.Style
 	if isDark {
@@ -53,7 +53,7 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 	} else {
 		fallbackTheme = styles.Get("github")
 	}
-	
+
 	// Extract base colors
 	bg := theme.Get(chroma.Background)
 	if bg.Background.IsSet() {
@@ -65,7 +65,7 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 			tc.Background = colorToHex(fbg.Background)
 		}
 	}
-	
+
 	// Extract foreground
 	text := theme.Get(chroma.Text)
 	if text.Colour.IsSet() {
@@ -102,7 +102,7 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 			}
 		}
 	}
-	
+
 	// Selection colors - use keyword color as base
 	keyword := theme.Get(chroma.Keyword)
 	if keyword.Colour.IsSet() {
@@ -118,15 +118,15 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 		}
 		tc.SelectionText = tc.Background
 	}
-	
+
 	// Border color - temporarily use a placeholder
 	// Will be set after secondary color is calculated
 	tc.Border = ""
-	
+
 	// Header colors - use selection colors
 	tc.HeaderBg = tc.Selection
 	tc.HeaderFg = tc.SelectionText
-	
+
 	// Success - use string color (usually green)
 	str := theme.Get(chroma.String)
 	if str.Colour.IsSet() {
@@ -139,7 +139,7 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 			tc.Success = tc.Foreground
 		}
 	}
-	
+
 	// Error - Always use a distinct red color for errors
 	// This ensures errors are always visible regardless of theme
 	if isDark {
@@ -147,7 +147,7 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 	} else {
 		tc.Error = "#dc3545" // Bootstrap danger red for light themes
 	}
-	
+
 	// Warning - use name.constant or number color (often orange/yellow)
 	constant := theme.Get(chroma.NameConstant)
 	if constant.Colour.IsSet() {
@@ -171,7 +171,7 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 			}
 		}
 	}
-	
+
 	// Info - use name.function color (often blue/cyan)
 	fn := theme.Get(chroma.NameFunction)
 	if fn.Colour.IsSet() {
@@ -184,10 +184,10 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 			tc.Info = tc.Foreground
 		}
 	}
-	
+
 	// Primary content - use foreground but ensure contrast
 	tc.Primary = tc.Foreground
-	
+
 	// Secondary content - use comment color but ensure readability
 	comment := theme.Get(chroma.Comment)
 	if comment.Colour.IsSet() {
@@ -214,7 +214,7 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 			tc.Muted = tc.Secondary
 		}
 	}
-	
+
 	// Accent - use name.class or name.namespace (often bright colors)
 	class := theme.Get(chroma.NameClass)
 	if class.Colour.IsSet() {
@@ -232,10 +232,10 @@ func ExtractThemeColors(themeName string) (*ThemeColors, error) {
 			tc.Accent = tc.Info
 		}
 	}
-	
+
 	// Set border color to secondary (which is already contrast-adjusted)
 	tc.Border = tc.Secondary
-	
+
 	return tc, nil
 }
 
@@ -244,9 +244,9 @@ func colorToHex(c chroma.Colour) string {
 	if !c.IsSet() {
 		return ""
 	}
-	return fmt.Sprintf("#%02x%02x%02x", 
-		uint8(c.Red()), 
-		uint8(c.Green()), 
+	return fmt.Sprintf("#%02x%02x%02x",
+		uint8(c.Red()),
+		uint8(c.Green()),
 		uint8(c.Blue()))
 }
 
@@ -256,18 +256,18 @@ func isLightTheme(theme *chroma.Style) bool {
 	if bg.Background.IsSet() {
 		return bg.Background.Brightness() > 0.5
 	}
-	
+
 	// Check theme name as fallback
 	name := getThemeName(theme)
-	lightThemes := []string{"github", "solarized-light", "tango", "monokailight", 
+	lightThemes := []string{"github", "solarized-light", "tango", "monokailight",
 		"paraiso-light", "pygments", "gruvbox-light", "vs", "visual-studio"}
-	
+
 	for _, light := range lightThemes {
 		if strings.Contains(strings.ToLower(name), light) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -292,12 +292,12 @@ func DetectTerminalDarkMode() bool {
 			return true
 		}
 	}
-	
+
 	// Check if we already detected the mode before TUI started
 	if detected := GetDetectedMode(); detected != "" {
 		return detected == "dark"
 	}
-	
+
 	// Check COLORFGBG if available
 	colorScheme := os.Getenv("COLORFGBG")
 	if colorScheme != "" {
@@ -313,7 +313,7 @@ func DetectTerminalDarkMode() bool {
 			}
 		}
 	}
-	
+
 	// Try OS-specific detection
 	result := QueryTerminalBackground()
 	switch result {
@@ -322,7 +322,7 @@ func DetectTerminalDarkMode() bool {
 	case "dark":
 		return true
 	}
-	
+
 	// Default to dark mode if detection fails
 	return true
 }
@@ -339,7 +339,7 @@ func DetectTerminalDarkModeLive() bool {
 			return true
 		}
 	}
-	
+
 	// Skip cached result and do live detection
 	// Use the live version that works in TUI
 	result := QueryTerminalBackgroundLive()
@@ -349,7 +349,7 @@ func DetectTerminalDarkModeLive() bool {
 	case "dark":
 		return true
 	}
-	
+
 	// Default to dark mode if detection fails
 	return true
 }

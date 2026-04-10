@@ -69,4 +69,3 @@ func TestIsColorDark(t *testing.T) {
 		})
 	}
 }
-

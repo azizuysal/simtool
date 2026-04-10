@@ -13,15 +13,15 @@ import (
 
 // App represents an installed application
 type App struct {
-	Name           string
-	BundleID       string
-	Version        string
-	Size           int64
-	Path           string
-	Container      string
-	SimulatorName  string    // Name of the parent simulator
-	SimulatorUDID  string    // UDID of the parent simulator
-	ModTime        time.Time // Last modified time of the app
+	Name          string
+	BundleID      string
+	Version       string
+	Size          int64
+	Path          string
+	Container     string
+	SimulatorName string    // Name of the parent simulator
+	SimulatorUDID string    // UDID of the parent simulator
+	ModTime       time.Time // Last modified time of the app
 }
 
 // GetAppsForSimulator returns all apps installed on a simulator
@@ -43,13 +43,13 @@ func getAppsFromListApps(udid string) ([]App, error) {
 	// Parse the plist-style output
 	apps := make([]App, 0)
 	lines := strings.Split(string(output), "\n")
-	
+
 	var currentApp App
 	inApp := false
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// Start of a new app entry
 		if strings.HasPrefix(line, `"`) && strings.Contains(line, " = ") && strings.HasSuffix(line, "{") {
 			// Extract bundle ID from lines like: "com.example.app" =     {
@@ -92,12 +92,12 @@ func getAppsFromListApps(udid string) ([]App, error) {
 			}
 		}
 	}
-	
+
 	// Sort apps by name
 	sort.Slice(apps, func(i, j int) bool {
 		return apps[i].Name < apps[j].Name
 	})
-	
+
 	return apps, nil
 }
 
@@ -105,7 +105,7 @@ func getAppsFromListApps(udid string) ([]App, error) {
 func getAppsFromDataDir(udid string) ([]App, error) {
 	homeDir := os.Getenv("HOME")
 	appPath := fmt.Sprintf("%s/Library/Developer/CoreSimulator/Devices/%s/data/Containers/Bundle/Application", homeDir, udid)
-	
+
 	entries, err := os.ReadDir(appPath)
 	if err != nil {
 		// Directory might not exist if no apps installed
@@ -114,7 +114,7 @@ func getAppsFromDataDir(udid string) ([]App, error) {
 		}
 		return nil, fmt.Errorf("failed to read app directory: %w", err)
 	}
-	
+
 	apps := make([]App, 0)
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -124,13 +124,13 @@ func getAppsFromDataDir(udid string) ([]App, error) {
 			if err != nil {
 				continue
 			}
-			
+
 			for _, appEntry := range appEntries {
 				if strings.HasSuffix(appEntry.Name(), ".app") {
 					app := App{
 						Path: filepath.Join(appDir, appEntry.Name()),
 					}
-					
+
 					// Try to read app info from Info.plist
 					if info := readAppInfo(app.Path); info != nil {
 						app.Name = info.DisplayName
@@ -143,14 +143,14 @@ func getAppsFromDataDir(udid string) ([]App, error) {
 						app.Name = strings.TrimSuffix(appEntry.Name(), ".app")
 						app.BundleID = "Unknown"
 					}
-					
+
 					app.Size = calculateDirSize(app.Path)
-					
+
 					// Get modification time
 					if info, err := os.Stat(app.Path); err == nil {
 						app.ModTime = info.ModTime()
 					}
-					
+
 					// For non-running simulators, we need to find the data container
 					// It's in a different location based on the bundle ID
 					dataPath := fmt.Sprintf("%s/Library/Developer/CoreSimulator/Devices/%s/data/Containers/Data/Application", homeDir, udid)
@@ -158,19 +158,19 @@ func getAppsFromDataDir(udid string) ([]App, error) {
 						// Try to find the data container for this app
 						app.Container = findDataContainer(dataPath, app.BundleID)
 					}
-					
+
 					apps = append(apps, app)
 					break
 				}
 			}
 		}
 	}
-	
+
 	// Sort apps by name
 	sort.Slice(apps, func(i, j int) bool {
 		return apps[i].Name < apps[j].Name
 	})
-	
+
 	return apps, nil
 }
 
@@ -189,27 +189,27 @@ func readAppInfo(appPath string) *AppInfo {
 	if err != nil {
 		return nil
 	}
-	
+
 	var plist map[string]interface{}
 	if err := json.Unmarshal(output, &plist); err != nil {
 		return nil
 	}
-	
+
 	info := &AppInfo{}
 	if v, ok := plist["CFBundleDisplayName"].(string); ok {
 		info.DisplayName = v
 	} else if v, ok := plist["CFBundleName"].(string); ok {
 		info.DisplayName = v
 	}
-	
+
 	if v, ok := plist["CFBundleIdentifier"].(string); ok {
 		info.BundleID = v
 	}
-	
+
 	if v, ok := plist["CFBundleShortVersionString"].(string); ok {
 		info.Version = v
 	}
-	
+
 	return info
 }
 
@@ -234,32 +234,32 @@ func findDataContainer(dataPath string, bundleID string) string {
 	if err != nil {
 		return ""
 	}
-	
+
 	for _, entry := range entries {
 		if entry.IsDir() {
 			containerPath := filepath.Join(dataPath, entry.Name())
 			// Check if .com.apple.mobile_container_manager.metadata.plist exists
 			metadataPath := filepath.Join(containerPath, ".com.apple.mobile_container_manager.metadata.plist")
-			
+
 			// Try to read the metadata to verify this is the right container
 			cmd := exec.Command("plutil", "-convert", "json", "-o", "-", metadataPath)
 			output, err := cmd.Output()
 			if err != nil {
 				continue
 			}
-			
+
 			var metadata map[string]interface{}
 			if err := json.Unmarshal(output, &metadata); err != nil {
 				continue
 			}
-			
+
 			// Check if this container belongs to our app
 			if identifier, ok := metadata["MCMMetadataIdentifier"].(string); ok && identifier == bundleID {
 				return containerPath
 			}
 		}
 	}
-	
+
 	return ""
 }
 
@@ -282,10 +282,10 @@ func FormatModTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
-	
+
 	now := time.Now()
 	diff := now.Sub(t)
-	
+
 	switch {
 	case diff < time.Minute:
 		return "just now"

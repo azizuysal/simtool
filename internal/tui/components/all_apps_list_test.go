@@ -61,10 +61,10 @@ func TestAllAppsListView(t *testing.T) {
 			},
 		},
 		{
-			name:     "loading state",
-			loading:  true,
-			width:    80,
-			height:   24,
+			name:    "loading state",
+			loading: true,
+			width:   80,
+			height:  24,
 			expectInView: []string{
 				"Loading all apps...",
 			},
@@ -73,19 +73,19 @@ func TestAllAppsListView(t *testing.T) {
 			},
 		},
 		{
-			name:    "error state",
-			err:     simulator.ErrSimulatorNotFound,
-			width:   80,
-			height:  24,
+			name:   "error state",
+			err:    simulator.ErrSimulatorNotFound,
+			width:  80,
+			height: 24,
 			expectInView: []string{
 				"Error loading apps:",
 			},
 		},
 		{
-			name:     "empty apps list",
-			allApps:  []simulator.App{},
-			width:    80,
-			height:   24,
+			name:    "empty apps list",
+			allApps: []simulator.App{},
+			width:   80,
+			height:  24,
 			expectInView: []string{
 				"No apps installed on any simulator",
 			},
@@ -273,19 +273,19 @@ func TestBuildAllAppsFooter(t *testing.T) {
 	keys := config.DefaultKeys()
 
 	tests := []struct {
-		name             string
-		searchMode       bool
-		appCount         int
-		viewport         int
-		itemsPerScreen   int
-		expectContains   []string
+		name              string
+		searchMode        bool
+		appCount          int
+		viewport          int
+		itemsPerScreen    int
+		expectContains    []string
 		notExpectContains []string
 	}{
 		{
-			name:       "normal mode",
-			searchMode: false,
-			appCount:   10,
-			viewport:   0,
+			name:           "normal mode",
+			searchMode:     false,
+			appCount:       10,
+			viewport:       0,
 			itemsPerScreen: 5,
 			expectContains: []string{
 				"up",
@@ -301,10 +301,10 @@ func TestBuildAllAppsFooter(t *testing.T) {
 			},
 		},
 		{
-			name:       "search mode",
-			searchMode: true,
-			appCount:   10,
-			viewport:   0,
+			name:           "search mode",
+			searchMode:     true,
+			appCount:       10,
+			viewport:       0,
 			itemsPerScreen: 5,
 			expectContains: []string{
 				"Type to search",

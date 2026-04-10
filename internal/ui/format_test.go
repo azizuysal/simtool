@@ -37,7 +37,7 @@ func TestFormatHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := FormatHeader(tt.text, tt.width)
-			
+
 			// Check that the header is centered
 			lines := strings.Split(result, "\n")
 			if len(lines) > 1 && tt.text != "" {
@@ -47,7 +47,7 @@ func TestFormatHeader(t *testing.T) {
 					t.Errorf("Header should contain text '%s'", tt.text)
 				}
 			}
-			
+
 			// Check for expected content
 			for _, expected := range tt.contains {
 				if !strings.Contains(result, expected) {
@@ -92,11 +92,11 @@ func TestFormatFooter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := FormatFooter(tt.text, tt.contentWidth, tt.screenWidth)
-			
+
 			if !strings.Contains(result, tt.text) {
 				t.Errorf("Footer should contain text '%s'", tt.text)
 			}
-			
+
 			// Check centering
 			if tt.checkCenter && tt.screenWidth > lipgloss.Width(tt.text) {
 				if !strings.HasPrefix(result, " ") && tt.screenWidth > len(tt.text)+10 {
@@ -201,7 +201,7 @@ func TestPadLine(t *testing.T) {
 			if len(result) != tt.expected {
 				t.Errorf("PadLine() length = %d, want %d", len(result), tt.expected)
 			}
-			
+
 			// Check that padding is spaces
 			if len(tt.line) < tt.width {
 				expectedPadding := tt.width - len(tt.line)

@@ -41,7 +41,7 @@ func TestCalculateItemsPerScreen(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := CalculateItemsPerScreen(tt.terminalHeight)
 			if result != tt.expected {
-				t.Errorf("CalculateItemsPerScreen(%d) = %d, want %d", 
+				t.Errorf("CalculateItemsPerScreen(%d) = %d, want %d",
 					tt.terminalHeight, result, tt.expected)
 			}
 		})
@@ -50,60 +50,60 @@ func TestCalculateItemsPerScreen(t *testing.T) {
 
 func TestCalculateSimulatorViewport(t *testing.T) {
 	tests := []struct {
-		name              string
-		currentViewport   int
-		currentCursor     int
-		totalItems        int
-		terminalHeight    int
-		expectedViewport  int
+		name             string
+		currentViewport  int
+		currentCursor    int
+		totalItems       int
+		terminalHeight   int
+		expectedViewport int
 	}{
 		{
-			name:              "cursor in view - no scroll",
-			currentViewport:   0,
-			currentCursor:     2,
-			totalItems:        20,
-			terminalHeight:    30,
-			expectedViewport:  0,
+			name:             "cursor in view - no scroll",
+			currentViewport:  0,
+			currentCursor:    2,
+			totalItems:       20,
+			terminalHeight:   30,
+			expectedViewport: 0,
 		},
 		{
-			name:              "cursor below view - scroll down",
-			currentViewport:   0,
-			currentCursor:     8,
-			totalItems:        20,
-			terminalHeight:    30,
-			expectedViewport:  2, // Cursor at 8, items per screen 7, so viewport should be 2 (8 - 7 + 1)
+			name:             "cursor below view - scroll down",
+			currentViewport:  0,
+			currentCursor:    8,
+			totalItems:       20,
+			terminalHeight:   30,
+			expectedViewport: 2, // Cursor at 8, items per screen 7, so viewport should be 2 (8 - 7 + 1)
 		},
 		{
-			name:              "cursor above view - scroll up",
-			currentViewport:   5,
-			currentCursor:     3,
-			totalItems:        20,
-			terminalHeight:    30,
-			expectedViewport:  3,
+			name:             "cursor above view - scroll up",
+			currentViewport:  5,
+			currentCursor:    3,
+			totalItems:       20,
+			terminalHeight:   30,
+			expectedViewport: 3,
 		},
 		{
-			name:              "at bottom of list",
-			currentViewport:   10,
-			currentCursor:     19,
-			totalItems:        20,
-			terminalHeight:    30,
-			expectedViewport:  13, // 20 - 7 = 13
+			name:             "at bottom of list",
+			currentViewport:  10,
+			currentCursor:    19,
+			totalItems:       20,
+			terminalHeight:   30,
+			expectedViewport: 13, // 20 - 7 = 13
 		},
 		{
-			name:              "single item list",
-			currentViewport:   0,
-			currentCursor:     0,
-			totalItems:        1,
-			terminalHeight:    30,
-			expectedViewport:  0,
+			name:             "single item list",
+			currentViewport:  0,
+			currentCursor:    0,
+			totalItems:       1,
+			terminalHeight:   30,
+			expectedViewport: 0,
 		},
 		{
-			name:              "viewport exceeds max",
-			currentViewport:   15,
-			currentCursor:     19,
-			totalItems:        20,
-			terminalHeight:    30,
-			expectedViewport:  13, // Should clamp to max viewport
+			name:             "viewport exceeds max",
+			currentViewport:  15,
+			currentCursor:    19,
+			totalItems:       20,
+			terminalHeight:   30,
+			expectedViewport: 13, // Should clamp to max viewport
 		},
 	}
 
@@ -116,7 +116,7 @@ func TestCalculateSimulatorViewport(t *testing.T) {
 				tt.terminalHeight,
 			)
 			if result != tt.expectedViewport {
-				t.Errorf("CalculateSimulatorViewport() = %d, want %d", 
+				t.Errorf("CalculateSimulatorViewport() = %d, want %d",
 					result, tt.expectedViewport)
 			}
 		})
@@ -125,54 +125,54 @@ func TestCalculateSimulatorViewport(t *testing.T) {
 
 func TestCalculateFileListViewport(t *testing.T) {
 	tests := []struct {
-		name              string
-		currentViewport   int
-		currentCursor     int
-		totalItems        int
-		terminalHeight    int
-		hasHeader         bool
-		hasBreadcrumbs    bool
-		expectedViewport  int
+		name             string
+		currentViewport  int
+		currentCursor    int
+		totalItems       int
+		terminalHeight   int
+		hasHeader        bool
+		hasBreadcrumbs   bool
+		expectedViewport int
 	}{
 		{
-			name:              "with header and breadcrumbs",
-			currentViewport:   0,
-			currentCursor:     5,
-			totalItems:        20,
-			terminalHeight:    30,
-			hasHeader:         true,
-			hasBreadcrumbs:    true,
-			expectedViewport:  1, // Fewer items visible due to header space
+			name:             "with header and breadcrumbs",
+			currentViewport:  0,
+			currentCursor:    5,
+			totalItems:       20,
+			terminalHeight:   30,
+			hasHeader:        true,
+			hasBreadcrumbs:   true,
+			expectedViewport: 1, // Fewer items visible due to header space
 		},
 		{
-			name:              "with header only",
-			currentViewport:   0,
-			currentCursor:     5,
-			totalItems:        20,
-			terminalHeight:    30,
-			hasHeader:         true,
-			hasBreadcrumbs:    false,
-			expectedViewport:  0, // More space available
+			name:             "with header only",
+			currentViewport:  0,
+			currentCursor:    5,
+			totalItems:       20,
+			terminalHeight:   30,
+			hasHeader:        true,
+			hasBreadcrumbs:   false,
+			expectedViewport: 0, // More space available
 		},
 		{
-			name:              "small terminal with header",
-			currentViewport:   0,
-			currentCursor:     2,
-			totalItems:        10,
-			terminalHeight:    20,
-			hasHeader:         true,
-			hasBreadcrumbs:    true,
-			expectedViewport:  1,
+			name:             "small terminal with header",
+			currentViewport:  0,
+			currentCursor:    2,
+			totalItems:       10,
+			terminalHeight:   20,
+			hasHeader:        true,
+			hasBreadcrumbs:   true,
+			expectedViewport: 1,
 		},
 		{
-			name:              "cursor at bottom",
-			currentViewport:   5,
-			currentCursor:     19,
-			totalItems:        20,
-			terminalHeight:    30,
-			hasHeader:         true,
-			hasBreadcrumbs:    false,
-			expectedViewport:  15, // Adjusted for available items
+			name:             "cursor at bottom",
+			currentViewport:  5,
+			currentCursor:    19,
+			totalItems:       20,
+			terminalHeight:   30,
+			hasHeader:        true,
+			hasBreadcrumbs:   false,
+			expectedViewport: 15, // Adjusted for available items
 		},
 	}
 
@@ -183,7 +183,7 @@ func TestCalculateFileListViewport(t *testing.T) {
 			if tt.hasBreadcrumbs {
 				headerLines += 2
 			}
-			
+
 			result := CalculateFileListViewport(
 				tt.currentViewport,
 				tt.currentCursor,
@@ -191,28 +191,28 @@ func TestCalculateFileListViewport(t *testing.T) {
 				tt.terminalHeight,
 				headerLines,
 			)
-			
+
 			// Verify result is within valid range
 			availableHeight := tt.terminalHeight - 8 - headerLines
 			actualFileItems := availableHeight / 3
 			if actualFileItems < 1 {
 				actualFileItems = 1
 			}
-			
+
 			maxViewport := tt.totalItems - actualFileItems
 			if maxViewport < 0 {
 				maxViewport = 0
 			}
-			
+
 			if result > maxViewport {
-				t.Errorf("CalculateFileListViewport() = %d exceeds max viewport %d", 
+				t.Errorf("CalculateFileListViewport() = %d exceeds max viewport %d",
 					result, maxViewport)
 			}
-			
+
 			// Verify cursor is visible
-			if tt.currentCursor < result || tt.currentCursor >= result + actualFileItems {
-				t.Errorf("Cursor %d not visible in viewport %d-%d", 
-					tt.currentCursor, result, result + actualFileItems - 1)
+			if tt.currentCursor < result || tt.currentCursor >= result+actualFileItems {
+				t.Errorf("Cursor %d not visible in viewport %d-%d",
+					tt.currentCursor, result, result+actualFileItems-1)
 			}
 		})
 	}

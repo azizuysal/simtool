@@ -11,7 +11,7 @@ import (
 func TestView(t *testing.T) {
 	// Create a default config for all tests
 	defaultConfig := config.Default()
-	
+
 	tests := []struct {
 		name      string
 		model     Model
@@ -21,7 +21,7 @@ func TestView(t *testing.T) {
 		{
 			name: "error state",
 			model: Model{
-				err: simulator.ErrSimulatorNotFound,
+				err:    simulator.ErrSimulatorNotFound,
 				config: defaultConfig,
 			},
 			wantError: true,

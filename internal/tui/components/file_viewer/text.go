@@ -21,7 +21,7 @@ func (fv *FileViewer) renderText() string {
 	} else if strings.HasSuffix(strings.ToLower(fv.File.Path), ".plist") {
 		fileType = "Property list (XML)"
 	}
-	
+
 	info := fmt.Sprintf("%s • %d lines • %s",
 		fileType,
 		fv.Content.TotalLines,
@@ -35,7 +35,7 @@ func (fv *FileViewer) renderText() string {
 	// Don't subtract border height as we're already in content dimensions
 	headerLines := 4 // Info + separator + padding
 	visibleLines := fv.Height - headerLines
-	
+
 	startLine := fv.ContentViewport
 	endLine := startLine + visibleLines
 	if endLine > len(fv.Content.Lines) {
@@ -51,7 +51,7 @@ func (fv *FileViewer) renderText() string {
 		if lineCount > 0 {
 			s.WriteString("\n")
 		}
-		
+
 		// Line number
 		lineNum := fv.ContentOffset + i + 1
 		lineNumStr := fmt.Sprintf("%*d", maxLineNumWidth, lineNum)
@@ -63,7 +63,7 @@ func (fv *FileViewer) renderText() string {
 		if len(line) > maxLineWidth {
 			line = line[:maxLineWidth-3] + "..."
 		}
-		
+
 		// Use detected language if available
 		highlightedLine := ""
 		if fv.Content.DetectedLang != "" {

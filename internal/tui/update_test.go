@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 	"time"
-	
-	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/azizuysal/simtool/internal/simulator"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func TestUpdateThemeChange(t *testing.T) {
@@ -81,7 +81,7 @@ func TestUpdateWindowSizeMsg(t *testing.T) {
 		Width:  100,
 		Height: 40,
 	}
-	
+
 	updated, cmd := model.Update(msg)
 	updatedModel := updated.(Model)
 

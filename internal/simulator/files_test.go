@@ -11,29 +11,29 @@ import (
 func TestGetFilesForContainer(t *testing.T) {
 	// Create a temporary directory structure
 	tmpDir := t.TempDir()
-	
+
 	// Create some test files and directories
 	testDir := filepath.Join(tmpDir, "TestDir")
 	if err := os.Mkdir(testDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	testFile1 := filepath.Join(tmpDir, "file1.txt")
 	if err := os.WriteFile(testFile1, []byte("test content"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	testFile2 := filepath.Join(tmpDir, "file2.json")
 	if err := os.WriteFile(testFile2, []byte("{}"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Create a file in subdirectory
 	testFile3 := filepath.Join(testDir, "file3.txt")
 	if err := os.WriteFile(testFile3, []byte("nested file"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	tests := []struct {
 		name          string
 		containerPath string
@@ -48,12 +48,12 @@ func TestGetFilesForContainer(t *testing.T) {
 				if len(files) != 3 { // TestDir, file1.txt, file2.json
 					t.Errorf("Expected 3 files, got %d", len(files))
 				}
-				
+
 				// Check that directories come first
 				if !files[0].IsDirectory {
 					t.Error("Expected first item to be a directory")
 				}
-				
+
 				// Check file names
 				foundDir := false
 				foundFile1 := false
@@ -77,7 +77,7 @@ func TestGetFilesForContainer(t *testing.T) {
 						foundFile2 = true
 					}
 				}
-				
+
 				if !foundDir || !foundFile1 || !foundFile2 {
 					t.Error("Not all expected files found")
 				}
@@ -109,16 +109,16 @@ func TestGetFilesForContainer(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			files, err := GetFilesForContainer(tt.containerPath)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetFilesForContainer() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			if tt.checkResults != nil && !tt.wantErr {
 				tt.checkResults(t, files)
 			}
@@ -129,24 +129,24 @@ func TestGetFilesForContainer(t *testing.T) {
 func TestCalculateDirSize(t *testing.T) {
 	// Create a temporary directory with known file sizes
 	tmpDir := t.TempDir()
-	
+
 	// Create files with specific sizes
 	file1 := filepath.Join(tmpDir, "file1.txt")
 	_ = os.WriteFile(file1, make([]byte, 1024), 0644) // 1KB
-	
+
 	subDir := filepath.Join(tmpDir, "subdir")
 	_ = os.Mkdir(subDir, 0755)
-	
+
 	file2 := filepath.Join(subDir, "file2.txt")
 	_ = os.WriteFile(file2, make([]byte, 2048), 0644) // 2KB
-	
+
 	size := calculateDirSize(tmpDir)
 	expectedSize := int64(3072) // 1KB + 2KB
-	
+
 	if size != expectedSize {
 		t.Errorf("calculateDirSize() = %d, want %d", size, expectedSize)
 	}
-	
+
 	// Test non-existent directory
 	size = calculateDirSize("/non/existent/path")
 	if size != 0 {
@@ -193,7 +193,7 @@ func TestFormatFileDateEdgeCases(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := FormatFileDate(tt.time)

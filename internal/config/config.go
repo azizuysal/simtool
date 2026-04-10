@@ -20,7 +20,7 @@ type Config struct {
 type ThemeConfig struct {
 	// Force dark or light mode ("dark", "light", or "auto")
 	Mode string `toml:"mode"`
-	
+
 	// Themes for each mode
 	DarkTheme  string `toml:"dark_theme"`  // Theme to use in dark mode
 	LightTheme string `toml:"light_theme"` // Theme to use in light mode
@@ -50,28 +50,28 @@ func Default() *Config {
 // Load loads configuration from the standard config path
 func Load() (*Config, error) {
 	cfg := Default()
-	
+
 	// Get config path
 	configPath, err := getConfigPath()
 	if err != nil {
 		return cfg, fmt.Errorf("getting config path: %w", err)
 	}
-	
+
 	// Check if config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// No user config, return defaults
 		return cfg, nil
 	}
-	
+
 	// Load user config
 	userCfg := &Config{}
 	if _, err := toml.DecodeFile(configPath, userCfg); err != nil {
 		return cfg, fmt.Errorf("decoding config file: %w", err)
 	}
-	
+
 	// Merge user config with defaults
 	cfg.merge(userCfg)
-	
+
 	return cfg, nil
 }
 
@@ -81,20 +81,20 @@ func SaveExample() error {
 	if err != nil {
 		return fmt.Errorf("getting config dir: %w", err)
 	}
-	
+
 	// Create config directory if it doesn't exist
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
 	}
-	
+
 	examplePath := filepath.Join(configDir, "config.example.toml")
-	
+
 	file, err := os.Create(examplePath)
 	if err != nil {
 		return fmt.Errorf("creating example file: %w", err)
 	}
 	defer func() { _ = file.Close() }()
-	
+
 	// Write example with comments
 	example := `# SimTool Configuration File
 # Copy this file to config.toml and customize as needed
@@ -169,11 +169,11 @@ backspace = ["backspace"]  # Delete character in search
 # - Add custom keys: quit = ["q", "ctrl+c", "ctrl+d"]
 # - Disable a shortcut: filter = []
 `
-	
+
 	if _, err := file.WriteString(example); err != nil {
 		return fmt.Errorf("writing example file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -207,12 +207,12 @@ func (c *Config) merge(user *Config) {
 	if user.Theme.LightTheme != "" {
 		c.Theme.LightTheme = user.Theme.LightTheme
 	}
-	
+
 	// Merge startup settings
 	if user.Startup.InitialView != "" {
 		c.Startup.InitialView = user.Startup.InitialView
 	}
-	
+
 	// Merge key settings - only override if user has specified keys
 	if len(user.Keys.Up) > 0 {
 		c.Keys.Up = user.Keys.Up
@@ -264,13 +264,13 @@ func getConfigDir() (string, error) {
 	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
 		return filepath.Join(xdgConfig, "simtool"), nil
 	}
-	
+
 	// Fall back to ~/.config
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("getting home directory: %w", err)
 	}
-	
+
 	return filepath.Join(home, ".config", "simtool"), nil
 }
 
@@ -280,6 +280,6 @@ func getConfigPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	return filepath.Join(configDir, "config.toml"), nil
 }

@@ -14,11 +14,11 @@ func TestPlistSyntaxHighlighting(t *testing.T) {
 	if lexer == nil {
 		t.Error("Expected XML lexer for .plist files, got nil")
 	}
-	
+
 	// Test syntax highlighting for a simple XML line
 	line := `<key>CFBundleIdentifier</key>`
 	highlighted := GetSyntaxHighlightedLine(line, ".plist")
-	
+
 	// Should contain ANSI escape codes if highlighting worked
 	if highlighted == line {
 		t.Error("Expected syntax highlighting to add ANSI codes")

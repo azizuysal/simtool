@@ -44,7 +44,7 @@ func TestInitializeThemeDetection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clear detected mode
 			_ = os.Unsetenv("SIMTOOL_DETECTED_MODE")
-			
+
 			// Set override if specified
 			if tt.envOverride != "" {
 				_ = os.Setenv("SIMTOOL_THEME_MODE", tt.envOverride)

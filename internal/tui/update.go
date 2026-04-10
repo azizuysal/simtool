@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/azizuysal/simtool/internal/simulator"
 	"github.com/azizuysal/simtool/internal/ui"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 // clearStatusMsg is sent to clear the status message
@@ -60,7 +60,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.appViewport = 0
 			m.updateViewport()
 		}
-		
+
 	case fetchAllAppsMsg:
 		m.allApps = msg.apps
 		m.loadingAllApps = false
@@ -109,19 +109,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return tickMsg(t)
 			}),
 		}
-		
+
 		// Check if theme mode has changed
 		cmd := m.checkThemeChange()
 		if cmd != nil {
 			cmds = append(cmds, cmd)
 		}
-		
+
 		return m, tea.Batch(cmds...)
-		
+
 	case themeChangedMsg:
 		// Theme has changed, update model and reload styles
 		m.currentThemeMode = msg.newMode
-		
+
 		// Reload styles from config with new theme
 		if err := ui.ReloadStyles(); err != nil {
 			m.statusMessage = fmt.Sprintf("Failed to reload theme: %v", err)
@@ -130,10 +130,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return clearStatusMsg{}
 			})
 		}
-		
+
 		// Simply return the model - styles will be picked up on next render
 		return m, nil
-		
+
 	case fetchFilesMsg:
 		m.files = msg.files
 		m.loadingFiles = false
@@ -160,7 +160,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.fileCursor = 0
 			}
-			
+
 			if viewport, ok := m.viewportMemory[m.currentPath]; ok {
 				m.fileViewport = viewport
 			} else {
@@ -171,7 +171,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fileViewport = 0
 		}
 		m.updateViewport()
-		
+
 	case fetchDatabaseInfoMsg:
 		m.loadingDatabase = false
 		if msg.err != nil {
@@ -184,7 +184,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.databaseInfo = msg.dbInfo
 		m.updateViewport()
-		
+
 	case fetchTableDataMsg:
 		m.loadingTableData = false
 		if msg.err != nil {
@@ -196,7 +196,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tableData = msg.data
 		m.tableDataOffset = msg.offset
 		m.updateViewport()
-		
+
 	case fetchFileContentMsg:
 		m.loadingContent = false
 		if msg.err != nil {
@@ -212,7 +212,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.fileContent.Type == simulator.FileTypeBinary {
 			m.contentOffset = int(m.fileContent.BinaryOffset / 16)
 		}
-		
+
 		// Check for SVG with unsupported features
 		m.svgWarning = ""
 		if m.viewingFile != nil && strings.ToLower(filepath.Ext(m.viewingFile.Path)) == ".svg" {
@@ -220,10 +220,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if data, err := os.ReadFile(m.viewingFile.Path); err == nil {
 				svgStr := string(data)
 				var unsupportedFeatures []string
-				
-				if strings.Contains(svgStr, "data:image/") || 
-				   strings.Contains(svgStr, "xlink:href=\"data:") ||
-				   strings.Contains(svgStr, "xlink:href=\"http") {
+
+				if strings.Contains(svgStr, "data:image/") ||
+					strings.Contains(svgStr, "xlink:href=\"data:") ||
+					strings.Contains(svgStr, "xlink:href=\"http") {
 					unsupportedFeatures = append(unsupportedFeatures, "embedded images")
 				}
 				if strings.Contains(svgStr, "<filter") || strings.Contains(svgStr, "filter=") {
@@ -232,14 +232,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if strings.Contains(svgStr, "<foreignObject") {
 					unsupportedFeatures = append(unsupportedFeatures, "foreign objects")
 				}
-				
+
 				if len(unsupportedFeatures) > 0 {
-					m.svgWarning = fmt.Sprintf("Warning: SVG contains unsupported features (%s). Preview may be incomplete.", 
+					m.svgWarning = fmt.Sprintf("Warning: SVG contains unsupported features (%s). Preview may be incomplete.",
 						strings.Join(unsupportedFeatures, ", "))
 				}
 			}
 		}
-		
+
 		m.updateViewport()
 	}
 
@@ -258,10 +258,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.allAppsSearchMode && m.viewState == AllAppsView {
 		return m.handleAllAppsSearchInput(msg)
 	}
-	
+
 	key := msg.String()
 	action := m.keyMap.GetAction(key)
-	
+
 	switch action {
 	case "quit":
 		// Don't quit if in search mode
@@ -332,7 +332,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.updateViewport()
 			}
 		}
-		
+
 	case "enter":
 		// Enter key no longer used for viewing files
 
@@ -385,7 +385,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					}
 					m.cursorMemory[m.currentPath] = m.fileCursor
 					m.viewportMemory[m.currentPath] = m.fileViewport
-					
+
 					// Drill into the directory
 					m.breadcrumbs = append(m.breadcrumbs, file.Name)
 					m.currentPath = file.Path
@@ -538,10 +538,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if maxViewport < 0 {
 						maxViewport = 0
 					}
-					
+
 					if m.contentViewport < maxViewport {
 						m.contentViewport++
-					} else if m.contentOffset + len(m.fileContent.Lines) < m.fileContent.TotalLines {
+					} else if m.contentOffset+len(m.fileContent.Lines) < m.fileContent.TotalLines {
 						// Need to load more content
 						newOffset := m.contentOffset + len(m.fileContent.Lines)
 						m.contentOffset = newOffset
@@ -571,7 +571,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if maxViewport < 0 {
 						maxViewport = 0
 					}
-					
+
 					if m.contentViewport < maxViewport {
 						m.contentViewport++
 					} else {
@@ -586,19 +586,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 							// Load with line offset (total lines from start)
 							return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
 						}
+					}
+				case simulator.FileTypeArchive:
+					// Allow scrolling through archive entries (now 1 line per entry)
+					if m.fileContent.ArchiveInfo != nil {
+						itemsPerScreen := CalculateItemsPerScreen(m.height) - 3 // Header takes 3 lines
+						maxViewport := len(m.fileContent.ArchiveInfo.Entries) - itemsPerScreen
+						if maxViewport < 0 {
+							maxViewport = 0
 						}
-					case simulator.FileTypeArchive:
-						// Allow scrolling through archive entries (now 1 line per entry)
-						if m.fileContent.ArchiveInfo != nil {
-							itemsPerScreen := CalculateItemsPerScreen(m.height) - 3 // Header takes 3 lines
-							maxViewport := len(m.fileContent.ArchiveInfo.Entries) - itemsPerScreen
-							if maxViewport < 0 {
-								maxViewport = 0
-							}
-							if m.contentViewport < maxViewport {
-								m.contentViewport++
-							}
+						if m.contentViewport < maxViewport {
+							m.contentViewport++
 						}
+					}
 				}
 			}
 		case DatabaseTableListView:
@@ -613,10 +613,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if maxViewport < 0 {
 				maxViewport = 0
 			}
-			
+
 			if m.tableDataViewport < maxViewport {
 				m.tableDataViewport++
-			} else if m.selectedTable != nil && m.tableDataOffset + len(m.tableData) < int(m.selectedTable.RowCount) {
+			} else if m.selectedTable != nil && m.tableDataOffset+len(m.tableData) < int(m.selectedTable.RowCount) {
 				// Need to load more data
 				newOffset := m.tableDataOffset + len(m.tableData)
 				m.tableDataOffset = newOffset
@@ -712,7 +712,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, m.openInFinderCmd(file.Path)
 			}
 		}
-		
+
 	case "search":
 		switch m.viewState {
 		case SimulatorListView:
@@ -747,7 +747,7 @@ func (m Model) getFilteredSimulators() []simulator.Item {
 	if !m.filterActive {
 		return m.simulators
 	}
-	
+
 	// Filter to show only simulators with apps
 	var filtered []simulator.Item
 	for _, sim := range m.simulators {
@@ -762,7 +762,7 @@ func (m Model) getFilteredSimulators() []simulator.Item {
 func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	action := m.keyMap.GetAction(key)
-	
+
 	switch action {
 	case "escape":
 		// Exit search mode
@@ -773,7 +773,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.statusMessage = ""
 		m.updateViewport()
 		return m, nil
-		
+
 	case "backspace":
 		// Remove last character from search query
 		if len(m.simSearchQuery) > 0 {
@@ -783,7 +783,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "up":
 		// Navigate in search results
 		if m.simCursor > 0 {
@@ -791,7 +791,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "down":
 		// Navigate in search results
 		filteredSims := m.getFilteredAndSearchedSimulators()
@@ -800,7 +800,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "enter", "right":
 		// Select simulator while in search
 		filteredSims := m.getFilteredAndSearchedSimulators()
@@ -816,7 +816,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, m.fetchAppsCmd(sim)
 		}
 		return m, nil
-		
+
 	case "boot", "open":
 		// Space is allowed in search
 		m.simSearchQuery += " "
@@ -824,7 +824,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.simViewport = 0
 		m.updateViewport()
 		return m, nil
-		
+
 	default:
 		// Add any single character to search query (including h, j, k, l, q, etc.)
 		if len(msg.String()) == 1 {
@@ -841,7 +841,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	action := m.keyMap.GetAction(key)
-	
+
 	switch action {
 	case "escape":
 		// Exit search mode
@@ -852,7 +852,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.statusMessage = ""
 		m.updateViewport()
 		return m, nil
-		
+
 	case "backspace":
 		// Remove last character from search query
 		if len(m.appSearchQuery) > 0 {
@@ -862,7 +862,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "up":
 		// Navigate in search results
 		if m.appCursor > 0 {
@@ -870,7 +870,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "down":
 		// Navigate in search results
 		filteredApps := m.getFilteredAndSearchedApps()
@@ -879,7 +879,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "enter", "right":
 		// Select app while in search
 		filteredApps := m.getFilteredAndSearchedApps()
@@ -900,7 +900,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, m.fetchFilesCmd(app.Container)
 		}
 		return m, nil
-		
+
 	case "boot", "open":
 		// Space is allowed in search
 		m.appSearchQuery += " "
@@ -908,7 +908,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.appViewport = 0
 		m.updateViewport()
 		return m, nil
-		
+
 	default:
 		// Add any single character to search query (including h, j, k, l, q, etc.)
 		if len(msg.String()) == 1 {
@@ -925,16 +925,16 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) getFilteredAndSearchedSimulators() []simulator.Item {
 	// First apply the app filter
 	filtered := m.getFilteredSimulators()
-	
+
 	// If no search query, return filtered results
 	if m.simSearchQuery == "" {
 		return filtered
 	}
-	
+
 	// Apply search filter
 	var searched []simulator.Item
 	query := strings.ToLower(m.simSearchQuery)
-	
+
 	for _, sim := range filtered {
 		// Search in name, runtime, and state
 		if strings.Contains(strings.ToLower(sim.Name), query) ||
@@ -943,7 +943,7 @@ func (m Model) getFilteredAndSearchedSimulators() []simulator.Item {
 			searched = append(searched, sim)
 		}
 	}
-	
+
 	return searched
 }
 
@@ -953,11 +953,11 @@ func (m Model) getFilteredAndSearchedApps() []simulator.App {
 	if m.appSearchQuery == "" {
 		return m.apps
 	}
-	
+
 	// Apply search filter
 	var searched []simulator.App
 	query := strings.ToLower(m.appSearchQuery)
-	
+
 	for _, app := range m.apps {
 		// Search in name, bundle ID, and version
 		if strings.Contains(strings.ToLower(app.Name), query) ||
@@ -966,7 +966,7 @@ func (m Model) getFilteredAndSearchedApps() []simulator.App {
 			searched = append(searched, app)
 		}
 	}
-	
+
 	return searched
 }
 
@@ -974,7 +974,7 @@ func (m Model) getFilteredAndSearchedApps() []simulator.App {
 func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	action := m.keyMap.GetAction(key)
-	
+
 	switch action {
 	case "escape":
 		// Exit search mode
@@ -985,7 +985,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.statusMessage = ""
 		m.updateViewport()
 		return m, nil
-		
+
 	case "backspace":
 		// Remove last character from search query
 		if len(m.allAppsSearchQuery) > 0 {
@@ -995,7 +995,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "up":
 		// Navigate in search results
 		if m.allAppsCursor > 0 {
@@ -1003,7 +1003,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "down":
 		// Navigate in search results
 		filteredApps := m.getFilteredAndSearchedAllApps()
@@ -1012,7 +1012,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 		return m, nil
-		
+
 	case "enter", "right":
 		// Select app while in search
 		filteredApps := m.getFilteredAndSearchedAllApps()
@@ -1033,7 +1033,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, m.fetchFilesCmd(app.Container)
 		}
 		return m, nil
-		
+
 	default:
 		// Add any single character to search query (including h, j, k, l, q, etc.)
 		if len(msg.String()) == 1 {
@@ -1052,11 +1052,11 @@ func (m Model) getFilteredAndSearchedAllApps() []simulator.App {
 	if m.allAppsSearchQuery == "" {
 		return m.allApps
 	}
-	
+
 	// Apply search filter
 	var searched []simulator.App
 	query := strings.ToLower(m.allAppsSearchQuery)
-	
+
 	for _, app := range m.allApps {
 		// Search in name, bundle ID, version, and simulator name
 		if strings.Contains(strings.ToLower(app.Name), query) ||
@@ -1066,6 +1066,6 @@ func (m Model) getFilteredAndSearchedAllApps() []simulator.App {
 			searched = append(searched, app)
 		}
 	}
-	
+
 	return searched
 }

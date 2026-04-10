@@ -8,19 +8,19 @@ import (
 
 func TestDefault(t *testing.T) {
 	cfg := Default()
-	
+
 	if cfg.Theme.Mode != "auto" {
 		t.Errorf("Default theme mode should be 'auto', got %q", cfg.Theme.Mode)
 	}
-	
+
 	if cfg.Theme.DarkTheme != "github-dark" {
 		t.Errorf("Default dark theme should be 'github-dark', got %q", cfg.Theme.DarkTheme)
 	}
-	
+
 	if cfg.Theme.LightTheme != "github" {
 		t.Errorf("Default light theme should be 'github', got %q", cfg.Theme.LightTheme)
 	}
-	
+
 	if cfg.Startup.InitialView != "simulator_list" {
 		t.Errorf("Default initial view should be 'simulator_list', got %q", cfg.Startup.InitialView)
 	}
@@ -44,13 +44,13 @@ func TestGetActiveTheme(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name         string
-		mode         string
-		envOverride  string
-		envDetected  string
-		darkTheme    string
-		lightTheme   string
-		expected     string
+		name        string
+		mode        string
+		envOverride string
+		envDetected string
+		darkTheme   string
+		lightTheme  string
+		expected    string
 	}{
 		{
 			name:       "explicit dark mode",
@@ -92,7 +92,7 @@ func TestGetActiveTheme(t *testing.T) {
 			} else {
 				_ = os.Unsetenv("SIMTOOL_THEME_MODE")
 			}
-			
+
 			if tt.envDetected != "" {
 				_ = os.Setenv("SIMTOOL_DETECTED_MODE", tt.envDetected)
 			} else {
@@ -134,7 +134,7 @@ func TestLoadConfig(t *testing.T) {
 		if err != nil {
 			t.Errorf("Load() with no config file should not error: %v", err)
 		}
-		
+
 		// Should have default values
 		if cfg.Theme.Mode != "auto" {
 			t.Errorf("Expected default theme mode 'auto', got %q", cfg.Theme.Mode)
@@ -161,7 +161,7 @@ initial_view = "apps"
 		if err != nil {
 			t.Errorf("Load() with valid config file should not error: %v", err)
 		}
-		
+
 		if cfg.Theme.Mode != "dark" {
 			t.Errorf("Expected theme mode 'dark', got %q", cfg.Theme.Mode)
 		}

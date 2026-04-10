@@ -19,11 +19,11 @@ func TestNewSimulatorList(t *testing.T) {
 
 func TestSimulatorListRender(t *testing.T) {
 	tests := []struct {
-		name       string
-		simulators []simulator.Item
-		cursor     int
-		viewport   int
-		expected   []string
+		name        string
+		simulators  []simulator.Item
+		cursor      int
+		viewport    int
+		expected    []string
 		notExpected []string
 	}{
 		{
@@ -85,9 +85,9 @@ func TestSimulatorListRender(t *testing.T) {
 					AppCount: 1,
 				},
 			},
-			cursor:   0,
-			viewport: 0,
-			expected: []string{"iPad Pro", "1 app"}, // Should be "1 app" not "1 apps"
+			cursor:      0,
+			viewport:    0,
+			expected:    []string{"iPad Pro", "1 app"}, // Should be "1 app" not "1 apps"
 			notExpected: []string{"1 apps"},
 		},
 	}
@@ -96,7 +96,7 @@ func TestSimulatorListRender(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sl := NewSimulatorList(80, 24)
 			sl.Update(tt.simulators, tt.cursor, tt.viewport, false, false, "", nil)
-			
+
 			result := sl.Render()
 
 			for _, exp := range tt.expected {

@@ -4,23 +4,23 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
 	"github.com/azizuysal/simtool/internal/ui"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // SimulatorList renders the simulator list view
 type SimulatorList struct {
-	Width         int
-	Height        int
-	Simulators    []simulator.Item
-	Cursor        int
-	Viewport      int
-	FilterActive  bool
-	SearchMode    bool
-	SearchQuery   string
-	Keys          *config.KeysConfig
+	Width        int
+	Height       int
+	Simulators   []simulator.Item
+	Cursor       int
+	Viewport     int
+	FilterActive bool
+	SearchMode   bool
+	SearchQuery  string
+	Keys         *config.KeysConfig
 }
 
 // NewSimulatorList creates a new simulator list renderer
@@ -86,10 +86,10 @@ func (sl *SimulatorList) GetFooter() string {
 		scrollInfo := ui.FormatScrollInfo(sl.Viewport, itemsPerScreen, len(sl.Simulators))
 		return footer + scrollInfo
 	}
-	
+
 	// Build footer from configured keys
 	var parts []string
-	
+
 	if sl.SearchMode {
 		if esc := sl.Keys.FormatKeyAction("escape", "exit search"); esc != "" {
 			parts = append(parts, esc)
@@ -128,9 +128,9 @@ func (sl *SimulatorList) GetFooter() string {
 			parts = append(parts, quit)
 		}
 	}
-	
+
 	footer := strings.Join(parts, " • ")
-	
+
 	// Add scroll info
 	itemsPerScreen := sl.calculateItemsPerScreen()
 	scrollInfo := ui.FormatScrollInfo(sl.Viewport, itemsPerScreen, len(sl.Simulators))

@@ -4,10 +4,10 @@ import (
 	"os"
 	"os/exec"
 	"time"
-	
-	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 // ViewState represents the current view
@@ -32,72 +32,72 @@ type Model struct {
 	width         int
 	statusMessage string
 	fetcher       simulator.Fetcher
-	
+
 	// Simulator list state
-	simulators    []simulator.Item
-	simCursor     int
-	simViewport   int
-	booting       bool
-	loadingSimulators bool           // Whether simulators are being loaded
-	filterActive  bool               // Whether to show only sims with apps
-	simSearchMode bool               // Whether search is active in sim list
-	simSearchQuery string            // Current search query for sim list
-	
+	simulators        []simulator.Item
+	simCursor         int
+	simViewport       int
+	booting           bool
+	loadingSimulators bool   // Whether simulators are being loaded
+	filterActive      bool   // Whether to show only sims with apps
+	simSearchMode     bool   // Whether search is active in sim list
+	simSearchQuery    string // Current search query for sim list
+
 	// All apps view state
-	allApps          []simulator.App
-	allAppsCursor    int
-	allAppsViewport  int
-	loadingAllApps   bool
-	allAppsSearchMode bool            // Whether search is active in all apps list
-	allAppsSearchQuery string         // Current search query for all apps list
-	
+	allApps            []simulator.App
+	allAppsCursor      int
+	allAppsViewport    int
+	loadingAllApps     bool
+	allAppsSearchMode  bool   // Whether search is active in all apps list
+	allAppsSearchQuery string // Current search query for all apps list
+
 	// App list state
-	selectedSim   *simulator.Item
-	apps          []simulator.App
-	appCursor     int
-	appViewport   int
-	loadingApps   bool
-	appSearchMode bool               // Whether search is active in app list
-	appSearchQuery string            // Current search query for app list
-	
+	selectedSim    *simulator.Item
+	apps           []simulator.App
+	appCursor      int
+	appViewport    int
+	loadingApps    bool
+	appSearchMode  bool   // Whether search is active in app list
+	appSearchQuery string // Current search query for app list
+
 	// File list state
-	selectedApp   *simulator.App
-	files         []simulator.FileInfo
-	fileCursor    int
-	fileViewport  int
-	loadingFiles  bool
-	currentPath   string
-	basePath      string              // The app's container path
-	breadcrumbs   []string            // Path components from base to current
-	cursorMemory  map[string]int      // Remember cursor position for each path
-	viewportMemory map[string]int     // Remember viewport position for each path
-	
+	selectedApp    *simulator.App
+	files          []simulator.FileInfo
+	fileCursor     int
+	fileViewport   int
+	loadingFiles   bool
+	currentPath    string
+	basePath       string         // The app's container path
+	breadcrumbs    []string       // Path components from base to current
+	cursorMemory   map[string]int // Remember cursor position for each path
+	viewportMemory map[string]int // Remember viewport position for each path
+
 	// File viewer state
-	viewingFile   *simulator.FileInfo
-	fileContent   *simulator.FileContent
-	contentOffset int                 // Line offset for text files, byte offset for binary
-	contentViewport int               // Viewport position within file content
-	loadingContent bool
-	svgWarning    string              // Warning message for SVG files with unsupported features
-	
+	viewingFile     *simulator.FileInfo
+	fileContent     *simulator.FileContent
+	contentOffset   int // Line offset for text files, byte offset for binary
+	contentViewport int // Viewport position within file content
+	loadingContent  bool
+	svgWarning      string // Warning message for SVG files with unsupported features
+
 	// Database state
-	viewingDatabase *simulator.FileInfo    // The database file being viewed
-	databaseInfo    *simulator.DatabaseInfo // Database metadata and table list
-	selectedTable   *simulator.TableInfo   // Currently selected table
-	tableData       []map[string]any       // Current page of table data
-	tableCursor     int                    // Cursor in table list
-	tableViewport   int                    // Viewport in table list
-	tableDataOffset int                    // Row offset for table content pagination
-	tableDataViewport int                  // Viewport position within table content
-	loadingDatabase bool                   // Whether database info is loading
-	loadingTableData bool                  // Whether table data is loading
-	
+	viewingDatabase   *simulator.FileInfo     // The database file being viewed
+	databaseInfo      *simulator.DatabaseInfo // Database metadata and table list
+	selectedTable     *simulator.TableInfo    // Currently selected table
+	tableData         []map[string]any        // Current page of table data
+	tableCursor       int                     // Cursor in table list
+	tableViewport     int                     // Viewport in table list
+	tableDataOffset   int                     // Row offset for table content pagination
+	tableDataViewport int                     // Viewport position within table content
+	loadingDatabase   bool                    // Whether database info is loading
+	loadingTableData  bool                    // Whether table data is loading
+
 	// Theme state
-	currentThemeMode string               // Current detected theme mode ("dark" or "light")
-	
+	currentThemeMode string // Current detected theme mode ("dark" or "light")
+
 	// Configuration
-	config       *config.Config
-	keyMap       *config.KeyMap
+	config *config.Config
+	keyMap *config.KeyMap
 }
 
 // New creates a new Model with the given fetcher
@@ -108,37 +108,37 @@ func New(fetcher simulator.Fetcher, startWithApps bool) Model {
 		// Use defaults if config fails to load
 		cfg = config.Default()
 	}
-	
+
 	// Create key map from config
 	keyMap := config.NewKeyMap(cfg.Keys)
-	
+
 	// Get initial theme mode
 	isDark := config.DetectTerminalDarkMode()
 	themeMode := "light"
 	if isDark {
 		themeMode = "dark"
 	}
-	
+
 	// Determine initial view state
 	viewState := SimulatorListView
 	loadingSimulators := true
 	loadingAllApps := false
-	
+
 	// Check command-line flag first, then config
 	if startWithApps || (cfg.Startup.InitialView == "all_apps") {
 		viewState = AllAppsView
 		loadingSimulators = false
 		loadingAllApps = true
 	}
-	
+
 	return Model{
-		fetcher: fetcher,
-		viewState: viewState,
+		fetcher:           fetcher,
+		viewState:         viewState,
 		loadingSimulators: loadingSimulators,
-		loadingAllApps: loadingAllApps,
-		currentThemeMode: themeMode,
-		config: cfg,
-		keyMap: keyMap,
+		loadingAllApps:    loadingAllApps,
+		currentThemeMode:  themeMode,
+		config:            cfg,
+		keyMap:            keyMap,
 	}
 }
 
@@ -149,14 +149,14 @@ func (m Model) Init() tea.Cmd {
 			return tickMsg(t)
 		}),
 	}
-	
+
 	// Fetch appropriate data based on initial view
 	if m.viewState == AllAppsView {
 		cmds = append(cmds, fetchAllAppsCmd(m.fetcher))
 	} else {
 		cmds = append(cmds, fetchSimulatorsCmd(m.fetcher))
 	}
-	
+
 	return tea.Batch(cmds...)
 }
 
@@ -232,17 +232,17 @@ func (m *Model) checkThemeChange() tea.Cmd {
 	if os.Getenv("SIMTOOL_THEME_MODE") != "" {
 		return nil
 	}
-	
+
 	// Detect current theme mode (live, without cache)
 	isDark := config.DetectTerminalDarkModeLive()
 	newMode := "light"
 	if isDark {
 		newMode = "dark"
 	}
-	
+
 	// Debug: log theme detection
 	// os.WriteFile("/tmp/theme_debug.log", []byte(fmt.Sprintf("%s: current=%s detected=%s\n", time.Now().Format("15:04:05"), m.currentThemeMode, newMode)), 0644)
-	
+
 	// Check if theme has changed
 	if newMode != m.currentThemeMode {
 		// Theme has changed, return a command to handle it
@@ -250,7 +250,7 @@ func (m *Model) checkThemeChange() tea.Cmd {
 			return themeChangedMsg{newMode: newMode}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -281,7 +281,7 @@ func (m Model) openInFinderCmd(path string) tea.Cmd {
 		if len(path) > 7 && path[:7] == "file://" {
 			cleanPath = path[7:]
 		}
-		
+
 		// Use open command to reveal in Finder
 		cmd := exec.Command("open", "-R", cleanPath)
 		err := cmd.Run()

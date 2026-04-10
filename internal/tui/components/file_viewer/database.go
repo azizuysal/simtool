@@ -51,7 +51,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 
 	var s strings.Builder
 	innerWidth := fv.Width - 4 // Account for padding
-	headerLines := 4 // Info + separator + padding
+	headerLines := 4           // Info + separator + padding
 	availableHeight := fv.Height - headerLines
 
 	// Calculate which tables to show based on viewport
@@ -81,7 +81,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 			var colStrs []string
 			remainingWidth := innerWidth - len("Columns: ")
 			currentWidth := 0
-			
+
 			for _, col := range table.Columns {
 				colStr := col.Name + " " + col.Type
 				if col.PK {
@@ -90,23 +90,23 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 				if col.NotNull {
 					colStr += " NOT NULL"
 				}
-				
+
 				// Check if adding this column would exceed width
 				separator := ", "
 				if len(colStrs) == 0 {
 					separator = ""
 				}
-				
+
 				neededWidth := currentWidth + len(separator) + len(colStr)
 				if neededWidth > remainingWidth-3 { // -3 for "..."
 					colStrs = append(colStrs, "...")
 					break
 				}
-				
+
 				colStrs = append(colStrs, colStr)
 				currentWidth = neededWidth
 			}
-			
+
 			colInfo := "Columns: " + strings.Join(colStrs, ", ")
 			s.WriteString(ui.DetailStyle().Render(colInfo))
 			s.WriteString("\n")
@@ -129,7 +129,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 				rowPrefix := fmt.Sprintf("  Row %d: ", j+1)
 				remainingWidth := innerWidth - len(rowPrefix)
 				currentWidth := 0
-				
+
 				for i, col := range table.Columns {
 					var valStr string
 					if val, ok := row[col.Name]; ok {
@@ -141,12 +141,12 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 					} else {
 						valStr = "NULL"
 					}
-					
+
 					separator := " | "
 					if i == 0 {
 						separator = ""
 					}
-					
+
 					neededWidth := currentWidth + len(separator) + len(valStr)
 					if neededWidth > remainingWidth-3 { // -3 for "..."
 						if len(values) > 0 {
@@ -154,7 +154,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 						}
 						break
 					}
-					
+
 					values = append(values, valStr)
 					currentWidth = neededWidth
 				}
@@ -178,13 +178,13 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 			if idx := strings.Index(schemaPreview, "\n"); idx > 0 {
 				schemaPreview = schemaPreview[:idx] + "..."
 			}
-			
+
 			schemaPrefix := "Schema: "
 			remainingWidth := innerWidth - len(schemaPrefix)
 			if len(schemaPreview) > remainingWidth {
 				schemaPreview = schemaPreview[:remainingWidth-3] + "..."
 			}
-			
+
 			s.WriteString(ui.DetailStyle().Foreground(ui.DetailStyle().GetForeground()).Render(schemaPrefix + schemaPreview))
 			linesUsed += 2
 		}

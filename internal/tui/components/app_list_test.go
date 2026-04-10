@@ -93,7 +93,7 @@ func TestAppListRender(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			al := NewAppList(80, 24)
 			al.Update(tt.apps, tt.cursor, 0, false, tt.searchQuery, "iPhone 15", nil)
-			
+
 			result := al.Render()
 
 			for _, exp := range tt.expected {

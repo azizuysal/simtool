@@ -12,14 +12,14 @@ import (
 
 // DatabaseTableContent renders individual table content view
 type DatabaseTableContent struct {
-	Width           int
-	Height          int
-	Table           *simulator.TableInfo
-	TableData       []map[string]any
-	DatabaseFile    *simulator.FileInfo
-	Viewport        int
-	DataOffset      int
-	Keys            *config.KeysConfig
+	Width        int
+	Height       int
+	Table        *simulator.TableInfo
+	TableData    []map[string]any
+	DatabaseFile *simulator.FileInfo
+	Viewport     int
+	DataOffset   int
+	Keys         *config.KeysConfig
 }
 
 // NewDatabaseTableContent creates a new database table content renderer
@@ -48,14 +48,14 @@ func (dtc *DatabaseTableContent) Render() string {
 
 	// Build header content
 	header := dtc.buildHeader()
-	
+
 	// Calculate available space for table data
 	headerLines := strings.Count(header, "\n") + 4 // header + separator + padding
 	availableHeight := dtc.Height - headerLines
-	
+
 	// Build content with header
 	content := dtc.renderWithHeader(header, availableHeight)
-	
+
 	return content
 }
 
@@ -72,27 +72,27 @@ func (dtc *DatabaseTableContent) GetFooter() string {
 	if dtc.Keys == nil {
 		// Fallback to default if keys not set
 		footer := "↑/k: scroll up • ↓/j: scroll down • ←/h: back • q: quit"
-		
+
 		// Add scroll info for data rows
 		if dtc.Table != nil && dtc.Table.RowCount > 0 {
 			startRow := dtc.DataOffset + 1
 			endRow := dtc.DataOffset + len(dtc.TableData)
 			totalRows := int(dtc.Table.RowCount)
-			
+
 			if endRow > totalRows {
 				endRow = totalRows
 			}
-			
+
 			scrollInfo := fmt.Sprintf(" (%d-%d of %d)", startRow, endRow, totalRows)
 			footer += scrollInfo
 		}
-		
+
 		return footer
 	}
-	
+
 	// Build footer from configured keys
 	var parts []string
-	
+
 	if up := dtc.Keys.FormatKeyAction("up", "scroll up"); up != "" {
 		parts = append(parts, up)
 	}
@@ -105,23 +105,23 @@ func (dtc *DatabaseTableContent) GetFooter() string {
 	if quit := dtc.Keys.FormatKeyAction("quit", "quit"); quit != "" {
 		parts = append(parts, quit)
 	}
-	
+
 	footer := strings.Join(parts, " • ")
-	
+
 	// Add scroll info for data rows
 	if dtc.Table != nil && dtc.Table.RowCount > 0 {
 		startRow := dtc.DataOffset + 1
 		endRow := dtc.DataOffset + len(dtc.TableData)
 		totalRows := int(dtc.Table.RowCount)
-		
+
 		if endRow > totalRows {
 			endRow = totalRows
 		}
-		
+
 		scrollInfo := fmt.Sprintf(" (%d-%d of %d)", startRow, endRow, totalRows)
 		footer += scrollInfo
 	}
-	
+
 	return footer
 }
 
@@ -136,7 +136,7 @@ func (dtc *DatabaseTableContent) buildHeader() string {
 	// Table info
 	s.WriteString(ui.NameStyle().Render(dtc.Table.Name))
 	s.WriteString("\n")
-	
+
 	tableDetails := fmt.Sprintf("%d rows • %d columns", dtc.Table.RowCount, len(dtc.Table.Columns))
 	s.WriteString(ui.DetailStyle().Render(tableDetails))
 
@@ -160,24 +160,24 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 	var columnWidths []int
 	visibleColumns := 0
 	totalUsedWidth := 0
-	
+
 	if len(dtc.Table.Columns) > 0 {
 		// Reserve space for " | ..." if we won't show all columns
 		reservedSpace := 0
 		if len(dtc.Table.Columns) > 1 {
 			reservedSpace = 6 // " | ..."
 		}
-		
+
 		// First pass: calculate minimum column widths based on headers and sample data
 		for i, col := range dtc.Table.Columns {
 			colHeader := col.Name
 			if col.PK {
 				colHeader += "*"
 			}
-			
+
 			// Start with header width (rune count)
 			minWidth := len([]rune(colHeader))
-			
+
 			// Check ALL loaded rows to get accurate data width
 			// This ensures we calculate based on the actual data we'll display
 			for j := 0; j < len(dtc.TableData); j++ {
@@ -196,22 +196,21 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 					minWidth = runeCount
 				}
 			}
-			
-			
+
 			// Check if we can fit this column
 			separatorWidth := 0
 			if i > 0 {
 				separatorWidth = 3 // " | "
 			}
-			
+
 			// Check if we need to reserve space for "..."
 			effectiveWidth := innerWidth
-			if i < len(dtc.Table.Columns) - 1 {
+			if i < len(dtc.Table.Columns)-1 {
 				// Not the last column, so we might need "..."
 				effectiveWidth = innerWidth - reservedSpace
 			}
-			
-			if totalUsedWidth + separatorWidth + minWidth <= effectiveWidth {
+
+			if totalUsedWidth+separatorWidth+minWidth <= effectiveWidth {
 				// Column fits entirely
 				columnWidths = append(columnWidths, minWidth)
 				totalUsedWidth += separatorWidth + minWidth
@@ -226,7 +225,7 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 				break
 			}
 		}
-		
+
 		// Render column headers with calculated widths
 		var headerParts []string
 		for i := 0; i < visibleColumns; i++ {
@@ -235,7 +234,7 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 			if col.PK {
 				colHeader += "*"
 			}
-			
+
 			// Pad header to column width based on rune count
 			padded := colHeader
 			runeCount := len([]rune(padded))
@@ -244,12 +243,12 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 			}
 			headerParts = append(headerParts, padded)
 		}
-		
+
 		headerStr := strings.Join(headerParts, " | ")
 		if visibleColumns < len(dtc.Table.Columns) {
 			headerStr += " | ..."
 		}
-		
+
 		s.WriteString(ui.NameStyle().Render(headerStr))
 		s.WriteString("\n")
 		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
@@ -263,10 +262,10 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 	} else {
 		linesUsed := 0
 		startIdx := dtc.Viewport
-		
+
 		for i := startIdx; i < len(dtc.TableData) && linesUsed < availableHeight; i++ {
 			row := dtc.TableData[i]
-			
+
 			if i > startIdx {
 				s.WriteString("\n")
 				linesUsed++
@@ -274,7 +273,7 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 					break
 				}
 			}
-			
+
 			// Build row data with aligned columns
 			var rowParts []string
 			for j := 0; j < visibleColumns; j++ {
@@ -287,7 +286,7 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 				} else {
 					valStr = "NULL"
 				}
-				
+
 				// Truncate if needed to fit column width
 				if len(valStr) > columnWidths[j] {
 					// Use rune-aware truncation to handle multi-byte characters
@@ -298,22 +297,22 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 						valStr = valStr + "..."
 					}
 				}
-				
+
 				// Pad to column width based on rune count
 				runeCount := len([]rune(valStr))
 				if runeCount < columnWidths[j] {
 					valStr += strings.Repeat(" ", columnWidths[j]-runeCount)
 				}
-				
+
 				rowParts = append(rowParts, valStr)
 			}
-			
+
 			rowStr := strings.Join(rowParts, " | ")
 			// Add ... if we have more columns
 			if visibleColumns < len(dtc.Table.Columns) {
 				rowStr += " | ..."
 			}
-			
+
 			s.WriteString(ui.DetailStyle().Render(rowStr))
 			linesUsed++
 		}
@@ -327,7 +326,7 @@ func sanitizeForDisplay(s string) string {
 	// Remove newlines and carriage returns
 	s = strings.ReplaceAll(s, "\n", " ")
 	s = strings.ReplaceAll(s, "\r", " ")
-	
+
 	// Replace non-printable characters
 	var result strings.Builder
 	for _, r := range s {
@@ -338,7 +337,7 @@ func sanitizeForDisplay(s string) string {
 			result.WriteString("□")
 		}
 	}
-	
+
 	// Don't collapse spaces for binary data - it affects column width calculation
 	return strings.TrimSpace(result.String())
 }

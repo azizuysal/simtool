@@ -133,7 +133,7 @@ func TestContentBox(t *testing.T) {
 
 func TestLayoutCentering(t *testing.T) {
 	layout := NewLayout(100, 24)
-	
+
 	// Test centering with various content widths
 	testCases := []struct {
 		content  string
@@ -147,7 +147,7 @@ func TestLayoutCentering(t *testing.T) {
 		t.Run(tc.content, func(t *testing.T) {
 			centered := layout.centerContent(tc.content)
 			lines := strings.Split(centered, "\n")
-			
+
 			// Count leading spaces
 			leadingSpaces := 0
 			for _, char := range lines[0] {

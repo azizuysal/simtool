@@ -18,7 +18,7 @@ func (m *Model) updateViewport() {
 	switch m.viewState {
 	case SimulatorListView:
 		// Calculate items per screen the same way SimulatorList does
-		contentHeight := m.height - 8 // Same calculation as in view.go
+		contentHeight := m.height - 8                // Same calculation as in view.go
 		simItemsPerScreen := (contentHeight - 2) / 3 // Same as SimulatorList.calculateItemsPerScreen
 		if simItemsPerScreen < 1 {
 			simItemsPerScreen = 1
@@ -37,23 +37,23 @@ func (m *Model) updateViewport() {
 	case FileListView:
 		// Calculate available height for content box
 		contentHeight := m.height - 8 // Title (4) + Footer (4)
-		
+
 		// Account for header inside content box
 		headerLines := 6 // App name (1) + app details (1) + spacing (2) + separator (2)
 		if len(m.breadcrumbs) > 0 {
 			headerLines += 2 // Breadcrumb line + spacing
 		}
-		
+
 		// Available height for file items
 		availableHeight := contentHeight - headerLines
-		
+
 		// Each file item takes 3 lines (name + details + spacing)
 		// But we need to ensure we don't count partial items
 		actualFileItems := availableHeight / 3
 		if actualFileItems < 1 {
 			actualFileItems = 1
 		}
-		
+
 		updateViewportForList(&m.fileCursor, &m.fileViewport, len(m.files), actualFileItems)
 	}
 }
@@ -85,7 +85,7 @@ func CalculateSimulatorViewport(currentViewport, currentCursor, totalItems, term
 	itemsPerScreen := CalculateItemsPerScreen(terminalHeight)
 	viewport := currentViewport
 	cursor := currentCursor
-	
+
 	updateViewportForList(&cursor, &viewport, totalItems, itemsPerScreen)
 	return viewport
 }
@@ -97,10 +97,10 @@ func CalculateFileListViewport(currentViewport, currentCursor, totalItems, termi
 	if actualFileItems < 1 {
 		actualFileItems = 1
 	}
-	
+
 	viewport := currentViewport
 	cursor := currentCursor
-	
+
 	updateViewportForList(&cursor, &viewport, totalItems, actualFileItems)
 	return viewport
 }

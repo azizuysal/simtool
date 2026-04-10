@@ -11,15 +11,15 @@ import (
 
 // AppList renders the app list view
 type AppList struct {
-	Width        int
-	Height       int
-	Apps         []simulator.App
-	Cursor       int
-	Viewport     int
-	SearchMode   bool
-	SearchQuery  string
+	Width         int
+	Height        int
+	Apps          []simulator.App
+	Cursor        int
+	Viewport      int
+	SearchMode    bool
+	SearchQuery   string
 	SimulatorName string
-	Keys         *config.KeysConfig
+	Keys          *config.KeysConfig
 }
 
 // NewAppList creates a new app list renderer
@@ -88,10 +88,10 @@ func (al *AppList) GetFooter() string {
 		scrollInfo := ui.FormatScrollInfo(al.Viewport, itemsPerScreen, len(al.Apps))
 		return footer + scrollInfo
 	}
-	
+
 	// Build footer from configured keys
 	var parts []string
-	
+
 	if al.SearchMode {
 		if esc := al.Keys.FormatKeyAction("escape", "exit search"); esc != "" {
 			parts = append(parts, esc)
@@ -130,9 +130,9 @@ func (al *AppList) GetFooter() string {
 			parts = append(parts, quit)
 		}
 	}
-	
+
 	footer := strings.Join(parts, " • ")
-	
+
 	// Add scroll info
 	itemsPerScreen := al.calculateItemsPerScreen()
 	scrollInfo := ui.FormatScrollInfo(al.Viewport, itemsPerScreen, len(al.Apps))

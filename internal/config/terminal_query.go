@@ -15,7 +15,7 @@ func QueryTerminalBackground() string {
 		}
 		return "light"
 	}
-	
+
 	// Fall back to macOS system dark mode as proxy
 	return queryMacOSTerminalBackground()
 }
@@ -37,7 +37,7 @@ func isSystemDarkMode() bool {
 		// If the command fails, AppleInterfaceStyle is not set, meaning light mode
 		return false
 	}
-	
+
 	// If it returns "Dark", system is in dark mode
 	return strings.TrimSpace(string(output)) == "Dark"
 }
@@ -49,4 +49,3 @@ func QueryTerminalBackgroundLive() string {
 	// In the future, we could try more sophisticated approaches
 	return queryMacOSTerminalBackground()
 }
-

@@ -45,17 +45,17 @@ func (dtl *DatabaseTableList) Render() string {
 
 	// Build header content
 	header := dtl.buildHeader()
-	
+
 	// Calculate available space for table list
 	headerLines := strings.Count(header, "\n") + 4 // header + separator + padding
 	availableHeight := dtl.Height - headerLines
-	
+
 	// Calculate how many complete items we can show (each item = 3 lines)
 	itemsPerScreen := availableHeight / 3
 	if itemsPerScreen < 1 {
 		itemsPerScreen = 1
 	}
-	
+
 	startIdx := dtl.Viewport
 	endIdx := dtl.Viewport + itemsPerScreen
 	if endIdx > len(dtl.DatabaseInfo.Tables) {
@@ -64,7 +64,7 @@ func (dtl *DatabaseTableList) Render() string {
 
 	// Build content with header
 	content := dtl.renderWithHeader(header, startIdx, endIdx)
-	
+
 	return content
 }
 
@@ -97,35 +97,35 @@ func (dtl *DatabaseTableList) GetFooter() string {
 			scrollInfo := ui.FormatScrollInfo(dtl.Viewport, itemsPerScreen, len(dtl.DatabaseInfo.Tables))
 			return footer + scrollInfo
 		}
-		
+
 		return footer
 	}
-	
+
 	// Build footer from configured keys
 	var parts []string
-	
+
 	if up := dtl.Keys.FormatKeyAction("up", "up"); up != "" {
 		parts = append(parts, up)
 	}
 	if down := dtl.Keys.FormatKeyAction("down", "down"); down != "" {
 		parts = append(parts, down)
 	}
-	
+
 	if dtl.DatabaseInfo != nil && len(dtl.DatabaseInfo.Tables) > 0 && dtl.Cursor < len(dtl.DatabaseInfo.Tables) {
 		if right := dtl.Keys.FormatKeyAction("right", "view table"); right != "" {
 			parts = append(parts, right)
 		}
 	}
-	
+
 	if left := dtl.Keys.FormatKeyAction("left", "back"); left != "" {
 		parts = append(parts, left)
 	}
 	if quit := dtl.Keys.FormatKeyAction("quit", "quit"); quit != "" {
 		parts = append(parts, quit)
 	}
-	
+
 	footer := strings.Join(parts, " • ")
-	
+
 	// Add scroll info
 	if dtl.DatabaseInfo != nil && len(dtl.DatabaseInfo.Tables) > 0 {
 		headerLines := 6 // Approximate header lines
@@ -137,7 +137,7 @@ func (dtl *DatabaseTableList) GetFooter() string {
 		scrollInfo := ui.FormatScrollInfo(dtl.Viewport, itemsPerScreen, len(dtl.DatabaseInfo.Tables))
 		return footer + scrollInfo
 	}
-	
+
 	return footer
 }
 
@@ -156,16 +156,16 @@ func (dtl *DatabaseTableList) buildHeader() string {
 	}
 	s.WriteString(ui.NameStyle().Render(dbName))
 	s.WriteString("\n")
-	
-	dbDetails := fmt.Sprintf("%s • %d tables • %s", 
-		dtl.DatabaseInfo.Format, 
-		dtl.DatabaseInfo.TableCount, 
+
+	dbDetails := fmt.Sprintf("%s • %d tables • %s",
+		dtl.DatabaseInfo.Format,
+		dtl.DatabaseInfo.TableCount,
 		simulator.FormatSize(dtl.DatabaseInfo.FileSize))
 	if dtl.DatabaseInfo.Version != "" {
-		dbDetails = fmt.Sprintf("%s %s • %d tables • %s", 
-			dtl.DatabaseInfo.Format, 
+		dbDetails = fmt.Sprintf("%s %s • %d tables • %s",
+			dtl.DatabaseInfo.Format,
 			dtl.DatabaseInfo.Version,
-			dtl.DatabaseInfo.TableCount, 
+			dtl.DatabaseInfo.TableCount,
 			simulator.FormatSize(dtl.DatabaseInfo.FileSize))
 	}
 	s.WriteString(ui.DetailStyle().Render(dbDetails))
@@ -206,14 +206,14 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 			for _, col := range table.Columns {
 				colNames = append(colNames, col.Name)
 			}
-			
+
 			colInfo := fmt.Sprintf("Columns: %s", strings.Join(colNames, ", "))
 
 			if i == dtl.Cursor {
 				// Selected item
 				line1 := fmt.Sprintf("▶ %s", tableName)
 				line2Prefix := "  "
-				
+
 				// Truncate colInfo to fit within the line, accounting for prefix
 				maxColInfoLen := innerWidth - len(line2Prefix)
 				if len(colInfo) > maxColInfoLen {
@@ -234,7 +234,7 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 				if len(colInfo) > innerWidth {
 					colInfo = colInfo[:innerWidth-3] + "..."
 				}
-				
+
 				s.WriteString(ui.ListItemStyle().Inherit(ui.NameStyle()).Render(tableName))
 				s.WriteString("\n")
 				s.WriteString(ui.ListItemStyle().Inherit(ui.DetailStyle()).Render(colInfo))

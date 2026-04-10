@@ -201,7 +201,7 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 	// Calculate available space for content
 	contentHeight := m.height - 8
 	contentWidth := m.width - 6
-	
+
 	// Create file viewer component with content dimensions
 	viewer := file_viewer.NewFileViewer(contentWidth, contentHeight)
 	viewer.Update(m.viewingFile, m.fileContent, m.contentViewport, m.contentOffset, m.svgWarning, &m.config.Keys)

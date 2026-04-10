@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"log"
 	"github.com/azizuysal/simtool/internal/config"
+	"log"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -10,7 +10,7 @@ import (
 var (
 	// Global styles instance
 	styles *config.Styles
-	
+
 	// Legacy color constants (for backward compatibility)
 	successColor lipgloss.Color
 )
@@ -130,10 +130,10 @@ func init() {
 		log.Printf("Warning: failed to load config, using defaults: %v", err)
 		cfg = config.Default()
 	}
-	
+
 	// Generate styles from config
 	styles = cfg.GenerateStyles()
-	
+
 	// Map to legacy variables for backward compatibility
 	// Get colors from the extracted theme
 	colors, _ := config.ExtractThemeColors(cfg.GetActiveTheme())
@@ -162,10 +162,10 @@ func ReloadStyles() error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Regenerate styles
 	styles = cfg.GenerateStyles()
-	
+
 	// Update legacy variables
 	// Get colors from the extracted theme
 	colors, _ := config.ExtractThemeColors(cfg.GetActiveTheme())
@@ -180,6 +180,6 @@ func ReloadStyles() error {
 			successColor = lipgloss.Color("") // No color if all fails
 		}
 	}
-	
+
 	return nil
 }

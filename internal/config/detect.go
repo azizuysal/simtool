@@ -16,7 +16,7 @@ func InitializeThemeDetection() {
 		if override := os.Getenv("SIMTOOL_THEME_MODE"); override != "" {
 			return
 		}
-		
+
 		// Try to query terminal background
 		bgColor, err := QueryTerminalBackgroundColor()
 		if err == nil && bgColor != "" {

@@ -34,34 +34,34 @@ func (m *mockFetcher) Boot(udid string) error {
 
 func TestNew(t *testing.T) {
 	fetcher := &mockFetcher{}
-	
+
 	t.Run("default start with simulators", func(t *testing.T) {
 		model := New(fetcher, false)
-		
+
 		if model.fetcher != fetcher {
 			t.Error("Expected fetcher to be set")
 		}
-		
+
 		if model.viewState != SimulatorListView {
 			t.Error("Expected initial view state to be SimulatorListView")
 		}
-		
+
 		if model.err != nil {
 			t.Error("Expected no initial error")
 		}
 	})
-	
+
 	t.Run("start with all apps", func(t *testing.T) {
 		model := New(fetcher, true)
-		
+
 		if model.fetcher != fetcher {
 			t.Error("Expected fetcher to be set")
 		}
-		
+
 		if model.viewState != AllAppsView {
 			t.Error("Expected initial view state to be AllAppsView")
 		}
-		
+
 		if model.loadingAllApps != true {
 			t.Error("Expected loadingAllApps to be true when starting with all apps")
 		}
@@ -71,9 +71,9 @@ func TestNew(t *testing.T) {
 func TestInit(t *testing.T) {
 	fetcher := &mockFetcher{}
 	model := New(fetcher, false)
-	
+
 	cmd := model.Init()
-	
+
 	// Init should return a batch command
 	if cmd == nil {
 		t.Error("Expected Init to return a command")
@@ -109,26 +109,26 @@ func TestFetchSimulatorsCmd(t *testing.T) {
 			wantErr:    true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fetcher := &mockFetcher{
 				items:    tt.simulators,
 				fetchErr: tt.err,
 			}
-			
+
 			cmd := fetchSimulatorsCmd(fetcher)
 			msg := cmd()
-			
+
 			fetchMsg, ok := msg.(fetchSimulatorsMsg)
 			if !ok {
 				t.Fatal("Expected fetchSimulatorsMsg")
 			}
-			
+
 			if (fetchMsg.err != nil) != tt.wantErr {
 				t.Errorf("fetchSimulatorsCmd() error = %v, wantErr %v", fetchMsg.err, tt.wantErr)
 			}
-			
+
 			if !tt.wantErr && len(fetchMsg.simulators) != len(tt.simulators) {
 				t.Errorf("Expected %d simulators, got %d", len(tt.simulators), len(fetchMsg.simulators))
 			}
@@ -139,24 +139,24 @@ func TestFetchSimulatorsCmd(t *testing.T) {
 func TestBootSimulatorCmd(t *testing.T) {
 	fetcher := &mockFetcher{}
 	model := Model{fetcher: fetcher}
-	
+
 	udid := "test-udid-123"
 	cmd := model.bootSimulatorCmd(udid)
 	msg := cmd()
-	
+
 	bootMsg, ok := msg.(bootSimulatorMsg)
 	if !ok {
 		t.Fatal("Expected bootSimulatorMsg")
 	}
-	
+
 	if bootMsg.udid != udid {
 		t.Errorf("Expected UDID %s, got %s", udid, bootMsg.udid)
 	}
-	
+
 	if !fetcher.bootCalled {
 		t.Error("Expected Boot to be called")
 	}
-	
+
 	if fetcher.bootUDID != udid {
 		t.Errorf("Expected boot UDID %s, got %s", udid, fetcher.bootUDID)
 	}
@@ -170,10 +170,10 @@ func TestFetchAppsCmd(t *testing.T) {
 			State: "Booted",
 		},
 	}
-	
+
 	model := Model{}
 	cmd := model.fetchAppsCmd(sim)
-	
+
 	// Since this calls an external function, we can only test that it returns a command
 	if cmd == nil {
 		t.Error("Expected fetchAppsCmd to return a command")
@@ -182,10 +182,10 @@ func TestFetchAppsCmd(t *testing.T) {
 
 func TestFetchFilesCmd(t *testing.T) {
 	containerPath := "/path/to/container"
-	
+
 	model := Model{}
 	cmd := model.fetchFilesCmd(containerPath)
-	
+
 	// Since this calls an external function, we can only test that it returns a command
 	if cmd == nil {
 		t.Error("Expected fetchFilesCmd to return a command")
@@ -206,12 +206,12 @@ func TestOpenInFinderCmd(t *testing.T) {
 			path: "file:///path/to/file",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			model := Model{}
 			cmd := model.openInFinderCmd(tt.path)
-			
+
 			if cmd == nil {
 				t.Error("Expected openInFinderCmd to return a command")
 			}
@@ -221,12 +221,12 @@ func TestOpenInFinderCmd(t *testing.T) {
 
 func TestFetchFileContentCmd(t *testing.T) {
 	tests := []struct {
-		name      string
-		path      string
-		offset    int
-		height    int
-		fileType  simulator.FileType
-		maxLines  int
+		name     string
+		path     string
+		offset   int
+		height   int
+		fileType simulator.FileType
+		maxLines int
 	}{
 		{
 			name:     "text file",
@@ -250,12 +250,12 @@ func TestFetchFileContentCmd(t *testing.T) {
 			maxLines: 500,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			model := Model{height: tt.height}
 			cmd := model.fetchFileContentCmd(tt.path, tt.offset)
-			
+
 			if cmd == nil {
 				t.Error("Expected fetchFileContentCmd to return a command")
 			}
@@ -274,17 +274,17 @@ func TestModelState(t *testing.T) {
 		height: 30,
 		width:  80,
 	}
-	
+
 	// Test view state
 	if model.viewState != SimulatorListView {
 		t.Errorf("Expected view state %v, got %v", SimulatorListView, model.viewState)
 	}
-	
+
 	// Test cursor position
 	if model.simCursor != 5 {
 		t.Errorf("Expected cursor at 5, got %d", model.simCursor)
 	}
-	
+
 	// Test dimensions
 	if model.height != 30 || model.width != 80 {
 		t.Errorf("Expected dimensions 30x80, got %dx%d", model.height, model.width)
@@ -300,7 +300,7 @@ func TestMessageTypes(t *testing.T) {
 	if len(fetchMsg.simulators) != 1 {
 		t.Error("fetchSimulatorsMsg not properly constructed")
 	}
-	
+
 	// Test bootSimulatorMsg
 	bootMsg := bootSimulatorMsg{
 		udid: "test-123",
@@ -309,7 +309,7 @@ func TestMessageTypes(t *testing.T) {
 	if bootMsg.udid != "test-123" {
 		t.Error("bootSimulatorMsg not properly constructed")
 	}
-	
+
 	// Test fetchAppsMsg
 	appsMsg := fetchAppsMsg{
 		apps: []simulator.App{{Name: "TestApp"}},
@@ -318,13 +318,13 @@ func TestMessageTypes(t *testing.T) {
 	if len(appsMsg.apps) != 1 {
 		t.Error("fetchAppsMsg not properly constructed")
 	}
-	
+
 	// Test tickMsg
 	tickMsg := tickMsg(time.Now())
 	if time.Time(tickMsg).IsZero() {
 		t.Error("tickMsg not properly constructed")
 	}
-	
+
 	// Test fetchFilesMsg
 	filesMsg := fetchFilesMsg{
 		files: []simulator.FileInfo{{Name: "test.txt"}},
@@ -333,13 +333,13 @@ func TestMessageTypes(t *testing.T) {
 	if len(filesMsg.files) != 1 {
 		t.Error("fetchFilesMsg not properly constructed")
 	}
-	
+
 	// Test openInFinderMsg
 	finderMsg := openInFinderMsg{err: nil}
 	if finderMsg.err != nil {
 		t.Error("openInFinderMsg not properly constructed")
 	}
-	
+
 	// Test fetchFileContentMsg
 	contentMsg := fetchFileContentMsg{
 		content: &simulator.FileContent{Type: simulator.FileTypeText},
@@ -348,7 +348,7 @@ func TestMessageTypes(t *testing.T) {
 	if contentMsg.content.Type != simulator.FileTypeText {
 		t.Error("fetchFileContentMsg not properly constructed")
 	}
-	
+
 	// Test fetchAllAppsMsg
 	allAppsMsg := fetchAllAppsMsg{
 		apps: []simulator.App{{Name: "TestApp"}},
@@ -368,7 +368,7 @@ func TestViewStateConstants(t *testing.T) {
 		FileViewerView:    "FileViewerView",
 		AllAppsView:       "AllAppsView",
 	}
-	
+
 	seen := make(map[ViewState]bool)
 	for state, name := range states {
 		if seen[state] {
@@ -376,7 +376,7 @@ func TestViewStateConstants(t *testing.T) {
 		}
 		seen[state] = true
 	}
-	
+
 	// Verify initial state
 	if SimulatorListView != 0 {
 		t.Error("Expected SimulatorListView to be the zero value")
@@ -387,7 +387,7 @@ func TestThemeChangedMsg(t *testing.T) {
 	msg := themeChangedMsg{
 		newMode: "dark",
 	}
-	
+
 	if msg.newMode != "dark" {
 		t.Errorf("Expected theme mode 'dark', got %q", msg.newMode)
 	}
@@ -405,10 +405,10 @@ func TestCheckThemeChange(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name            string
-		currentMode     string
-		envOverride     string
-		expectCommand   bool
+		name          string
+		currentMode   string
+		envOverride   string
+		expectCommand bool
 	}{
 		{
 			name:          "with override - no detection",
@@ -438,7 +438,7 @@ func TestCheckThemeChange(t *testing.T) {
 			}
 
 			cmd := model.checkThemeChange()
-			
+
 			if tt.expectCommand && cmd == nil {
 				t.Error("Expected checkThemeChange to return a command")
 			} else if !tt.expectCommand && cmd != nil {
@@ -451,7 +451,7 @@ func TestCheckThemeChange(t *testing.T) {
 func TestNewModelThemeMode(t *testing.T) {
 	fetcher := &mockFetcher{}
 	model := New(fetcher, false)
-	
+
 	// Model should have a theme mode set
 	if model.currentThemeMode != "dark" && model.currentThemeMode != "light" {
 		t.Errorf("Expected currentThemeMode to be 'dark' or 'light', got %q", model.currentThemeMode)

@@ -29,14 +29,14 @@ func FormatHeader(text string, width int) string {
 // FormatFooter creates a footer aligned with the content
 func FormatFooter(text string, contentWidth, totalWidth int) string {
 	var result strings.Builder
-	
+
 	// Align with content
 	if totalWidth > contentWidth {
 		leftPadding := (totalWidth - contentWidth) / 2
 		result.WriteString(strings.Repeat(" ", leftPadding))
 	}
 	result.WriteString(FooterStyle().Render(text))
-	
+
 	return result.String()
 }
 

@@ -45,7 +45,7 @@ func (fv *FileViewer) renderArchive() string {
 	// Build and render tree
 	tree := buildTreeFromPaths(archInfo.Entries)
 	var treeLines []string
-	
+
 	// Render root's children
 	childNames := make([]string, 0, len(tree.children))
 	for name := range tree.children {
@@ -61,7 +61,7 @@ func (fv *FileViewer) renderArchive() string {
 	// Calculate visible range
 	headerLines := 4 // Info + separator + padding
 	availableLines := fv.Height - headerLines
-	
+
 	startIdx := fv.ContentViewport
 	endIdx := startIdx + availableLines
 	if endIdx > len(treeLines) {

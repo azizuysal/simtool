@@ -15,7 +15,7 @@ func getBirthTime(info os.FileInfo) time.Time {
 	if !ok {
 		return time.Time{}
 	}
-	
+
 	// On macOS, Birthtimespec contains the creation time
 	return time.Unix(stat.Birthtimespec.Sec, stat.Birthtimespec.Nsec)
 }

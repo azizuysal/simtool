@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 	"time"
-	
+
 	"golang.org/x/term"
 )
 
@@ -15,32 +15,32 @@ func QueryTerminalBackgroundColor() (string, error) {
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
 		return "", fmt.Errorf("not running in a terminal")
 	}
-	
+
 	// Save current terminal state
 	oldState, err := term.GetState(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", fmt.Errorf("getting terminal state: %w", err)
 	}
-	
+
 	// Ensure we restore terminal on exit
 	defer func() {
 		_ = term.Restore(int(os.Stdin.Fd()), oldState)
 	}()
-	
+
 	// Enter raw mode
 	_, err = term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", fmt.Errorf("entering raw mode: %w", err)
 	}
-	
+
 	// Send OSC 11 query with ST terminator (ESC\)
 	_, _ = fmt.Fprintf(os.Stdout, "\033]11;?\033\\")
 	_ = os.Stdout.Sync()
-	
+
 	// Read response with timeout
 	responseChan := make(chan []byte, 1)
 	errorChan := make(chan error, 1)
-	
+
 	go func() {
 		buf := make([]byte, 256)
 		n, err := os.Stdin.Read(buf)
@@ -50,7 +50,7 @@ func QueryTerminalBackgroundColor() (string, error) {
 			responseChan <- buf[:n]
 		}
 	}()
-	
+
 	select {
 	case response := <-responseChan:
 		// Restore terminal before processing
@@ -72,7 +72,7 @@ func parseOSC11Response(response string) string {
 	if start == -1 {
 		return ""
 	}
-	
+
 	// Find the end (ESC\ or BEL)
 	end := len(response)
 	for i := start; i < len(response); i++ {
@@ -81,7 +81,7 @@ func parseOSC11Response(response string) string {
 			break
 		}
 	}
-	
+
 	return response[start:end]
 }
 
@@ -91,27 +91,33 @@ func IsColorDark(colorStr string) bool {
 	if !strings.HasPrefix(colorStr, "rgb:") {
 		return true // Default to dark if we can't parse
 	}
-	
+
 	parts := strings.Split(strings.TrimPrefix(colorStr, "rgb:"), "/")
 	if len(parts) != 3 {
 		return true
 	}
-	
+
 	// Parse hex values (often 16-bit per channel)
 	var r, g, b uint64
 	_, _ = fmt.Sscanf(parts[0], "%x", &r)
 	_, _ = fmt.Sscanf(parts[1], "%x", &g)
 	_, _ = fmt.Sscanf(parts[2], "%x", &b)
-	
+
 	// Normalize to 0-255 range
 	// Terminal colors can be 8-bit (FF) or 16-bit (FFFF)
-	if r > 255 { r = r >> 8 }
-	if g > 255 { g = g >> 8 }
-	if b > 255 { b = b >> 8 }
-	
+	if r > 255 {
+		r = r >> 8
+	}
+	if g > 255 {
+		g = g >> 8
+	}
+	if b > 255 {
+		b = b >> 8
+	}
+
 	// Calculate perceived brightness using ITU-R BT.709 formula
 	brightness := (0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b)) / 255.0
-	
+
 	// Consider dark if brightness is less than 0.5
 	return brightness < 0.5
 }

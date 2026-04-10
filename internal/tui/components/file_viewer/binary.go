@@ -28,7 +28,7 @@ func (fv *FileViewer) renderBinary() string {
 		// Calculate visible range
 		headerLines := 4 // Info + separator + padding
 		visibleLines := fv.Height - headerLines
-		
+
 		startLine := fv.ContentViewport
 		endLine := startLine + visibleLines
 		if endLine > len(hexLines) {

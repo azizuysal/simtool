@@ -3,8 +3,8 @@ package components
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/azizuysal/simtool/internal/ui"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // Layout represents the main TUI layout structure
@@ -28,11 +28,11 @@ func (l *Layout) Render(title, content, footer, status string) string {
 	// Calculate heights more precisely
 	titleSection := l.renderTitle(title)
 	footerSection := l.renderFooter(footer, status)
-	
+
 	// Use lipgloss to measure actual rendered height
 	titleHeight := lipgloss.Height(titleSection)
 	footerHeight := lipgloss.Height(footerSection)
-	
+
 	// Calculate remaining height for content
 	contentHeight := l.Height - titleHeight - footerHeight
 	if contentHeight < 5 {
@@ -50,16 +50,16 @@ func (l *Layout) Render(title, content, footer, status string) string {
 // renderTitle renders the centered title with padding
 func (l *Layout) renderTitle(title string) string {
 	var s strings.Builder
-	
+
 	// Top padding line
 	s.WriteString("\n")
-	
+
 	// Use the theme-based header style
 	headerStyle := ui.HeaderStyle().MarginBottom(0)
-	
+
 	header := headerStyle.Render(title)
 	headerWidth := lipgloss.Width(header)
-	
+
 	// Center the title
 	if l.Width > headerWidth {
 		padding := (l.Width - headerWidth) / 2
@@ -67,10 +67,10 @@ func (l *Layout) renderTitle(title string) string {
 	}
 	s.WriteString(header)
 	s.WriteString("\n")
-	
+
 	// Bottom padding line
 	s.WriteString("\n")
-	
+
 	return s.String()
 }
 
@@ -86,7 +86,7 @@ func (l *Layout) renderContent(content string, height int) string {
 	// But ensure content fills the available space
 	contentLines := strings.Split(content, "\n")
 	currentLines := len(contentLines)
-	
+
 	// Pad content to fill available height (accounting for border)
 	targetLines := height - 2 // -2 for top and bottom border
 	if currentLines < targetLines && targetLines > 0 {
@@ -190,7 +190,7 @@ func NewContentBox(width, height int) *ContentBox {
 
 // Render renders content with optional header section
 func (cb *ContentBox) Render(header, content string, hasHeader bool) string {
-	innerWidth := cb.Width - 4  // Account for border padding
+	innerWidth := cb.Width - 4   // Account for border padding
 	innerHeight := cb.Height - 2 // Account for border padding
 
 	var s strings.Builder
@@ -199,7 +199,7 @@ func (cb *ContentBox) Render(header, content string, hasHeader bool) string {
 		// Render header
 		s.WriteString(header)
 		s.WriteString("\n\n")
-		
+
 		// Separator line
 		s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 		s.WriteString("\n\n")
@@ -207,7 +207,7 @@ func (cb *ContentBox) Render(header, content string, hasHeader bool) string {
 		// Adjust height for content
 		headerLines := strings.Count(header, "\n") + 4 // header + separators
 		contentHeight := innerHeight - headerLines
-		
+
 		// Ensure content fills remaining space
 		contentLines := strings.Split(content, "\n")
 		for i := 0; i < contentHeight && i < len(contentLines); i++ {
@@ -216,7 +216,7 @@ func (cb *ContentBox) Render(header, content string, hasHeader bool) string {
 			}
 			s.WriteString(contentLines[i])
 		}
-		
+
 		// Pad remaining space
 		currentLines := len(contentLines)
 		if currentLines < contentHeight {
@@ -233,7 +233,7 @@ func (cb *ContentBox) Render(header, content string, hasHeader bool) string {
 			}
 			s.WriteString(contentLines[i])
 		}
-		
+
 		// Pad remaining space
 		currentLines := len(contentLines)
 		if currentLines < innerHeight {

@@ -148,11 +148,11 @@ func TestParseAppListJSON(t *testing.T) {
 				t.Errorf("parseAppListJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			// Sort both slices by BundleID for consistent comparison
 			sortAppsByBundleID(got)
 			sortAppsByBundleID(tt.want)
-			
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseAppListJSON() = %v, want %v", got, tt.want)
 			}
@@ -164,15 +164,15 @@ func TestAppInfoMarshaling(t *testing.T) {
 	// Test that appInfo structure can be properly marshaled/unmarshaled
 	original := map[string]appInfo{
 		"com.example.app": {
-			ApplicationType:             "User",
-			Bundle:                      "/path/to/app.app",
-			BundleContainer:             "/path/to/container",
-			CFBundleDisplayName:         "Example App",
-			CFBundleIdentifier:          "com.example.app",
-			CFBundleName:                "ExampleApp",
-			CFBundleShortVersionString:  "1.2.3",
-			DataContainer:               "/path/to/data",
-			Path:                        "/path/to/app.app",
+			ApplicationType:            "User",
+			Bundle:                     "/path/to/app.app",
+			BundleContainer:            "/path/to/container",
+			CFBundleDisplayName:        "Example App",
+			CFBundleIdentifier:         "com.example.app",
+			CFBundleName:               "ExampleApp",
+			CFBundleShortVersionString: "1.2.3",
+			DataContainer:              "/path/to/data",
+			Path:                       "/path/to/app.app",
 		},
 	}
 

@@ -1,18 +1,18 @@
 package tui
 
 import (
-	"testing"
 	"github.com/azizuysal/simtool/internal/simulator"
+	"testing"
 )
 
 func TestGetFilteredAndSearchedSimulators(t *testing.T) {
 	tests := []struct {
-		name           string
-		simulators     []simulator.Item
-		filterActive   bool
-		searchQuery    string
-		expectedCount  int
-		expectedNames  []string
+		name          string
+		simulators    []simulator.Item
+		filterActive  bool
+		searchQuery   string
+		expectedCount int
+		expectedNames []string
 	}{
 		{
 			name: "no filter, no search",

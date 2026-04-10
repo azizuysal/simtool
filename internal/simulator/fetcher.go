@@ -125,7 +125,7 @@ func (f *SimctlFetcher) Boot(udid string) error {
 		}
 		return fmt.Errorf("failed to boot simulator: %s", string(output))
 	}
-	
+
 	// Open the Simulator app to show the UI
 	return f.openSimulatorApp()
 }
@@ -146,7 +146,7 @@ func (f *SimctlFetcher) getAppCount(udid string) int {
 		// Parse the plist-style output
 		outputStr := string(output)
 		lines := strings.Split(outputStr, "\n")
-		
+
 		userAppCount := 0
 		for _, line := range lines {
 			// Look for CFBundleIdentifier lines
@@ -171,13 +171,13 @@ func (f *SimctlFetcher) getAppCountFromDataDir(udid string) int {
 	// Build the path to the simulator's app bundle directory
 	homeDir := os.Getenv("HOME")
 	devicePath := fmt.Sprintf("%s/Library/Developer/CoreSimulator/Devices/%s/data/Containers/Bundle/Application", homeDir, udid)
-	
+
 	// Check if the directory exists
 	entries, err := os.ReadDir(devicePath)
 	if err != nil {
 		return 0
 	}
-	
+
 	// Count the directories (each represents an installed app)
 	appCount := 0
 	for _, entry := range entries {
@@ -187,7 +187,7 @@ func (f *SimctlFetcher) getAppCountFromDataDir(udid string) int {
 			appCount++
 		}
 	}
-	
+
 	return appCount
 }
 
@@ -223,7 +223,7 @@ func parseSimulatorJSON(data []byte) ([]Item, error) {
 		if !strings.Contains(runtime, "iOS") {
 			continue
 		}
-		
+
 		for _, device := range devices {
 			if device.IsAvailable {
 				items = append(items, Item{

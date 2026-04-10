@@ -2,7 +2,7 @@ package ui
 
 import (
 	"testing"
-	
+
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -58,10 +58,10 @@ func TestReloadStyles(t *testing.T) {
 func TestStylesInitialization(t *testing.T) {
 	// Test that styles are initialized properly
 	// This is implicitly tested by the other tests, but we can be explicit
-	
+
 	// Get a style to ensure initialization has occurred
 	style := HeaderStyle()
-	
+
 	// The style should be usable
 	rendered := style.Render("Test")
 	if rendered == "" {
