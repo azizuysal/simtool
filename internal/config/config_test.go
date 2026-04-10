@@ -150,7 +150,7 @@ dark_theme = "dracula"
 light_theme = "solarized-light"
 
 [startup]
-initial_view = "apps"
+initial_view = "all_apps"
 `
 		err := os.WriteFile(configPath, []byte(configContent), 0644)
 		if err != nil {
@@ -171,8 +171,8 @@ initial_view = "apps"
 		if cfg.Theme.LightTheme != "solarized-light" {
 			t.Errorf("Expected light theme 'solarized-light', got %q", cfg.Theme.LightTheme)
 		}
-		if cfg.Startup.InitialView != "apps" {
-			t.Errorf("Expected initial view 'apps', got %q", cfg.Startup.InitialView)
+		if cfg.Startup.InitialView != "all_apps" {
+			t.Errorf("Expected initial view 'all_apps', got %q", cfg.Startup.InitialView)
 		}
 	})
 

@@ -4,9 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
+
+// validThemeModes is the set of accepted theme.mode values.
+var validThemeModes = []string{"auto", "dark", "light"}
+
+// validInitialViews is the set of accepted startup.initial_view values.
+var validInitialViews = []string{"simulator_list", "all_apps"}
 
 // Config represents the application configuration
 type Config struct {
@@ -47,32 +54,83 @@ func Default() *Config {
 	}
 }
 
-// Load loads configuration from the standard config path
+// Load loads configuration from the standard config path. On any
+// error a usable default config is returned alongside the error so
+// callers can gracefully fall back.
 func Load() (*Config, error) {
-	cfg := Default()
-
-	// Get config path
 	configPath, err := getConfigPath()
 	if err != nil {
-		return cfg, fmt.Errorf("getting config path: %w", err)
+		return Default(), fmt.Errorf("getting config path: %w", err)
 	}
+	return loadFromPath(configPath)
+}
 
-	// Check if config file exists
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		// No user config, return defaults
+// loadFromPath is the testable core of Load: it takes an explicit
+// config path and returns a parsed+validated Config (or defaults +
+// error).
+func loadFromPath(path string) (*Config, error) {
+	cfg := Default()
+
+	// Missing file is not an error — just use defaults.
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return cfg, nil
 	}
 
-	// Load user config
 	userCfg := &Config{}
-	if _, err := toml.DecodeFile(configPath, userCfg); err != nil {
+	md, err := toml.DecodeFile(path, userCfg)
+	if err != nil {
 		return cfg, fmt.Errorf("decoding config file: %w", err)
 	}
 
-	// Merge user config with defaults
-	cfg.merge(userCfg)
+	// Reject any keys in the file that didn't map to a struct field.
+	// This catches typos (e.g. "them" instead of "theme") and keys
+	// left over from an older config schema.
+	if undecoded := md.Undecoded(); len(undecoded) > 0 {
+		keys := make([]string, 0, len(undecoded))
+		for _, k := range undecoded {
+			keys = append(keys, k.String())
+		}
+		return cfg, fmt.Errorf("config contains unknown keys: %s", strings.Join(keys, ", "))
+	}
 
+	// Validate enum values against their allowed sets.
+	if err := userCfg.Validate(); err != nil {
+		return cfg, fmt.Errorf("invalid config: %w", err)
+	}
+
+	cfg.merge(userCfg)
 	return cfg, nil
+}
+
+// Validate checks that a Config's enum-valued fields hold only
+// accepted values. Empty strings are accepted since they fall back
+// to defaults via merge().
+func (c *Config) Validate() error {
+	var errs []string
+
+	if c.Theme.Mode != "" && !stringInSlice(c.Theme.Mode, validThemeModes) {
+		errs = append(errs, fmt.Sprintf("theme.mode: %q is not one of %v",
+			c.Theme.Mode, validThemeModes))
+	}
+
+	if c.Startup.InitialView != "" && !stringInSlice(c.Startup.InitialView, validInitialViews) {
+		errs = append(errs, fmt.Sprintf("startup.initial_view: %q is not one of %v",
+			c.Startup.InitialView, validInitialViews))
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+	return nil
+}
+
+func stringInSlice(s string, set []string) bool {
+	for _, v := range set {
+		if s == v {
+			return true
+		}
+	}
+	return false
 }
 
 // SaveExample saves an example configuration file
