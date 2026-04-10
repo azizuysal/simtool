@@ -26,6 +26,24 @@ const (
 // clearStatusMsg is sent to clear the status message
 type clearStatusMsg struct{}
 
+// clearStatusAfter returns a command that clears the status message
+// after d. Extracted from the repeated tea.Tick pattern that was
+// previously inlined at every error/notification site.
+func clearStatusAfter(d time.Duration) tea.Cmd {
+	return tea.Tick(d, func(time.Time) tea.Msg {
+		return clearStatusMsg{}
+	})
+}
+
+// flashStatus sets m.statusMessage and returns a command that will
+// clear the message after d. Callers that need to batch the clear
+// with other commands (e.g. a refresh after a successful boot)
+// should set the status themselves and use clearStatusAfter directly.
+func (m Model) flashStatus(msg string, d time.Duration) (Model, tea.Cmd) {
+	m.statusMessage = msg
+	return m, clearStatusAfter(d)
+}
+
 // Update handles messages and updates the model
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -53,20 +71,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.appList.apps = msg.apps
 		m.appList.loading = false
 		if msg.err != nil {
-			m.statusMessage = fmt.Sprintf("Error loading apps: %v", msg.err)
 			m.viewState = SimulatorListView
 			m.appList.selectedSim = nil
-			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus(fmt.Sprintf("Error loading apps: %v", msg.err), 3*time.Second)
 		}
 		if len(msg.apps) == 0 {
-			m.statusMessage = "No apps installed on this simulator"
 			m.viewState = SimulatorListView
 			m.appList.selectedSim = nil
-			return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus("No apps installed on this simulator", 2*time.Second)
 		}
 		m.appList.cursor = 0
 		m.appList.viewport = 0
@@ -86,18 +98,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case bootSimulatorMsg:
 		m.simList.booting = false
 		if msg.err != nil {
-			m.statusMessage = fmt.Sprintf("Error: %v", msg.err)
-			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus(fmt.Sprintf("Error: %v", msg.err), 3*time.Second)
 		}
 		m.statusMessage = "Simulator booted successfully!"
 		// Refresh simulators to update status AND set up clear timer
 		return m, tea.Batch(
 			fetchSimulatorsCmd(m.fetcher),
-			tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			}),
+			clearStatusAfter(3*time.Second),
 		)
 
 	case clearStatusMsg:
@@ -105,10 +112,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case openInFinderMsg:
 		if msg.err != nil {
-			m.statusMessage = fmt.Sprintf("Error opening in Finder: %v", msg.err)
-			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus(fmt.Sprintf("Error opening in Finder: %v", msg.err), 3*time.Second)
 		}
 
 	case tickMsg:
@@ -134,11 +138,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Reload styles from config with new theme
 		if err := ui.ReloadStyles(); err != nil {
-			m.statusMessage = fmt.Sprintf("Failed to reload theme: %v", err)
-			// Clear error message after a delay
-			return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus(fmt.Sprintf("Failed to reload theme: %v", err), 2*time.Second)
 		}
 
 		// Simply return the model - styles will be picked up on next render
@@ -148,13 +148,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.fileList.files = msg.files
 		m.fileList.loading = false
 		if msg.err != nil {
-			m.statusMessage = fmt.Sprintf("Error loading files: %v", msg.err)
 			m.viewState = AppListView
 			m.fileList.selectedApp = nil
 			m.fileList.currentPath = ""
-			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus(fmt.Sprintf("Error loading files: %v", msg.err), 3*time.Second)
 		}
 		// Restore cursor position if we've been here before
 		if m.fileList.cursorMemory != nil {
@@ -185,12 +182,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fetchDatabaseInfoMsg:
 		m.dbTables.loading = false
 		if msg.err != nil {
-			m.statusMessage = fmt.Sprintf("Error loading database: %v", msg.err)
 			m.viewState = FileListView
 			m.dbTables.file = nil
-			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus(fmt.Sprintf("Error loading database: %v", msg.err), 3*time.Second)
 		}
 		m.dbTables.info = msg.dbInfo
 		m = m.updateViewport()
@@ -198,10 +192,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fetchTableDataMsg:
 		m.dbContent.loading = false
 		if msg.err != nil {
-			m.statusMessage = fmt.Sprintf("Error loading table data: %v", msg.err)
-			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus(fmt.Sprintf("Error loading table data: %v", msg.err), 3*time.Second)
 		}
 		m.dbContent.data = msg.data
 		m.dbContent.offset = msg.offset
@@ -210,12 +201,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fetchFileContentMsg:
 		m.fileViewer.loading = false
 		if msg.err != nil {
-			m.statusMessage = fmt.Sprintf("Error loading file: %v", msg.err)
 			m.viewState = FileListView
 			m.fileViewer.file = nil
-			return m, tea.Tick(time.Second*3, func(t time.Time) tea.Msg {
-				return clearStatusMsg{}
-			})
+			return m.flashStatus(fmt.Sprintf("Error loading file: %v", msg.err), 3*time.Second)
 		}
 		m.fileViewer.content = msg.content
 		// For binary files, update the content offset to match the loaded chunk
@@ -351,10 +339,7 @@ func (m Model) handleSimulatorListKey(action string) (tea.Model, tea.Cmd) {
 				m.statusMessage = fmt.Sprintf("Booting %s...", sim.Name)
 				return m, m.bootSimulatorCmd(sim.UDID)
 			} else if sim.IsRunning() {
-				m.statusMessage = "Simulator is already running"
-				return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-					return clearStatusMsg{}
-				})
+				return m.flashStatus("Simulator is already running", 2*time.Second)
 			}
 		}
 	case "search":
