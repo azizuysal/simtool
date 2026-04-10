@@ -259,483 +259,509 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleAllAppsSearchInput(msg)
 	}
 
-	key := msg.String()
-	action := m.keyMap.GetAction(key)
+	action := m.keyMap.GetAction(msg.String())
 
-	switch action {
-	case "quit":
-		// Don't quit if in search mode
+	// Global quit (ignored in search mode)
+	if action == "quit" {
 		if m.simSearchMode || m.appSearchMode || m.allAppsSearchMode {
 			return m, nil
 		}
 		return m, tea.Quit
+	}
 
-	case "left":
-		switch m.viewState {
-		case AppListView:
-			m.viewState = SimulatorListView
-			m.apps = nil
-			m.selectedSim = nil
-			// Clear app search mode
-			m.appSearchMode = false
-			m.appSearchQuery = ""
+	// Navigation actions clear any pending status message before dispatch.
+	if action == "up" || action == "down" || action == "home" || action == "end" {
+		m.statusMessage = ""
+	}
+
+	switch m.viewState {
+	case SimulatorListView:
+		return m.handleSimulatorListKey(action)
+	case AppListView:
+		return m.handleAppListKey(action)
+	case AllAppsView:
+		return m.handleAllAppsKey(action)
+	case FileListView:
+		return m.handleFileListKey(action)
+	case FileViewerView:
+		return m.handleFileViewerKey(action)
+	case DatabaseTableListView:
+		return m.handleDatabaseTableListKey(action)
+	case DatabaseTableContentView:
+		return m.handleDatabaseTableContentKey(action)
+	}
+	return m, nil
+}
+
+// handleSimulatorListKey handles key actions in the simulator list view.
+func (m Model) handleSimulatorListKey(action string) (tea.Model, tea.Cmd) {
+	switch action {
+	case "right":
+		filteredSims := m.getFilteredSimulators()
+		if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
+			sim := filteredSims[m.simCursor]
+			m.selectedSim = &sim
+			m.viewState = AppListView
+			m.loadingApps = true
+			return m, m.fetchAppsCmd(sim)
+		}
+	case "up":
+		if m.simCursor > 0 {
+			m.simCursor--
 			m.updateViewport()
-		case FileViewerView:
+		}
+	case "down":
+		filteredSims := m.getFilteredAndSearchedSimulators()
+		if m.simCursor < len(filteredSims)-1 {
+			m.simCursor++
+			m.updateViewport()
+		}
+	case "home":
+		m.simCursor = 0
+		m.simViewport = 0
+	case "end":
+		filteredSims := m.getFilteredAndSearchedSimulators()
+		m.simCursor = len(filteredSims) - 1
+		if m.simCursor < 0 {
+			m.simCursor = 0
+		}
+		m.updateViewport()
+	case "filter":
+		m.filterActive = !m.filterActive
+		// Reset cursor when toggling filter
+		m.simCursor = 0
+		m.simViewport = 0
+		m.updateViewport()
+	case "boot", "open":
+		filteredSims := m.getFilteredSimulators()
+		if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
+			sim := filteredSims[m.simCursor]
+			if !sim.IsRunning() && !m.booting {
+				m.booting = true
+				m.statusMessage = fmt.Sprintf("Booting %s...", sim.Name)
+				return m, m.bootSimulatorCmd(sim.UDID)
+			} else if sim.IsRunning() {
+				m.statusMessage = "Simulator is already running"
+				return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+					return clearStatusMsg{}
+				})
+			}
+		}
+	case "search":
+		m.simSearchMode = true
+		m.simSearchQuery = ""
+		// Reset cursor to 0 when starting search
+		m.simCursor = 0
+		m.simViewport = 0
+		m.updateViewport()
+	}
+	return m, nil
+}
+
+// handleAppListKey handles key actions in the app list view.
+func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
+	switch action {
+	case "left":
+		m.viewState = SimulatorListView
+		m.apps = nil
+		m.selectedSim = nil
+		// Clear app search mode
+		m.appSearchMode = false
+		m.appSearchQuery = ""
+		m.updateViewport()
+	case "right":
+		if len(m.apps) > 0 {
+			app := m.apps[m.appCursor]
+			m.selectedApp = &app
 			m.viewState = FileListView
-			m.viewingFile = nil
-			m.fileContent = nil
+			m.loadingFiles = true
+			m.currentPath = app.Container
+			m.basePath = app.Container
+			m.breadcrumbs = []string{}
+			m.cursorMemory = make(map[string]int)
+			m.viewportMemory = make(map[string]int)
+			return m, m.fetchFilesCmd(app.Container)
+		}
+	case "up":
+		if m.appCursor > 0 {
+			m.appCursor--
+			m.updateViewport()
+		}
+	case "down":
+		filteredApps := m.getFilteredAndSearchedApps()
+		if m.appCursor < len(filteredApps)-1 {
+			m.appCursor++
+			m.updateViewport()
+		}
+	case "home":
+		m.appCursor = 0
+		m.appViewport = 0
+	case "end":
+		filteredApps := m.getFilteredAndSearchedApps()
+		m.appCursor = len(filteredApps) - 1
+		if m.appCursor < 0 {
+			m.appCursor = 0
+		}
+		m.updateViewport()
+	case "boot", "open":
+		if len(m.apps) > 0 {
+			app := m.apps[m.appCursor]
+			if app.Container != "" {
+				// Open the app's container in Finder
+				return m, m.openInFinderCmd(app.Container)
+			}
+		}
+	case "search":
+		m.appSearchMode = true
+		m.appSearchQuery = ""
+		// Reset cursor to 0 when starting search
+		m.appCursor = 0
+		m.appViewport = 0
+		m.updateViewport()
+	}
+	return m, nil
+}
+
+// handleAllAppsKey handles key actions in the combined all-apps view.
+func (m Model) handleAllAppsKey(action string) (tea.Model, tea.Cmd) {
+	switch action {
+	case "right":
+		filteredApps := m.getFilteredAndSearchedAllApps()
+		if len(filteredApps) > 0 && m.allAppsCursor < len(filteredApps) {
+			app := filteredApps[m.allAppsCursor]
+			m.selectedApp = &app
+			m.viewState = FileListView
+			m.loadingFiles = true
+			m.currentPath = app.Container
+			m.basePath = app.Container
+			m.breadcrumbs = []string{}
+			m.cursorMemory = make(map[string]int)
+			m.viewportMemory = make(map[string]int)
+			return m, m.fetchFilesCmd(app.Container)
+		}
+	case "up":
+		if m.allAppsCursor > 0 {
+			m.allAppsCursor--
+			m.updateViewport()
+		}
+	case "down":
+		filteredApps := m.getFilteredAndSearchedAllApps()
+		if m.allAppsCursor < len(filteredApps)-1 {
+			m.allAppsCursor++
+			m.updateViewport()
+		}
+	case "boot", "open":
+		filteredApps := m.getFilteredAndSearchedAllApps()
+		if len(filteredApps) > 0 && m.allAppsCursor < len(filteredApps) {
+			app := filteredApps[m.allAppsCursor]
+			if app.Container != "" {
+				// Open the app's container in Finder
+				return m, m.openInFinderCmd(app.Container)
+			}
+		}
+	case "search":
+		m.allAppsSearchMode = true
+		m.allAppsSearchQuery = ""
+		// Reset cursor to 0 when starting search
+		m.allAppsCursor = 0
+		m.allAppsViewport = 0
+		m.updateViewport()
+	}
+	return m, nil
+}
+
+// handleFileListKey handles key actions in the file list view.
+func (m Model) handleFileListKey(action string) (tea.Model, tea.Cmd) {
+	switch action {
+	case "left":
+		if len(m.breadcrumbs) > 0 {
+			// Go up one directory level
+			m.breadcrumbs = m.breadcrumbs[:len(m.breadcrumbs)-1]
+			newPath := m.basePath
+			if len(m.breadcrumbs) > 0 {
+				newPath = filepath.Join(append([]string{m.basePath}, m.breadcrumbs...)...)
+			}
+			m.currentPath = newPath
+			m.loadingFiles = true
+			return m, m.fetchFilesCmd(newPath)
+		}
+		// At root level, go back to app list or all apps view
+		if m.selectedApp != nil && m.selectedApp.SimulatorUDID != "" {
+			// We came from AllAppsView
+			m.viewState = AllAppsView
+		} else {
+			// We came from regular AppListView
+			m.viewState = AppListView
+		}
+		m.files = nil
+		m.selectedApp = nil
+		m.currentPath = ""
+		m.basePath = ""
+		m.breadcrumbs = nil
+		m.cursorMemory = nil
+		m.viewportMemory = nil
+		m.updateViewport()
+	case "right":
+		if len(m.files) > 0 {
+			file := m.files[m.fileCursor]
+			if file.IsDirectory {
+				// Save current cursor position before drilling in
+				if m.cursorMemory == nil {
+					m.cursorMemory = make(map[string]int)
+					m.viewportMemory = make(map[string]int)
+				}
+				m.cursorMemory[m.currentPath] = m.fileCursor
+				m.viewportMemory[m.currentPath] = m.fileViewport
+
+				// Drill into the directory
+				m.breadcrumbs = append(m.breadcrumbs, file.Name)
+				m.currentPath = file.Path
+				m.loadingFiles = true
+				return m, m.fetchFilesCmd(file.Path)
+			}
+			// Check if it's a database file
+			fileType := simulator.DetectFileType(file.Path)
+			if fileType == simulator.FileTypeDatabase {
+				// View database tables
+				m.viewingDatabase = &file
+				m.viewState = DatabaseTableListView
+				m.loadingDatabase = true
+				m.tableCursor = 0
+				m.tableViewport = 0
+				return m, m.fetchDatabaseInfoCmd(file.Path)
+			}
+			// View the file
+			m.viewingFile = &file
+			m.viewState = FileViewerView
+			m.loadingContent = true
 			m.contentOffset = 0
 			m.contentViewport = 0
-			m.svgWarning = ""
-			m.updateViewport()
-		case DatabaseTableListView:
-			m.viewState = FileListView
-			m.viewingDatabase = nil
-			m.databaseInfo = nil
-			m.tableCursor = 0
-			m.tableViewport = 0
-			m.updateViewport()
-		case DatabaseTableContentView:
-			m.viewState = DatabaseTableListView
-			m.selectedTable = nil
-			m.tableData = nil
-			m.tableDataOffset = 0
-			m.tableDataViewport = 0
-			m.updateViewport()
-		case FileListView:
-			if len(m.breadcrumbs) > 0 {
-				// Go up one directory level
-				m.breadcrumbs = m.breadcrumbs[:len(m.breadcrumbs)-1]
-				newPath := m.basePath
-				if len(m.breadcrumbs) > 0 {
-					newPath = filepath.Join(append([]string{m.basePath}, m.breadcrumbs...)...)
-				}
-				m.currentPath = newPath
-				m.loadingFiles = true
-				return m, m.fetchFilesCmd(newPath)
-			}
-			// At root level, go back to app list or all apps view
-			if m.selectedApp != nil && m.selectedApp.SimulatorUDID != "" {
-				// We came from AllAppsView
-				m.viewState = AllAppsView
-			} else {
-				// We came from regular AppListView
-				m.viewState = AppListView
-			}
-			m.files = nil
-			m.selectedApp = nil
-			m.currentPath = ""
-			m.basePath = ""
-			m.breadcrumbs = nil
-			m.cursorMemory = nil
-			m.viewportMemory = nil
-			m.updateViewport()
+			return m, m.fetchFileContentCmd(file.Path, 0)
 		}
-
-	case "enter":
-		// Enter key no longer used for viewing files
-
-	case "right":
-		switch m.viewState {
-		case SimulatorListView:
-			filteredSims := m.getFilteredSimulators()
-			if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
-				sim := filteredSims[m.simCursor]
-				m.selectedSim = &sim
-				m.viewState = AppListView
-				m.loadingApps = true
-				return m, m.fetchAppsCmd(sim)
-			}
-		case AllAppsView:
-			filteredApps := m.getFilteredAndSearchedAllApps()
-			if len(filteredApps) > 0 && m.allAppsCursor < len(filteredApps) {
-				app := filteredApps[m.allAppsCursor]
-				m.selectedApp = &app
-				m.viewState = FileListView
-				m.loadingFiles = true
-				m.currentPath = app.Container
-				m.basePath = app.Container
-				m.breadcrumbs = []string{}
-				m.cursorMemory = make(map[string]int)
-				m.viewportMemory = make(map[string]int)
-				return m, m.fetchFilesCmd(app.Container)
-			}
-		case AppListView:
-			if len(m.apps) > 0 {
-				app := m.apps[m.appCursor]
-				m.selectedApp = &app
-				m.viewState = FileListView
-				m.loadingFiles = true
-				m.currentPath = app.Container
-				m.basePath = app.Container
-				m.breadcrumbs = []string{}
-				m.cursorMemory = make(map[string]int)
-				m.viewportMemory = make(map[string]int)
-				return m, m.fetchFilesCmd(app.Container)
-			}
-		case FileListView:
-			if len(m.files) > 0 {
-				file := m.files[m.fileCursor]
-				if file.IsDirectory {
-					// Save current cursor position before drilling in
-					if m.cursorMemory == nil {
-						m.cursorMemory = make(map[string]int)
-						m.viewportMemory = make(map[string]int)
-					}
-					m.cursorMemory[m.currentPath] = m.fileCursor
-					m.viewportMemory[m.currentPath] = m.fileViewport
-
-					// Drill into the directory
-					m.breadcrumbs = append(m.breadcrumbs, file.Name)
-					m.currentPath = file.Path
-					m.loadingFiles = true
-					return m, m.fetchFilesCmd(file.Path)
-				}
-				// Check if it's a database file
-				fileType := simulator.DetectFileType(file.Path)
-				if fileType == simulator.FileTypeDatabase {
-					// View database tables
-					m.viewingDatabase = &file
-					m.viewState = DatabaseTableListView
-					m.loadingDatabase = true
-					m.tableCursor = 0
-					m.tableViewport = 0
-					return m, m.fetchDatabaseInfoCmd(file.Path)
-				}
-				// View the file
-				m.viewingFile = &file
-				m.viewState = FileViewerView
-				m.loadingContent = true
-				m.contentOffset = 0
-				m.contentViewport = 0
-				return m, m.fetchFileContentCmd(file.Path, 0)
-			}
-		case DatabaseTableListView:
-			if m.databaseInfo != nil && len(m.databaseInfo.Tables) > 0 && m.tableCursor < len(m.databaseInfo.Tables) {
-				table := m.databaseInfo.Tables[m.tableCursor]
-				m.selectedTable = &table
-				m.viewState = DatabaseTableContentView
-				m.loadingTableData = true
-				m.tableDataOffset = 0
-				m.tableDataViewport = 0
-				// Load first page of table data (50 rows)
-				return m, m.fetchTableDataCmd(m.viewingDatabase.Path, table.Name, 0, 50)
-			}
-		}
-
 	case "up":
-		// Clear status message on navigation
-		m.statusMessage = ""
-		switch m.viewState {
-		case SimulatorListView:
-			if m.simCursor > 0 {
-				m.simCursor--
-				m.updateViewport()
-			}
-		case AllAppsView:
-			if m.allAppsCursor > 0 {
-				m.allAppsCursor--
-				m.updateViewport()
-			}
-		case AppListView:
-			if m.appCursor > 0 {
-				m.appCursor--
-				m.updateViewport()
-			}
-		case FileListView:
-			if m.fileCursor > 0 {
-				m.fileCursor--
-				m.updateViewport()
-			}
-		case FileViewerView:
-			if m.fileContent != nil {
-				switch m.fileContent.Type {
-				case simulator.FileTypeText:
-					if m.contentViewport > 0 {
-						m.contentViewport--
-					} else if m.contentOffset > 0 {
-						// Need to load previous chunk
-						newOffset := m.contentOffset - 200 // Go back 200 lines
-						if newOffset < 0 {
-							newOffset = 0
-						}
-						m.contentOffset = newOffset
-						m.loadingContent = true
-						return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
-					}
-				case simulator.FileTypeImage:
-					if m.contentViewport > 0 {
-						m.contentViewport--
-					}
-				case simulator.FileTypeBinary:
-					if m.contentViewport > 0 {
-						m.contentViewport--
-					} else if m.contentOffset > 0 {
-						// Need to load previous chunk
-						newOffset := m.contentOffset - 256 // Go back 256 lines (4KB)
-						if newOffset < 0 {
-							newOffset = 0
-						}
-						m.contentOffset = newOffset
-						m.loadingContent = true
-						// Load with line offset (offset / 16)
-						return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset/16)
-					}
-				case simulator.FileTypeArchive:
-					// Allow scrolling through archive entries
-					if m.fileContent.ArchiveInfo != nil && m.contentViewport > 0 {
-						m.contentViewport--
-					}
+		if m.fileCursor > 0 {
+			m.fileCursor--
+			m.updateViewport()
+		}
+	case "down":
+		if m.fileCursor < len(m.files)-1 {
+			m.fileCursor++
+			m.updateViewport()
+		}
+	case "home":
+		m.fileCursor = 0
+		m.fileViewport = 0
+	case "end":
+		m.fileCursor = len(m.files) - 1
+		m.updateViewport()
+	case "boot", "open":
+		if len(m.files) > 0 {
+			file := m.files[m.fileCursor]
+			// Open in Finder - for files, this will reveal them in their containing folder
+			return m, m.openInFinderCmd(file.Path)
+		}
+	}
+	return m, nil
+}
+
+// handleFileViewerKey handles key actions in the file viewer view.
+func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
+	switch action {
+	case "left":
+		m.viewState = FileListView
+		m.viewingFile = nil
+		m.fileContent = nil
+		m.contentOffset = 0
+		m.contentViewport = 0
+		m.svgWarning = ""
+		m.updateViewport()
+	case "up":
+		if m.fileContent == nil {
+			return m, nil
+		}
+		switch m.fileContent.Type {
+		case simulator.FileTypeText:
+			if m.contentViewport > 0 {
+				m.contentViewport--
+			} else if m.contentOffset > 0 {
+				// Need to load previous chunk
+				newOffset := m.contentOffset - 200 // Go back 200 lines
+				if newOffset < 0 {
+					newOffset = 0
 				}
+				m.contentOffset = newOffset
+				m.loadingContent = true
+				return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
 			}
-		case DatabaseTableListView:
-			if m.tableCursor > 0 {
-				m.tableCursor--
-				m.updateViewport()
+		case simulator.FileTypeImage:
+			if m.contentViewport > 0 {
+				m.contentViewport--
 			}
-		case DatabaseTableContentView:
-			if m.tableDataViewport > 0 {
-				m.tableDataViewport--
+		case simulator.FileTypeBinary:
+			if m.contentViewport > 0 {
+				m.contentViewport--
+			} else if m.contentOffset > 0 {
+				// Need to load previous chunk
+				newOffset := m.contentOffset - 256 // Go back 256 lines (4KB)
+				if newOffset < 0 {
+					newOffset = 0
+				}
+				m.contentOffset = newOffset
+				m.loadingContent = true
+				// Load with line offset (offset / 16)
+				return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset/16)
+			}
+		case simulator.FileTypeArchive:
+			// Allow scrolling through archive entries
+			if m.fileContent.ArchiveInfo != nil && m.contentViewport > 0 {
+				m.contentViewport--
 			}
 		}
-
 	case "down":
-		// Clear status message on navigation
-		m.statusMessage = ""
-		switch m.viewState {
-		case SimulatorListView:
-			filteredSims := m.getFilteredAndSearchedSimulators()
-			if m.simCursor < len(filteredSims)-1 {
-				m.simCursor++
-				m.updateViewport()
-			}
-		case AllAppsView:
-			filteredApps := m.getFilteredAndSearchedAllApps()
-			if m.allAppsCursor < len(filteredApps)-1 {
-				m.allAppsCursor++
-				m.updateViewport()
-			}
-		case AppListView:
-			filteredApps := m.getFilteredAndSearchedApps()
-			if m.appCursor < len(filteredApps)-1 {
-				m.appCursor++
-				m.updateViewport()
-			}
-		case FileListView:
-			if m.fileCursor < len(m.files)-1 {
-				m.fileCursor++
-				m.updateViewport()
-			}
-		case FileViewerView:
-			if m.fileContent != nil {
-				switch m.fileContent.Type {
-				case simulator.FileTypeText:
-					itemsPerScreen := CalculateItemsPerScreen(m.height) - 5 // Account for header
-					maxViewport := len(m.fileContent.Lines) - itemsPerScreen
-					if maxViewport < 0 {
-						maxViewport = 0
-					}
-
-					if m.contentViewport < maxViewport {
-						m.contentViewport++
-					} else if m.contentOffset+len(m.fileContent.Lines) < m.fileContent.TotalLines {
-						// Need to load more content
-						newOffset := m.contentOffset + len(m.fileContent.Lines)
-						m.contentOffset = newOffset
-						m.contentViewport = 0 // Reset viewport for new chunk
-						m.loadingContent = true
-						return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
-					}
-				case simulator.FileTypeImage:
-					// For images, calculate based on total content lines
-					if m.fileContent.ImageInfo != nil && m.fileContent.ImageInfo.Preview != nil {
-						// Calculate total lines (metadata + preview)
-						totalLines := 8 + len(m.fileContent.ImageInfo.Preview.Rows) // ~8 lines for metadata
-						itemsPerScreen := CalculateItemsPerScreen(m.height) - 5
-						maxViewport := totalLines - itemsPerScreen
-						if maxViewport < 0 {
-							maxViewport = 0
-						}
-						if m.contentViewport < maxViewport {
-							m.contentViewport++
-						}
-					}
-				case simulator.FileTypeBinary:
-					// Allow scrolling through binary files with lazy loading
-					hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, m.fileContent.BinaryOffset)
-					itemsPerScreen := CalculateItemsPerScreen(m.height) - 5 // Account for header
-					maxViewport := len(hexLines) - itemsPerScreen
-					if maxViewport < 0 {
-						maxViewport = 0
-					}
-
-					if m.contentViewport < maxViewport {
-						m.contentViewport++
-					} else {
-						// Check if we need to load more data
-						currentEndByte := m.fileContent.BinaryOffset + int64(len(m.fileContent.BinaryData))
-						if currentEndByte < m.fileContent.TotalSize {
-							// Load next chunk
-							newOffset := m.contentOffset + len(hexLines)
-							m.contentOffset = newOffset
-							m.contentViewport = 0 // Reset viewport for new chunk
-							m.loadingContent = true
-							// Load with line offset (total lines from start)
-							return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
-						}
-					}
-				case simulator.FileTypeArchive:
-					// Allow scrolling through archive entries (now 1 line per entry)
-					if m.fileContent.ArchiveInfo != nil {
-						itemsPerScreen := CalculateItemsPerScreen(m.height) - 3 // Header takes 3 lines
-						maxViewport := len(m.fileContent.ArchiveInfo.Entries) - itemsPerScreen
-						if maxViewport < 0 {
-							maxViewport = 0
-						}
-						if m.contentViewport < maxViewport {
-							m.contentViewport++
-						}
-					}
-				}
-			}
-		case DatabaseTableListView:
-			if m.databaseInfo != nil && m.tableCursor < len(m.databaseInfo.Tables)-1 {
-				m.tableCursor++
-				m.updateViewport()
-			}
-		case DatabaseTableContentView:
-			// Allow scrolling through table data with lazy loading
-			itemsPerScreen := CalculateItemsPerScreen(m.height) - 8 // Account for header and table headers
-			maxViewport := len(m.tableData) - itemsPerScreen
+		if m.fileContent == nil {
+			return m, nil
+		}
+		switch m.fileContent.Type {
+		case simulator.FileTypeText:
+			itemsPerScreen := CalculateItemsPerScreen(m.height) - 5 // Account for header
+			maxViewport := len(m.fileContent.Lines) - itemsPerScreen
 			if maxViewport < 0 {
 				maxViewport = 0
 			}
 
-			if m.tableDataViewport < maxViewport {
-				m.tableDataViewport++
-			} else if m.selectedTable != nil && m.tableDataOffset+len(m.tableData) < int(m.selectedTable.RowCount) {
-				// Need to load more data
-				newOffset := m.tableDataOffset + len(m.tableData)
-				m.tableDataOffset = newOffset
-				m.tableDataViewport = 0 // Reset viewport for new chunk
-				m.loadingTableData = true
-				return m, m.fetchTableDataCmd(m.viewingDatabase.Path, m.selectedTable.Name, newOffset, 50)
+			if m.contentViewport < maxViewport {
+				m.contentViewport++
+			} else if m.contentOffset+len(m.fileContent.Lines) < m.fileContent.TotalLines {
+				// Need to load more content
+				newOffset := m.contentOffset + len(m.fileContent.Lines)
+				m.contentOffset = newOffset
+				m.contentViewport = 0 // Reset viewport for new chunk
+				m.loadingContent = true
+				return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
 			}
-		}
+		case simulator.FileTypeImage:
+			// For images, calculate based on total content lines
+			if m.fileContent.ImageInfo != nil && m.fileContent.ImageInfo.Preview != nil {
+				// Calculate total lines (metadata + preview)
+				totalLines := 8 + len(m.fileContent.ImageInfo.Preview.Rows) // ~8 lines for metadata
+				itemsPerScreen := CalculateItemsPerScreen(m.height) - 5
+				maxViewport := totalLines - itemsPerScreen
+				if maxViewport < 0 {
+					maxViewport = 0
+				}
+				if m.contentViewport < maxViewport {
+					m.contentViewport++
+				}
+			}
+		case simulator.FileTypeBinary:
+			// Allow scrolling through binary files with lazy loading
+			hexLines := simulator.FormatHexDump(m.fileContent.BinaryData, m.fileContent.BinaryOffset)
+			itemsPerScreen := CalculateItemsPerScreen(m.height) - 5 // Account for header
+			maxViewport := len(hexLines) - itemsPerScreen
+			if maxViewport < 0 {
+				maxViewport = 0
+			}
 
-	case "home":
-		// Clear status message on navigation
-		m.statusMessage = ""
-		switch m.viewState {
-		case SimulatorListView:
-			m.simCursor = 0
-			m.simViewport = 0
-		case AppListView:
-			m.appCursor = 0
-			m.appViewport = 0
-		case FileListView:
-			m.fileCursor = 0
-			m.fileViewport = 0
+			if m.contentViewport < maxViewport {
+				m.contentViewport++
+			} else {
+				// Check if we need to load more data
+				currentEndByte := m.fileContent.BinaryOffset + int64(len(m.fileContent.BinaryData))
+				if currentEndByte < m.fileContent.TotalSize {
+					// Load next chunk
+					newOffset := m.contentOffset + len(hexLines)
+					m.contentOffset = newOffset
+					m.contentViewport = 0 // Reset viewport for new chunk
+					m.loadingContent = true
+					// Load with line offset (total lines from start)
+					return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset)
+				}
+			}
+		case simulator.FileTypeArchive:
+			// Allow scrolling through archive entries (now 1 line per entry)
+			if m.fileContent.ArchiveInfo != nil {
+				itemsPerScreen := CalculateItemsPerScreen(m.height) - 3 // Header takes 3 lines
+				maxViewport := len(m.fileContent.ArchiveInfo.Entries) - itemsPerScreen
+				if maxViewport < 0 {
+					maxViewport = 0
+				}
+				if m.contentViewport < maxViewport {
+					m.contentViewport++
+				}
+			}
 		}
+	}
+	return m, nil
+}
 
-	case "end":
-		// Clear status message on navigation
-		m.statusMessage = ""
-		switch m.viewState {
-		case SimulatorListView:
-			filteredSims := m.getFilteredAndSearchedSimulators()
-			m.simCursor = len(filteredSims) - 1
-			if m.simCursor < 0 {
-				m.simCursor = 0
-			}
-		case AppListView:
-			filteredApps := m.getFilteredAndSearchedApps()
-			m.appCursor = len(filteredApps) - 1
-			if m.appCursor < 0 {
-				m.appCursor = 0
-			}
-		case FileListView:
-			m.fileCursor = len(m.files) - 1
-		}
+// handleDatabaseTableListKey handles key actions in the database table list view.
+func (m Model) handleDatabaseTableListKey(action string) (tea.Model, tea.Cmd) {
+	switch action {
+	case "left":
+		m.viewState = FileListView
+		m.viewingDatabase = nil
+		m.databaseInfo = nil
+		m.tableCursor = 0
+		m.tableViewport = 0
 		m.updateViewport()
-
-	case "filter":
-		if m.viewState == SimulatorListView {
-			m.filterActive = !m.filterActive
-			// Reset cursor when toggling filter
-			m.simCursor = 0
-			m.simViewport = 0
+	case "right":
+		if m.databaseInfo != nil && len(m.databaseInfo.Tables) > 0 && m.tableCursor < len(m.databaseInfo.Tables) {
+			table := m.databaseInfo.Tables[m.tableCursor]
+			m.selectedTable = &table
+			m.viewState = DatabaseTableContentView
+			m.loadingTableData = true
+			m.tableDataOffset = 0
+			m.tableDataViewport = 0
+			// Load first page of table data (50 rows)
+			return m, m.fetchTableDataCmd(m.viewingDatabase.Path, table.Name, 0, 50)
+		}
+	case "up":
+		if m.tableCursor > 0 {
+			m.tableCursor--
 			m.updateViewport()
 		}
-
-	case "boot", "open":
-		switch m.viewState {
-		case SimulatorListView:
-			filteredSims := m.getFilteredSimulators()
-			if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
-				sim := filteredSims[m.simCursor]
-				if !sim.IsRunning() && !m.booting {
-					m.booting = true
-					m.statusMessage = fmt.Sprintf("Booting %s...", sim.Name)
-					return m, m.bootSimulatorCmd(sim.UDID)
-				} else if sim.IsRunning() {
-					m.statusMessage = "Simulator is already running"
-					return m, tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-						return clearStatusMsg{}
-					})
-				}
-			}
-		case AllAppsView:
-			filteredApps := m.getFilteredAndSearchedAllApps()
-			if len(filteredApps) > 0 && m.allAppsCursor < len(filteredApps) {
-				app := filteredApps[m.allAppsCursor]
-				if app.Container != "" {
-					// Open the app's container in Finder
-					return m, m.openInFinderCmd(app.Container)
-				}
-			}
-		case AppListView:
-			if len(m.apps) > 0 {
-				app := m.apps[m.appCursor]
-				if app.Container != "" {
-					// Open the app's container in Finder
-					return m, m.openInFinderCmd(app.Container)
-				}
-			}
-		case FileListView:
-			if len(m.files) > 0 {
-				file := m.files[m.fileCursor]
-				// Open in Finder - for files, this will reveal them in their containing folder
-				return m, m.openInFinderCmd(file.Path)
-			}
-		}
-
-	case "search":
-		switch m.viewState {
-		case SimulatorListView:
-			m.simSearchMode = true
-			m.simSearchQuery = ""
-			// Reset cursor to 0 when starting search
-			m.simCursor = 0
-			m.simViewport = 0
-			m.updateViewport()
-		case AllAppsView:
-			m.allAppsSearchMode = true
-			m.allAppsSearchQuery = ""
-			// Reset cursor to 0 when starting search
-			m.allAppsCursor = 0
-			m.allAppsViewport = 0
-			m.updateViewport()
-		case AppListView:
-			m.appSearchMode = true
-			m.appSearchQuery = ""
-			// Reset cursor to 0 when starting search
-			m.appCursor = 0
-			m.appViewport = 0
+	case "down":
+		if m.databaseInfo != nil && m.tableCursor < len(m.databaseInfo.Tables)-1 {
+			m.tableCursor++
 			m.updateViewport()
 		}
 	}
+	return m, nil
+}
 
+// handleDatabaseTableContentKey handles key actions in the table content view.
+func (m Model) handleDatabaseTableContentKey(action string) (tea.Model, tea.Cmd) {
+	switch action {
+	case "left":
+		m.viewState = DatabaseTableListView
+		m.selectedTable = nil
+		m.tableData = nil
+		m.tableDataOffset = 0
+		m.tableDataViewport = 0
+		m.updateViewport()
+	case "up":
+		if m.tableDataViewport > 0 {
+			m.tableDataViewport--
+		}
+	case "down":
+		// Allow scrolling through table data with lazy loading
+		itemsPerScreen := CalculateItemsPerScreen(m.height) - 8 // Account for header and table headers
+		maxViewport := len(m.tableData) - itemsPerScreen
+		if maxViewport < 0 {
+			maxViewport = 0
+		}
+
+		if m.tableDataViewport < maxViewport {
+			m.tableDataViewport++
+		} else if m.selectedTable != nil && m.tableDataOffset+len(m.tableData) < int(m.selectedTable.RowCount) {
+			// Need to load more data
+			newOffset := m.tableDataOffset + len(m.tableData)
+			m.tableDataOffset = newOffset
+			m.tableDataViewport = 0 // Reset viewport for new chunk
+			m.loadingTableData = true
+			return m, m.fetchTableDataCmd(m.viewingDatabase.Path, m.selectedTable.Name, newOffset, 50)
+		}
+	}
 	return m, nil
 }
 
