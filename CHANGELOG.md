@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-10
+
+### Added
+- TOML config schema validation at load time: unknown keys (typos, stale schemas) and invalid enum values are now reported as descriptive errors instead of being silently ignored
+- CycloneDX SBOM generation for each release archive via GoReleaser
+- `govulncheck` dependency vulnerability scan in CI, alongside the existing `golangci-lint` job
+
+### Changed
+- Debug log moved from the process working directory to `$XDG_CACHE_HOME/simtool/debug.log` (or OS equivalent), with 0700 parent and 0600 file permissions. Running `simtool` from arbitrary directories no longer leaves `debug.log` scattered around.
+- User config directory (`~/.config/simtool/`) permissions tightened from 0755 to 0700
+- File viewer scroll indicator now shows accurate `(start-end of total)` line counts for archives, databases, and images; previously used rough heuristics that could be off by a factor of 2 or more depending on content
+- Upgraded Go toolchain to 1.26.2 (pinned via `.mise.toml`); bumped direct dependencies including `mattn/go-sqlite3` 1.14.17 → 1.14.42, `alecthomas/chroma/v2` 2.18.0 → 2.23.1, `charmbracelet/bubbletea` 1.3.5 → 1.3.10, `BurntSushi/toml` 1.5.0 → 1.6.0
+- CI workflows now read the Go version from `go.mod` as a single source of truth instead of four hardcoded copies; `lint.yml` and `codeql.yml` moved to `ubuntu-latest` (linting doesn't need macOS)
+
+### Fixed
+- Multi-byte characters (emoji, CJK, accents) in text files were cut mid-codepoint when long lines were truncated for display. Truncation is now rune-aware.
+- SVG rasterize panic would print to stdout and corrupt the TUI rendering surface. The panic handler now propagates the error through a named return.
+- Database viewer silently treated missing files as empty databases because `?mode=ro` was not honored by `go-sqlite3` without the `file:` URI prefix. Now returns a descriptive error.
+- Database table names were interpolated into SQL queries without escaping embedded double quotes, so a file containing a crafted table name could break out of the identifier quoting. Now escaped via a `quoteSQLiteIdentifier` helper that doubles embedded quotes per SQL standard.
+- `DetectTerminalDarkModeLive` was called from the periodic tick handler and from goroutines spawned by `tea.Cmd` callbacks without synchronization. Now mutex-protected with a 2-second TTL cache.
+- Boot-simulator error messages dropped the underlying error chain (`%s` instead of `%w`), breaking `errors.Is` / `errors.As` against the returned error
+
+### Internal
+- Structural refactors with no user-visible impact: split 1502-line `viewer.go` into 7 per-format files; split 496-line `handleKeyPress` into 7 per-view-state handlers; grouped 56 `Model` fields into 7 per-view substates so back-navigation clears become single-line zero-value resets; unified `Component` interface across list/viewer TUI components; extracted `flashStatus` / `clearStatusAfter` helpers replacing 11 inlined tick-clear patterns; lifted magic numbers (chunk sizes, scan buffers, SVG dimensions, lazy-load offsets) to named constants
+- Expanded the linter set from 5 linters to 14: added errorlint, gocritic, gosec, misspell, nilerr, revive, sqlclosecheck, unconvert, bodyclose. Migrated `.golangci.yml` to golangci-lint v2 format. Enforced `gofmt` + `goimports` via `gci` with strict stdlib/external/local section order
+- Test coverage went from 29% total to roughly 60%: database viewer 0% → 84–100% per function, file_viewer package 0% → 92.9%, handleKeyPress dispatcher and per-state handlers 0% → 85–100%. New tests for `readAppInfo`, `findDataContainer`, and `getAppsFromListApps` via a swappable `CommandExecutor`
+- Removed dead `parseAppListJSON` function and its tests; the production path uses an inline plist-style parser
+
 ## [1.0.2] - 2025-07-04
 
 ### Fixed
