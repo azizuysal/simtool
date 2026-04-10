@@ -35,7 +35,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.updateViewport()
+		m = m.updateViewport()
 
 	case fetchSimulatorsMsg:
 		m.simulators = msg.simulators
@@ -47,7 +47,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.simCursor < 0 && len(m.simulators) > 0 {
 			m.simCursor = 0
 		}
-		m.updateViewport()
+		m = m.updateViewport()
 
 	case fetchAppsMsg:
 		m.apps = msg.apps
@@ -70,7 +70,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.appCursor = 0
 		m.appViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 
 	case fetchAllAppsMsg:
 		m.allApps = msg.apps
@@ -81,7 +81,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.allAppsCursor = 0
 			m.allAppsViewport = 0
 		}
-		m.updateViewport()
+		m = m.updateViewport()
 
 	case bootSimulatorMsg:
 		m.booting = false
@@ -180,7 +180,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fileCursor = 0
 			m.fileViewport = 0
 		}
-		m.updateViewport()
+		m = m.updateViewport()
 
 	case fetchDatabaseInfoMsg:
 		m.loadingDatabase = false
@@ -193,7 +193,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		}
 		m.databaseInfo = msg.dbInfo
-		m.updateViewport()
+		m = m.updateViewport()
 
 	case fetchTableDataMsg:
 		m.loadingTableData = false
@@ -205,7 +205,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.tableData = msg.data
 		m.tableDataOffset = msg.offset
-		m.updateViewport()
+		m = m.updateViewport()
 
 	case fetchFileContentMsg:
 		m.loadingContent = false
@@ -250,7 +250,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		m.updateViewport()
+		m = m.updateViewport()
 	}
 
 	return m, nil
@@ -318,13 +318,13 @@ func (m Model) handleSimulatorListKey(action string) (tea.Model, tea.Cmd) {
 	case "up":
 		if m.simCursor > 0 {
 			m.simCursor--
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "down":
 		filteredSims := m.getFilteredAndSearchedSimulators()
 		if m.simCursor < len(filteredSims)-1 {
 			m.simCursor++
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "home":
 		m.simCursor = 0
@@ -335,13 +335,13 @@ func (m Model) handleSimulatorListKey(action string) (tea.Model, tea.Cmd) {
 		if m.simCursor < 0 {
 			m.simCursor = 0
 		}
-		m.updateViewport()
+		m = m.updateViewport()
 	case "filter":
 		m.filterActive = !m.filterActive
 		// Reset cursor when toggling filter
 		m.simCursor = 0
 		m.simViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 	case "boot", "open":
 		filteredSims := m.getFilteredSimulators()
 		if len(filteredSims) > 0 && m.simCursor < len(filteredSims) {
@@ -363,7 +363,7 @@ func (m Model) handleSimulatorListKey(action string) (tea.Model, tea.Cmd) {
 		// Reset cursor to 0 when starting search
 		m.simCursor = 0
 		m.simViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 	}
 	return m, nil
 }
@@ -378,7 +378,7 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 		// Clear app search mode
 		m.appSearchMode = false
 		m.appSearchQuery = ""
-		m.updateViewport()
+		m = m.updateViewport()
 	case "right":
 		if len(m.apps) > 0 {
 			app := m.apps[m.appCursor]
@@ -395,13 +395,13 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 	case "up":
 		if m.appCursor > 0 {
 			m.appCursor--
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "down":
 		filteredApps := m.getFilteredAndSearchedApps()
 		if m.appCursor < len(filteredApps)-1 {
 			m.appCursor++
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "home":
 		m.appCursor = 0
@@ -412,7 +412,7 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 		if m.appCursor < 0 {
 			m.appCursor = 0
 		}
-		m.updateViewport()
+		m = m.updateViewport()
 	case "boot", "open":
 		if len(m.apps) > 0 {
 			app := m.apps[m.appCursor]
@@ -427,7 +427,7 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 		// Reset cursor to 0 when starting search
 		m.appCursor = 0
 		m.appViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 	}
 	return m, nil
 }
@@ -452,13 +452,13 @@ func (m Model) handleAllAppsKey(action string) (tea.Model, tea.Cmd) {
 	case "up":
 		if m.allAppsCursor > 0 {
 			m.allAppsCursor--
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "down":
 		filteredApps := m.getFilteredAndSearchedAllApps()
 		if m.allAppsCursor < len(filteredApps)-1 {
 			m.allAppsCursor++
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "boot", "open":
 		filteredApps := m.getFilteredAndSearchedAllApps()
@@ -475,7 +475,7 @@ func (m Model) handleAllAppsKey(action string) (tea.Model, tea.Cmd) {
 		// Reset cursor to 0 when starting search
 		m.allAppsCursor = 0
 		m.allAppsViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 	}
 	return m, nil
 }
@@ -510,7 +510,7 @@ func (m Model) handleFileListKey(action string) (tea.Model, tea.Cmd) {
 		m.breadcrumbs = nil
 		m.cursorMemory = nil
 		m.viewportMemory = nil
-		m.updateViewport()
+		m = m.updateViewport()
 	case "right":
 		if len(m.files) > 0 {
 			file := m.files[m.fileCursor]
@@ -551,19 +551,19 @@ func (m Model) handleFileListKey(action string) (tea.Model, tea.Cmd) {
 	case "up":
 		if m.fileCursor > 0 {
 			m.fileCursor--
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "down":
 		if m.fileCursor < len(m.files)-1 {
 			m.fileCursor++
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "home":
 		m.fileCursor = 0
 		m.fileViewport = 0
 	case "end":
 		m.fileCursor = len(m.files) - 1
-		m.updateViewport()
+		m = m.updateViewport()
 	case "boot", "open":
 		if len(m.files) > 0 {
 			file := m.files[m.fileCursor]
@@ -584,7 +584,7 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 		m.contentOffset = 0
 		m.contentViewport = 0
 		m.svgWarning = ""
-		m.updateViewport()
+		m = m.updateViewport()
 	case "up":
 		if m.fileContent == nil {
 			return m, nil
@@ -713,7 +713,7 @@ func (m Model) handleDatabaseTableListKey(action string) (tea.Model, tea.Cmd) {
 		m.databaseInfo = nil
 		m.tableCursor = 0
 		m.tableViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 	case "right":
 		if m.databaseInfo != nil && len(m.databaseInfo.Tables) > 0 && m.tableCursor < len(m.databaseInfo.Tables) {
 			table := m.databaseInfo.Tables[m.tableCursor]
@@ -728,12 +728,12 @@ func (m Model) handleDatabaseTableListKey(action string) (tea.Model, tea.Cmd) {
 	case "up":
 		if m.tableCursor > 0 {
 			m.tableCursor--
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	case "down":
 		if m.databaseInfo != nil && m.tableCursor < len(m.databaseInfo.Tables)-1 {
 			m.tableCursor++
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 	}
 	return m, nil
@@ -748,7 +748,7 @@ func (m Model) handleDatabaseTableContentKey(action string) (tea.Model, tea.Cmd)
 		m.tableData = nil
 		m.tableDataOffset = 0
 		m.tableDataViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 	case "up":
 		if m.tableDataViewport > 0 {
 			m.tableDataViewport--
@@ -804,7 +804,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.simCursor = 0
 		m.simViewport = 0
 		m.statusMessage = ""
-		m.updateViewport()
+		m = m.updateViewport()
 		return m, nil
 
 	case "backspace":
@@ -813,7 +813,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.simSearchQuery = m.simSearchQuery[:len(m.simSearchQuery)-1]
 			m.simCursor = 0
 			m.simViewport = 0
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -821,7 +821,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Navigate in search results
 		if m.simCursor > 0 {
 			m.simCursor--
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -830,7 +830,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		filteredSims := m.getFilteredAndSearchedSimulators()
 		if m.simCursor < len(filteredSims)-1 {
 			m.simCursor++
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -855,7 +855,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.simSearchQuery += " "
 		m.simCursor = 0
 		m.simViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 		return m, nil
 
 	default:
@@ -864,7 +864,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.simSearchQuery += msg.String()
 			m.simCursor = 0
 			m.simViewport = 0
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 	}
@@ -883,7 +883,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.appCursor = 0
 		m.appViewport = 0
 		m.statusMessage = ""
-		m.updateViewport()
+		m = m.updateViewport()
 		return m, nil
 
 	case "backspace":
@@ -892,7 +892,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.appSearchQuery = m.appSearchQuery[:len(m.appSearchQuery)-1]
 			m.appCursor = 0
 			m.appViewport = 0
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -900,7 +900,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Navigate in search results
 		if m.appCursor > 0 {
 			m.appCursor--
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -909,7 +909,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		filteredApps := m.getFilteredAndSearchedApps()
 		if m.appCursor < len(filteredApps)-1 {
 			m.appCursor++
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -939,7 +939,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.appSearchQuery += " "
 		m.appCursor = 0
 		m.appViewport = 0
-		m.updateViewport()
+		m = m.updateViewport()
 		return m, nil
 
 	default:
@@ -948,7 +948,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.appSearchQuery += msg.String()
 			m.appCursor = 0
 			m.appViewport = 0
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 	}
@@ -1016,7 +1016,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.allAppsCursor = 0
 		m.allAppsViewport = 0
 		m.statusMessage = ""
-		m.updateViewport()
+		m = m.updateViewport()
 		return m, nil
 
 	case "backspace":
@@ -1025,7 +1025,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.allAppsSearchQuery = m.allAppsSearchQuery[:len(m.allAppsSearchQuery)-1]
 			m.allAppsCursor = 0
 			m.allAppsViewport = 0
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -1033,7 +1033,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Navigate in search results
 		if m.allAppsCursor > 0 {
 			m.allAppsCursor--
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -1042,7 +1042,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		filteredApps := m.getFilteredAndSearchedAllApps()
 		if m.allAppsCursor < len(filteredApps)-1 {
 			m.allAppsCursor++
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 
@@ -1073,7 +1073,7 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.allAppsSearchQuery += msg.String()
 			m.allAppsCursor = 0
 			m.allAppsViewport = 0
-			m.updateViewport()
+			m = m.updateViewport()
 		}
 		return m, nil
 	}

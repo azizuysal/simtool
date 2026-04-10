@@ -16,6 +16,14 @@ import (
 // memory for very large files.
 const textLinesPerChunk = 500
 
+// Receiver convention for Model: all methods in this package take
+// Model by value. Mutators return the updated Model; callers assign
+// the return value so the mutation propagates. Bubble Tea expects
+// Update to return a fresh Model each tick, and keeping every
+// helper consistent with that pattern makes the data flow obvious
+// and avoids the subtle "did this mutate the real m or a copy?"
+// question that a mixed value/pointer receiver set provokes.
+
 // ViewState represents the current view
 type ViewState int
 
@@ -230,10 +238,12 @@ func fetchAllAppsCmd(fetcher simulator.Fetcher) tea.Cmd {
 	}
 }
 
-// checkThemeChange detects if the terminal theme has changed
-// This is called periodically with the tick to enable dynamic theme switching
-// when the user changes their terminal's appearance
-func (m *Model) checkThemeChange() tea.Cmd {
+// checkThemeChange detects if the terminal theme has changed.
+// Called periodically with the tick to enable dynamic theme switching
+// when the user changes their terminal's appearance. This is a
+// read-only method — it doesn't mutate m, it just returns a Cmd that
+// will produce a themeChangedMsg if the mode has shifted.
+func (m Model) checkThemeChange() tea.Cmd {
 	// Skip theme detection if explicitly overridden
 	if os.Getenv("SIMTOOL_THEME_MODE") != "" {
 		return nil

@@ -11,8 +11,11 @@ func CalculateItemsPerScreen(height int) int {
 	return itemsPerScreen
 }
 
-// updateViewport adjusts the viewport to keep cursor visible
-func (m *Model) updateViewport() {
+// updateViewport adjusts the viewport to keep cursor visible. Takes a
+// Model by value and returns the updated Model so callers follow the
+// same "m = m.foo()" pattern as the rest of the package. See the note
+// in model.go about receiver conventions.
+func (m Model) updateViewport() Model {
 	itemsPerScreen := CalculateItemsPerScreen(m.height)
 
 	switch m.viewState {
@@ -56,6 +59,7 @@ func (m *Model) updateViewport() {
 
 		updateViewportForList(&m.fileCursor, &m.fileViewport, len(m.files), actualFileItems)
 	}
+	return m
 }
 
 // updateViewportForList updates viewport for any list
