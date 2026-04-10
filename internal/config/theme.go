@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/styles"
@@ -324,10 +326,36 @@ func DetectTerminalDarkMode() bool {
 	return true
 }
 
-// DetectTerminalDarkModeLive performs live terminal theme detection without using cache
-// This is used for dynamic theme switching while the app is running
+// Live theme detection cache. DetectTerminalDarkModeLive is called
+// from the TUI tick handler every ~2 seconds and potentially from
+// goroutines spawned by tea.Cmd callbacks (e.g. when the chroma
+// highlighter initializes itself). Without a mutex-protected cache,
+// concurrent calls would race on the underlying subprocess query and
+// spawn redundant processes. The TTL matches the tick cadence so
+// that at most one real query runs per tick.
+var (
+	liveModeMu    sync.Mutex
+	liveModeValue bool
+	liveModeSet   bool
+	liveModeAt    time.Time
+)
+
+const liveModeTTL = 2 * time.Second
+
+// queryLiveBackground is the detection function used by
+// DetectTerminalDarkModeLive. It is a var so tests can swap it with
+// a counting fake without triggering real subprocess calls.
+var queryLiveBackground = QueryTerminalBackgroundLive
+
+// DetectTerminalDarkModeLive performs live terminal theme detection
+// for dynamic theme switching while the app is running. The result
+// is cached for liveModeTTL so rapid successive calls (and calls
+// from concurrent goroutines) don't each spawn a subprocess.
+//
+// An explicit SIMTOOL_THEME_MODE override bypasses the cache.
 func DetectTerminalDarkModeLive() bool {
-	// First check for explicit override
+	// First check for explicit override (bypasses cache so tests and
+	// user overrides take effect immediately).
 	if override := os.Getenv("SIMTOOL_THEME_MODE"); override != "" {
 		switch strings.ToLower(override) {
 		case "light":
@@ -337,18 +365,38 @@ func DetectTerminalDarkModeLive() bool {
 		}
 	}
 
-	// Skip cached result and do live detection
-	// Use the live version that works in TUI
-	result := QueryTerminalBackgroundLive()
-	switch result {
-	case "light":
-		return false
-	case "dark":
-		return true
+	liveModeMu.Lock()
+	defer liveModeMu.Unlock()
+
+	if liveModeSet && time.Since(liveModeAt) < liveModeTTL {
+		return liveModeValue
 	}
 
-	// Default to dark mode if detection fails
-	return true
+	var isDark bool
+	switch queryLiveBackground() {
+	case "light":
+		isDark = false
+	case "dark":
+		isDark = true
+	default:
+		// Default to dark mode if detection fails
+		isDark = true
+	}
+
+	liveModeValue = isDark
+	liveModeSet = true
+	liveModeAt = time.Now()
+	return isDark
+}
+
+// ResetLiveModeCache clears the cached live theme mode. Intended for
+// tests that need to force a fresh detection query.
+func ResetLiveModeCache() {
+	liveModeMu.Lock()
+	defer liveModeMu.Unlock()
+	liveModeSet = false
+	liveModeValue = false
+	liveModeAt = time.Time{}
 }
 
 // ConvertToLipglossColor converts a hex color string to lipgloss.Color
