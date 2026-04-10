@@ -1069,7 +1069,7 @@ func generateImagePreview(img image.Image, maxWidth, maxHeight int) *ImagePrevie
 			// Generate ANSI escape sequences
 			// Upper half block with foreground color
 			// Lower half block with background color
-			rowStr.WriteString(fmt.Sprintf("\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm▀\x1b[0m", r1, g1, b1, r2, g2, b2))
+			fmt.Fprintf(&rowStr, "\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm▀\x1b[0m", r1, g1, b1, r2, g2, b2)
 		}
 
 		preview.Rows[row] = rowStr.String()

@@ -3,8 +3,9 @@ package components
 import (
 	"strings"
 
-	"github.com/azizuysal/simtool/internal/ui"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // Layout represents the main TUI layout structure

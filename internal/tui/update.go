@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/azizuysal/simtool/internal/simulator"
 	"github.com/azizuysal/simtool/internal/ui"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 // clearStatusMsg is sent to clear the status message

@@ -1,8 +1,9 @@
 package tui
 
 import (
-	"github.com/azizuysal/simtool/internal/simulator"
 	"testing"
+
+	"github.com/azizuysal/simtool/internal/simulator"
 )
 
 func TestGetFilteredAndSearchedSimulators(t *testing.T) {

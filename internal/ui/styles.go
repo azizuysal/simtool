@@ -1,10 +1,11 @@
 package ui
 
 import (
-	"github.com/azizuysal/simtool/internal/config"
 	"log"
 
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/azizuysal/simtool/internal/config"
 )
 
 var (

@@ -5,9 +5,10 @@ import (
 	"os/exec"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 // ViewState represents the current view

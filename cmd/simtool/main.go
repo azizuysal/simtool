@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 
 	"github.com/alecthomas/chroma/v2/styles"
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
 	"github.com/azizuysal/simtool/internal/tui"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 const appName = "simtool"

@@ -1,21 +1,29 @@
-# This config is for golangci-lint
+version: "2"
 linters:
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - errcheck
+        source: defer
+      - linters:
+          - errcheck
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
   enable:
-    - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-
-issues:
-  exclude-use-default: false
-  exclude-rules:
-    - linters:
-        - errcheck
-      source: "defer"
-    - path: _test\.go
-      linters:
-        - errcheck
-
-run:
-  timeout: 5m
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/azizuysal/simtool
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
