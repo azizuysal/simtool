@@ -14,10 +14,19 @@ func ReadDatabaseContent(path string) (*DatabaseInfo, error) {
 	return readDatabaseInfo(path)
 }
 
+// openReadOnlyDB opens a SQLite database in read-only mode. The "file:"
+// URI prefix is required: without it, go-sqlite3 treats "?mode=ro" as
+// part of the filename rather than as a URI parameter, and a missing
+// file is silently created as an empty database instead of returning
+// an error.
+func openReadOnlyDB(path string) (*sql.DB, error) {
+	return sql.Open("sqlite3", "file:"+path+"?mode=ro")
+}
+
 // readDatabaseInfo reads information from a database file
 func readDatabaseInfo(path string) (*DatabaseInfo, error) {
 	// Try to open as SQLite database
-	db, err := sql.Open("sqlite3", path+"?mode=ro") // Read-only mode
+	db, err := openReadOnlyDB(path)
 	if err != nil {
 		return &DatabaseInfo{Error: err.Error()}, nil
 	}
@@ -225,7 +234,7 @@ func generateSchema(db *sql.DB, tables []TableInfo) (string, error) {
 
 // ReadTableData reads paginated data from a specific table
 func ReadTableData(dbPath, tableName string, offset, limit int) ([]map[string]any, error) {
-	db, err := sql.Open("sqlite3", dbPath+"?mode=ro")
+	db, err := openReadOnlyDB(dbPath)
 	if err != nil {
 		return nil, err
 	}
