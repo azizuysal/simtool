@@ -172,9 +172,9 @@ func (fv *FileViewer) getScrollInfo() string {
 	case simulator.FileTypeBinary:
 		if fv.Content.BinaryData != nil && fv.Content.TotalSize > 0 {
 			hasContent = true
-			totalLines = int((fv.Content.TotalSize + 15) / 16)
+			totalLines = int((fv.Content.TotalSize + simulator.HexBytesPerLine - 1) / simulator.HexBytesPerLine)
 
-			chunkStartLine := int(fv.Content.BinaryOffset / 16)
+			chunkStartLine := int(fv.Content.BinaryOffset / simulator.HexBytesPerLine)
 			visibleLines := contentHeight - 4
 			startLine = chunkStartLine + fv.ContentViewport + 1
 			endLine = startLine + visibleLines - 1

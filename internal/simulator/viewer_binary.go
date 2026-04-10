@@ -36,19 +36,19 @@ func readBinaryFile(path string, offset int64, size int) ([]byte, error) {
 func FormatHexDump(data []byte, offset int64) []string {
 	var lines []string
 
-	for i := 0; i < len(data); i += 16 {
+	for i := 0; i < len(data); i += HexBytesPerLine {
 		// Address
 		line := fmt.Sprintf("%08x  ", offset+int64(i))
 
 		// Hex bytes
-		for j := 0; j < 16; j++ {
+		for j := 0; j < HexBytesPerLine; j++ {
 			if i+j < len(data) {
 				line += fmt.Sprintf("%02x ", data[i+j])
 			} else {
 				line += "   "
 			}
-			// Extra space in the middle
-			if j == 7 {
+			// Extra space in the middle of the row
+			if j == HexBytesPerLine/2-1 {
 				line += " "
 			}
 		}
@@ -56,7 +56,7 @@ func FormatHexDump(data []byte, offset int64) []string {
 		line += " |"
 
 		// ASCII representation
-		for j := 0; j < 16 && i+j < len(data); j++ {
+		for j := 0; j < HexBytesPerLine && i+j < len(data); j++ {
 			b := data[i+j]
 			if b >= 32 && b <= 126 {
 				line += string(b)

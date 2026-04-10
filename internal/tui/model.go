@@ -11,6 +11,11 @@ import (
 	"github.com/azizuysal/simtool/internal/simulator"
 )
 
+// textLinesPerChunk is how many lines of a text file are loaded at
+// once. A larger value reduces re-fetches when scrolling but inflates
+// memory for very large files.
+const textLinesPerChunk = 500
+
 // ViewState represents the current view
 type ViewState int
 
@@ -299,9 +304,10 @@ type fetchFileContentMsg struct {
 // fetchFileContentCmd fetches the content of a file for viewing
 func (m Model) fetchFileContentCmd(path string, offset int) tea.Cmd {
 	return func() tea.Msg {
-		// For images, pass the actual terminal dimensions so preview is sized correctly
-		// For text files, use 500 lines per chunk
-		maxLines := 500
+		// For text files, load a fixed-size chunk. For images the chunk
+		// count doubles as the preview height so it's derived from the
+		// terminal dimensions instead.
+		maxLines := textLinesPerChunk
 		maxWidth := m.width - 6 // Same as contentWidth in view.go
 		fileType := simulator.DetectFileType(path)
 		if fileType == simulator.FileTypeImage {

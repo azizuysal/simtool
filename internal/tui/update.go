@@ -13,6 +13,16 @@ import (
 	"github.com/azizuysal/simtool/internal/ui"
 )
 
+const (
+	// textChunkBackStep is how many text lines the viewer jumps back
+	// when scrolling past the top of the loaded chunk and needs to
+	// re-fetch the preceding window.
+	textChunkBackStep = 200
+	// binaryChunkBackStep is the equivalent for hex-dump viewing,
+	// expressed in hex lines (each HexBytesPerLine bytes).
+	binaryChunkBackStep = 256
+)
+
 // clearStatusMsg is sent to clear the status message
 type clearStatusMsg struct{}
 
@@ -210,7 +220,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.fileContent = msg.content
 		// For binary files, update the content offset to match the loaded chunk
 		if m.fileContent.Type == simulator.FileTypeBinary {
-			m.contentOffset = int(m.fileContent.BinaryOffset / 16)
+			m.contentOffset = int(m.fileContent.BinaryOffset / simulator.HexBytesPerLine)
 		}
 
 		// Check for SVG with unsupported features
@@ -585,7 +595,7 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 				m.contentViewport--
 			} else if m.contentOffset > 0 {
 				// Need to load previous chunk
-				newOffset := m.contentOffset - 200 // Go back 200 lines
+				newOffset := m.contentOffset - textChunkBackStep
 				if newOffset < 0 {
 					newOffset = 0
 				}
@@ -602,14 +612,14 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 				m.contentViewport--
 			} else if m.contentOffset > 0 {
 				// Need to load previous chunk
-				newOffset := m.contentOffset - 256 // Go back 256 lines (4KB)
+				newOffset := m.contentOffset - binaryChunkBackStep
 				if newOffset < 0 {
 					newOffset = 0
 				}
 				m.contentOffset = newOffset
 				m.loadingContent = true
-				// Load with line offset (offset / 16)
-				return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset/16)
+				// Convert line offset to hex-dump row offset
+				return m, m.fetchFileContentCmd(m.viewingFile.Path, newOffset/simulator.HexBytesPerLine)
 			}
 		case simulator.FileTypeArchive:
 			// Allow scrolling through archive entries

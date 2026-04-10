@@ -8,6 +8,16 @@ import (
 	"strings"
 )
 
+const (
+	// textScanBufferSize caps the maximum line length the bufio scanner
+	// will accept (1 MiB). Minified sources can legitimately have very
+	// long lines that would otherwise cause a "token too long" error.
+	textScanBufferSize = 1024 * 1024
+	// maxDisplayLineLength truncates displayed lines to keep rendering
+	// responsive on pathologically long lines (e.g. minified JS).
+	maxDisplayLineLength = 2000
+)
+
 // readTextFile reads a text file with pagination support
 // Returns lines, totalLines, isBinaryPlist, error
 func readTextFile(path string, startLine, maxLines int) ([]string, int, bool, error) {
@@ -45,17 +55,16 @@ func readTextFile(path string, startLine, maxLines int) ([]string, int, bool, er
 	totalLines := 0
 
 	// Set a larger buffer size for very long lines (common in minified files)
-	const maxScanTokenSize = 1024 * 1024 // 1MB
-	buf := make([]byte, maxScanTokenSize)
-	scanner.Buffer(buf, maxScanTokenSize)
+	buf := make([]byte, textScanBufferSize)
+	scanner.Buffer(buf, textScanBufferSize)
 
 	for scanner.Scan() {
 		totalLines++
 		if currentLine >= startLine && len(lines) < maxLines {
 			line := scanner.Text()
 			// Truncate very long lines for display
-			if len(line) > 2000 {
-				line = line[:2000] + "..."
+			if len(line) > maxDisplayLineLength {
+				line = line[:maxDisplayLineLength] + "..."
 			}
 			lines = append(lines, line)
 		}
@@ -98,8 +107,8 @@ func readBinaryPlist(path string, startLine, maxLines int) ([]string, int, error
 	for i := startLine; i < endLine; i++ {
 		line := allLines[i]
 		// Truncate very long lines for display
-		if len(line) > 2000 {
-			line = line[:2000] + "..."
+		if len(line) > maxDisplayLineLength {
+			line = line[:maxDisplayLineLength] + "..."
 		}
 		lines = append(lines, line)
 	}

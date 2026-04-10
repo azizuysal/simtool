@@ -17,6 +17,15 @@ import (
 	_ "golang.org/x/image/webp"
 )
 
+const (
+	// defaultSVGDimension is the fallback width/height when an SVG
+	// document doesn't declare its own via width/height/viewBox.
+	defaultSVGDimension = 256
+	// maxSVGRasterDimension caps the largest side when rasterizing
+	// an SVG to a bitmap, preventing memory blowup on oversized docs.
+	maxSVGRasterDimension = 1024
+)
+
 // readImageInfo reads image metadata and generates preview
 func readImageInfo(path string, maxPreviewHeight, maxPreviewWidth int) (*ImageInfo, error) {
 	file, err := os.Open(path)
@@ -261,7 +270,7 @@ func readSVGInfo(path string, fileSize int64, maxPreviewHeight, maxPreviewWidth 
 
 // extractSVGDimensions tries to extract width and height from SVG content
 func extractSVGDimensions(svgContent string) (int, int) {
-	width, height := 256, 256 // defaults
+	width, height := defaultSVGDimension, defaultSVGDimension
 
 	// Try to extract width
 	if widthMatch := strings.Index(svgContent, `width="`); widthMatch != -1 {
@@ -312,9 +321,8 @@ func extractSVGDimensions(svgContent string) (int, int) {
 // corrupt the TUI since stdout is the rendering surface.
 func rasterizeSVG(icon *oksvg.SvgIcon, width, height int) (img image.Image, err error) {
 	// Limit render size to prevent memory issues
-	maxSize := 1024
-	if width > maxSize || height > maxSize {
-		scale := float64(maxSize) / float64(max(width, height))
+	if width > maxSVGRasterDimension || height > maxSVGRasterDimension {
+		scale := float64(maxSVGRasterDimension) / float64(max(width, height))
 		width = int(float64(width) * scale)
 		height = int(float64(height) * scale)
 	}

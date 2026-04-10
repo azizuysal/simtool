@@ -22,6 +22,16 @@ const (
 	FileTypeDatabase
 )
 
+// Constants shared across the viewer subsystem. Exported ones are
+// referenced from the tui package (e.g. for converting byte offsets
+// to hex-dump line offsets when paginating).
+const (
+	// BinaryChunkSize is the number of bytes read per binary file fetch.
+	BinaryChunkSize = 8192
+	// HexBytesPerLine is the number of bytes shown per hex dump row.
+	HexBytesPerLine = 16
+)
+
 // FileContent represents the content of a file prepared for viewing
 type FileContent struct {
 	Type          FileType
@@ -378,12 +388,10 @@ func ReadFileContent(path string, startLine, maxLines, maxWidth int) (*FileConte
 
 			content.TotalSize = fileInfo.Size()
 
-			// Calculate the offset based on startLine (each line = 16 bytes)
-			offset := int64(startLine * 16)
+			// Offset is expressed in hex-dump lines on entry.
+			offset := int64(startLine * HexBytesPerLine)
 
-			// Read a chunk of data (8KB) starting from the offset
-			const chunkSize = 8192 // 8KB chunks
-			readSize := chunkSize
+			readSize := BinaryChunkSize
 
 			// Don't read past the end of the file
 			if offset+int64(readSize) > fileInfo.Size() {
@@ -415,12 +423,10 @@ func ReadFileContent(path string, startLine, maxLines, maxWidth int) (*FileConte
 
 		content.TotalSize = fileInfo.Size()
 
-		// Calculate the offset based on startLine (each line = 16 bytes)
-		offset := int64(startLine * 16)
+		// Offset is expressed in hex-dump lines on entry.
+		offset := int64(startLine * HexBytesPerLine)
 
-		// Read a chunk of data (8KB) starting from the offset
-		const chunkSize = 8192 // 8KB chunks
-		readSize := chunkSize
+		readSize := BinaryChunkSize
 
 		// Don't read past the end of the file
 		if offset+int64(readSize) > fileInfo.Size() {
