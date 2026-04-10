@@ -30,7 +30,7 @@ universal_binaries:
 
 archives:
   - id: simtool
-    format: tar.gz
+    formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
