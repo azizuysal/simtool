@@ -123,6 +123,33 @@ cd simtool
 make install
 ```
 
+## 🔐 Verifying releases
+
+Release artifacts are signed with [Cosign](https://github.com/sigstore/cosign) using Sigstore's keyless signing. There are no long-lived keys — each signature's identity is tied to the specific GitHub Actions workflow run that produced the release, recorded in the public [Sigstore transparency log](https://search.sigstore.dev/).
+
+Every release ships with `checksums.txt.sig` and `checksums.txt.pem` sidecars alongside the archives. Signing the checksums file protects every artifact transitively via SHA-256.
+
+To verify a downloaded release:
+
+```bash
+# One-time: brew install cosign
+
+# From the release page, download: the archive, checksums.txt, checksums.txt.sig, checksums.txt.pem
+cosign verify-blob \
+  --certificate checksums.txt.pem \
+  --signature checksums.txt.sig \
+  --certificate-identity-regexp '^https://github.com/azizuysal/simtool/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  checksums.txt
+
+# If verification succeeds, confirm the archive matches:
+shasum -a 256 -c checksums.txt
+```
+
+Homebrew installs don't need manual verification — the tap formula pins each release to a specific SHA-256, so any tampering after the fact is caught by `brew install` itself.
+
+In addition to signatures, each release includes a **CycloneDX SBOM** sidecar (`*.cdx.json`) cataloging every dependency baked into the binary.
+
 ## 📖 Usage
 
 ### Quick Start

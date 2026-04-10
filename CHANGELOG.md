@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - TOML config schema validation at load time: unknown keys (typos, stale schemas) and invalid enum values are now reported as descriptive errors instead of being silently ignored
 - CycloneDX SBOM generation for each release archive via GoReleaser
+- Cosign keyless signatures on release checksums via GitHub Actions OIDC (Sigstore); `checksums.txt.sig` and `checksums.txt.pem` sidecars published alongside each release. Verification command documented in README
 - `govulncheck` dependency vulnerability scan in CI, alongside the existing `golangci-lint` job
 
 ### Changed

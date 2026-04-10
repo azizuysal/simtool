@@ -46,10 +46,28 @@ archives:
 checksum:
   name_template: 'checksums.txt'
 
-# Generate a CycloneDX SBOM for each archive. goreleaser installs syft
-# on demand if it isn't already on PATH.
+signs:
+  - cmd: cosign
+    certificate: '${artifact}.pem'
+    signature: '${artifact}.sig'
+    args:
+      - 'sign-blob'
+      - '--output-certificate=${certificate}'
+      - '--output-signature=${signature}'
+      - '${artifact}'
+      - '--yes'
+    artifacts: checksum
+    output: true
+
 sboms:
   - artifacts: archive
+    documents:
+      - '${artifact}.cdx.json'
+    cmd: syft
+    args:
+      - '$artifact'
+      - '--output'
+      - 'cyclonedx-json=$document'
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"

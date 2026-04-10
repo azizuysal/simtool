@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   actions: read
+  id-token: write
 
 jobs:
   release:
@@ -16,11 +17,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
-      
+
+      - uses: sigstore/cosign-installer@v3
+
+      - uses: anchore/sbom-action/download-syft@v0
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
