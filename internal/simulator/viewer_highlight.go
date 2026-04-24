@@ -2,6 +2,7 @@ package simulator
 
 import (
 	"bytes"
+	"log"
 	"strings"
 	"sync"
 
@@ -26,41 +27,30 @@ var (
 	initOnce sync.Once
 )
 
-// initChromaStyle initializes the chroma style from config
+// initChromaStyle initializes the chroma style from config.
+//
+// Failures here are surfaced via the tea debug log rather than silently
+// swallowed: a broken user config or an unknown theme name both leave a
+// visible trace and the init falls back to a usable default so the TUI
+// keeps rendering. The `github-dark` fallback below is the documented
+// recovery path for an unknown theme name — the user can inspect
+// `--list-themes` to see valid names.
 func initChromaStyle() {
 	initOnce.Do(func() {
-		// Initialize the terminal formatter
-		// Try terminal16m first for best color support
 		termFormatter = formatters.Get("terminal16m")
-		if termFormatter == nil {
-			// Fallback to terminal256
-			termFormatter = formatters.Get("terminal256")
-		}
-		if termFormatter == nil {
-			// Last resort: basic terminal
-			termFormatter = formatters.Get("terminal")
-		}
 
-		// Load config
 		cfg, err := config.Load()
 		if err != nil {
-			// Fallback to github-dark if config load fails
-			chromaStyle = styles.Get("github-dark")
-			return
+			// config.Load returns a valid defaults Config alongside the
+			// error, so cfg is safe to use. Surface the error explicitly.
+			log.Printf("initChromaStyle: config load failed, using defaults: %v", err)
 		}
 
-		// Get the active theme based on config
 		themeName := cfg.GetActiveTheme()
 		style := styles.Get(themeName)
 		if style == nil || style == styles.Fallback {
-			// Theme not found, try some variations
-			themeLower := strings.ToLower(themeName)
-			style = styles.Get(themeLower)
-
-			if style == nil || style == styles.Fallback {
-				// Still not found, fallback to github-dark
-				style = styles.Get("github-dark")
-			}
+			log.Printf("initChromaStyle: theme %q not found, falling back to github-dark", themeName)
+			style = styles.Get("github-dark")
 		}
 
 		chromaStyle = style
