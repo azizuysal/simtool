@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -303,32 +304,43 @@ func isTextContent(data []byte) bool {
 		}
 	}
 
-	// Check if it's valid UTF-8
+	// Must be valid UTF-8 to be considered text.
 	if !utf8.Valid(data) {
 		return false
 	}
 
-	// Count printable vs non-printable characters
-	printable := 0
-	nullBytes := 0
-	for _, b := range data {
-		// Count null bytes as a strong indicator of binary content
-		if b == 0 {
+	// Count printable runes over total runes so multi-byte characters
+	// (e.g. 世, 🌍) count as one printable unit rather than three or
+	// four non-ASCII bytes — the byte-level check would have flagged
+	// any non-trivial amount of non-ASCII UTF-8 as binary.
+	var printable, total, nullBytes int
+	for _, r := range string(data) {
+		total++
+		if r == 0 {
 			nullBytes++
+			continue
 		}
-		// Allow printable ASCII, newlines, tabs, carriage returns
-		if (b >= 32 && b <= 126) || b == '\n' || b == '\t' || b == '\r' {
+		if r == '\n' || r == '\t' || r == '\r' {
+			printable++
+			continue
+		}
+		if unicode.IsPrint(r) {
 			printable++
 		}
 	}
 
-	// If there are null bytes, likely binary
+	// Any NUL byte is a strong binary indicator.
 	if nullBytes > 0 {
 		return false
 	}
 
-	// If more than 90% of characters are printable, consider it text
-	return float64(printable)/float64(len(data)) > 0.9
+	// Empty-rune input (e.g. a single BOM stripped) is trivially text.
+	if total == 0 {
+		return true
+	}
+
+	// More than 90% printable → text.
+	return float64(printable)/float64(total) > 0.9
 }
 
 // ReadFileContent reads file content based on its type

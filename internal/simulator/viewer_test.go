@@ -220,7 +220,17 @@ func TestIsTextContent(t *testing.T) {
 		{
 			name:     "UTF-8 text",
 			data:     []byte("Hello, 世界! 🌍"),
-			expected: false, // Current implementation only considers ASCII printable
+			expected: true,
+		},
+		{
+			name:     "mostly CJK UTF-8",
+			data:     []byte("これは日本語のテキストです。改行もあるよ\n次の行。"),
+			expected: true,
+		},
+		{
+			name:     "invalid UTF-8",
+			data:     []byte{0xC3, 0x28}, // malformed 2-byte sequence
+			expected: false,
 		},
 		{
 			name:     "text with some control chars",

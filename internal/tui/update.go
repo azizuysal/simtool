@@ -44,204 +44,247 @@ func (m Model) flashStatus(msg string, d time.Duration) (Model, tea.Cmd) {
 	return m, clearStatusAfter(d)
 }
 
-// Update handles messages and updates the model
+// Update handles messages and updates the model. Non-trivial per-message
+// logic is delegated to handle* methods below; the dispatcher only knows
+// which handler to call for which message type.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKeyPress(msg)
-
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m = m.updateViewport()
-
+		return m.updateViewport(), nil
 	case fetchSimulatorsMsg:
-		m.simList.simulators = msg.simulators
-		m.err = msg.err
-		m.simList.loading = false
-		if m.simList.cursor >= len(m.simList.simulators) {
-			m.simList.cursor = len(m.simList.simulators) - 1
-		}
-		if m.simList.cursor < 0 && len(m.simList.simulators) > 0 {
-			m.simList.cursor = 0
-		}
-		m = m.updateViewport()
-
+		return m.handleFetchSimulators(msg)
 	case fetchAppsMsg:
-		m.appList.apps = msg.apps
-		m.appList.loading = false
-		if msg.err != nil {
-			m.viewState = SimulatorListView
-			m.appList.selectedSim = nil
-			return m.flashStatus(fmt.Sprintf("Error loading apps: %v", msg.err), 3*time.Second)
-		}
-		if len(msg.apps) == 0 {
-			m.viewState = SimulatorListView
-			m.appList.selectedSim = nil
-			return m.flashStatus("No apps installed on this simulator", 2*time.Second)
-		}
-		m.appList.cursor = 0
-		m.appList.viewport = 0
-		m = m.updateViewport()
-
+		return m.handleFetchApps(msg)
 	case fetchAllAppsMsg:
-		m.allApps.apps = msg.apps
-		m.allApps.loading = false
-		if msg.err != nil {
-			m.err = msg.err
-		} else {
-			m.allApps.cursor = 0
-			m.allApps.viewport = 0
-		}
-		m = m.updateViewport()
-
+		return m.handleFetchAllApps(msg)
 	case bootSimulatorMsg:
-		m.simList.booting = false
-		if msg.err != nil {
-			return m.flashStatus(fmt.Sprintf("Error: %v", msg.err), 3*time.Second)
-		}
-		m.statusMessage = "Simulator booted successfully!"
-		// Refresh simulators to update status AND set up clear timer
-		return m, tea.Batch(
-			fetchSimulatorsCmd(m.fetcher),
-			clearStatusAfter(3*time.Second),
-		)
-
+		return m.handleBootSimulator(msg)
 	case clearStatusMsg:
 		m.statusMessage = ""
-
+		return m, nil
 	case openInFinderMsg:
 		if msg.err != nil {
 			return m.flashStatus(fmt.Sprintf("Error opening in Finder: %v", msg.err), 3*time.Second)
 		}
-
-	case tickMsg:
-		// Periodically refresh simulator status and check theme
-		cmds := []tea.Cmd{
-			fetchSimulatorsCmd(m.fetcher),
-			tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
-				return tickMsg(t)
-			}),
-		}
-
-		// Check if theme mode has changed
-		cmd := m.checkThemeChange()
-		if cmd != nil {
-			cmds = append(cmds, cmd)
-		}
-
-		return m, tea.Batch(cmds...)
-
-	case themeChangedMsg:
-		// Theme has changed, update model and reload styles
-		m.currentThemeMode = msg.newMode
-
-		// Reload styles from config with new theme
-		if err := ui.ReloadStyles(); err != nil {
-			return m.flashStatus(fmt.Sprintf("Failed to reload theme: %v", err), 2*time.Second)
-		}
-
-		// Simply return the model - styles will be picked up on next render
 		return m, nil
-
+	case tickMsg:
+		return m.handleTick()
+	case themeChangedMsg:
+		return m.handleThemeChanged(msg)
 	case fetchFilesMsg:
-		m.fileList.files = msg.files
-		m.fileList.loading = false
-		if msg.err != nil {
-			m.viewState = AppListView
-			m.fileList.selectedApp = nil
-			m.fileList.currentPath = ""
-			return m.flashStatus(fmt.Sprintf("Error loading files: %v", msg.err), 3*time.Second)
-		}
-		// Restore cursor position if we've been here before
-		if m.fileList.cursorMemory != nil {
-			if cursor, ok := m.fileList.cursorMemory[m.fileList.currentPath]; ok {
-				m.fileList.cursor = cursor
-				// Ensure cursor is within bounds
-				if m.fileList.cursor >= len(m.fileList.files) {
-					m.fileList.cursor = len(m.fileList.files) - 1
-				}
-				if m.fileList.cursor < 0 {
-					m.fileList.cursor = 0
-				}
-			} else {
-				m.fileList.cursor = 0
-			}
+		return m.handleFetchFiles(msg)
+	case fetchDatabaseInfoMsg:
+		return m.handleFetchDatabaseInfo(msg)
+	case fetchTableDataMsg:
+		return m.handleFetchTableData(msg)
+	case fetchFileContentMsg:
+		return m.handleFetchFileContent(msg)
+	}
+	return m, nil
+}
 
-			if viewport, ok := m.fileList.viewportMemory[m.fileList.currentPath]; ok {
-				m.fileList.viewport = viewport
-			} else {
-				m.fileList.viewport = 0
+// handleFetchSimulators processes the result of a simulator list fetch,
+// clamping the cursor into the new range and refreshing the viewport.
+func (m Model) handleFetchSimulators(msg fetchSimulatorsMsg) (Model, tea.Cmd) {
+	m.simList.simulators = msg.simulators
+	m.err = msg.err
+	m.simList.loading = false
+	if m.simList.cursor >= len(m.simList.simulators) {
+		m.simList.cursor = len(m.simList.simulators) - 1
+	}
+	if m.simList.cursor < 0 && len(m.simList.simulators) > 0 {
+		m.simList.cursor = 0
+	}
+	return m.updateViewport(), nil
+}
+
+// handleFetchApps processes the result of a per-simulator app list
+// fetch. Errors and empty results both return the user to the simulator
+// list with a flash message.
+func (m Model) handleFetchApps(msg fetchAppsMsg) (Model, tea.Cmd) {
+	m.appList.apps = msg.apps
+	m.appList.loading = false
+	if msg.err != nil {
+		m.viewState = SimulatorListView
+		m.appList.selectedSim = nil
+		return m.flashStatus(fmt.Sprintf("Error loading apps: %v", msg.err), 3*time.Second)
+	}
+	if len(msg.apps) == 0 {
+		m.viewState = SimulatorListView
+		m.appList.selectedSim = nil
+		return m.flashStatus("No apps installed on this simulator", 2*time.Second)
+	}
+	m.appList.cursor = 0
+	m.appList.viewport = 0
+	return m.updateViewport(), nil
+}
+
+// handleFetchAllApps processes the result of the combined all-apps
+// fetch. Errors are surfaced via m.err rather than a flash so the main
+// list view can render an error state.
+func (m Model) handleFetchAllApps(msg fetchAllAppsMsg) (Model, tea.Cmd) {
+	m.allApps.apps = msg.apps
+	m.allApps.loading = false
+	if msg.err != nil {
+		m.err = msg.err
+	} else {
+		m.allApps.cursor = 0
+		m.allApps.viewport = 0
+	}
+	return m.updateViewport(), nil
+}
+
+// handleBootSimulator processes the result of a boot command, batching
+// a simulator refresh and status clear on success.
+func (m Model) handleBootSimulator(msg bootSimulatorMsg) (Model, tea.Cmd) {
+	m.simList.booting = false
+	if msg.err != nil {
+		return m.flashStatus(fmt.Sprintf("Error: %v", msg.err), 3*time.Second)
+	}
+	m.statusMessage = "Simulator booted successfully!"
+	return m, tea.Batch(
+		fetchSimulatorsCmd(m.fetcher),
+		clearStatusAfter(3*time.Second),
+	)
+}
+
+// handleTick runs on the 2-second periodic tick: refreshes simulator
+// state, re-schedules the next tick, and opportunistically polls the
+// terminal theme for a live switch.
+func (m Model) handleTick() (Model, tea.Cmd) {
+	cmds := []tea.Cmd{
+		fetchSimulatorsCmd(m.fetcher),
+		tea.Tick(time.Second*2, func(t time.Time) tea.Msg {
+			return tickMsg(t)
+		}),
+	}
+	if cmd := m.checkThemeChange(); cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+	return m, tea.Batch(cmds...)
+}
+
+// handleThemeChanged reloads chroma styles and updates the cached
+// theme mode when the terminal switches light/dark.
+func (m Model) handleThemeChanged(msg themeChangedMsg) (Model, tea.Cmd) {
+	m.currentThemeMode = msg.newMode
+	if err := ui.ReloadStyles(); err != nil {
+		return m.flashStatus(fmt.Sprintf("Failed to reload theme: %v", err), 2*time.Second)
+	}
+	return m, nil
+}
+
+// handleFetchFiles processes the result of a directory listing fetch,
+// restoring cursor/viewport positions saved when the user drilled into
+// the directory so going back to a parent lands on the previous entry.
+func (m Model) handleFetchFiles(msg fetchFilesMsg) (Model, tea.Cmd) {
+	m.fileList.files = msg.files
+	m.fileList.loading = false
+	if msg.err != nil {
+		m.viewState = AppListView
+		m.fileList.selectedApp = nil
+		m.fileList.currentPath = ""
+		return m.flashStatus(fmt.Sprintf("Error loading files: %v", msg.err), 3*time.Second)
+	}
+	if m.fileList.cursorMemory != nil {
+		if cursor, ok := m.fileList.cursorMemory[m.fileList.currentPath]; ok {
+			m.fileList.cursor = cursor
+			if m.fileList.cursor >= len(m.fileList.files) {
+				m.fileList.cursor = len(m.fileList.files) - 1
+			}
+			if m.fileList.cursor < 0 {
+				m.fileList.cursor = 0
 			}
 		} else {
 			m.fileList.cursor = 0
+		}
+		if viewport, ok := m.fileList.viewportMemory[m.fileList.currentPath]; ok {
+			m.fileList.viewport = viewport
+		} else {
 			m.fileList.viewport = 0
 		}
-		m = m.updateViewport()
-
-	case fetchDatabaseInfoMsg:
-		m.dbTables.loading = false
-		if msg.err != nil {
-			m.viewState = FileListView
-			m.dbTables.file = nil
-			return m.flashStatus(fmt.Sprintf("Error loading database: %v", msg.err), 3*time.Second)
-		}
-		m.dbTables.info = msg.dbInfo
-		m = m.updateViewport()
-
-	case fetchTableDataMsg:
-		m.dbContent.loading = false
-		if msg.err != nil {
-			return m.flashStatus(fmt.Sprintf("Error loading table data: %v", msg.err), 3*time.Second)
-		}
-		m.dbContent.data = msg.data
-		m.dbContent.offset = msg.offset
-		m = m.updateViewport()
-
-	case fetchFileContentMsg:
-		m.fileViewer.loading = false
-		if msg.err != nil {
-			m.viewState = FileListView
-			m.fileViewer.file = nil
-			return m.flashStatus(fmt.Sprintf("Error loading file: %v", msg.err), 3*time.Second)
-		}
-		m.fileViewer.content = msg.content
-		// For binary files, update the content offset to match the loaded chunk
-		if m.fileViewer.content.Type == simulator.FileTypeBinary {
-			m.fileViewer.contentOffset = int(m.fileViewer.content.BinaryOffset / simulator.HexBytesPerLine)
-		}
-
-		// Check for SVG with unsupported features
-		m.fileViewer.svgWarning = ""
-		if m.fileViewer.file != nil && strings.ToLower(filepath.Ext(m.fileViewer.file.Path)) == ".svg" {
-			// Read file to check for unsupported features
-			if data, err := os.ReadFile(m.fileViewer.file.Path); err == nil {
-				svgStr := string(data)
-				var unsupportedFeatures []string
-
-				if strings.Contains(svgStr, "data:image/") ||
-					strings.Contains(svgStr, "xlink:href=\"data:") ||
-					strings.Contains(svgStr, "xlink:href=\"http") {
-					unsupportedFeatures = append(unsupportedFeatures, "embedded images")
-				}
-				if strings.Contains(svgStr, "<filter") || strings.Contains(svgStr, "filter=") {
-					unsupportedFeatures = append(unsupportedFeatures, "filters")
-				}
-				if strings.Contains(svgStr, "<foreignObject") {
-					unsupportedFeatures = append(unsupportedFeatures, "foreign objects")
-				}
-
-				if len(unsupportedFeatures) > 0 {
-					m.fileViewer.svgWarning = fmt.Sprintf("Warning: SVG contains unsupported features (%s). Preview may be incomplete.",
-						strings.Join(unsupportedFeatures, ", "))
-				}
-			}
-		}
-
-		m = m.updateViewport()
+	} else {
+		m.fileList.cursor = 0
+		m.fileList.viewport = 0
 	}
+	return m.updateViewport(), nil
+}
 
-	return m, nil
+// handleFetchDatabaseInfo processes the result of a SQLite schema read.
+func (m Model) handleFetchDatabaseInfo(msg fetchDatabaseInfoMsg) (Model, tea.Cmd) {
+	m.dbTables.loading = false
+	if msg.err != nil {
+		m.viewState = FileListView
+		m.dbTables.file = nil
+		return m.flashStatus(fmt.Sprintf("Error loading database: %v", msg.err), 3*time.Second)
+	}
+	m.dbTables.info = msg.dbInfo
+	return m.updateViewport(), nil
+}
+
+// handleFetchTableData processes a page of SQLite row data.
+func (m Model) handleFetchTableData(msg fetchTableDataMsg) (Model, tea.Cmd) {
+	m.dbContent.loading = false
+	if msg.err != nil {
+		return m.flashStatus(fmt.Sprintf("Error loading table data: %v", msg.err), 3*time.Second)
+	}
+	m.dbContent.data = msg.data
+	m.dbContent.offset = msg.offset
+	return m.updateViewport(), nil
+}
+
+// handleFetchFileContent processes a chunk of file content for the
+// viewer: re-syncs the hex-dump offset for binary files and scans SVG
+// source for features the rasterizer can't render.
+func (m Model) handleFetchFileContent(msg fetchFileContentMsg) (Model, tea.Cmd) {
+	m.fileViewer.loading = false
+	if msg.err != nil {
+		m.viewState = FileListView
+		m.fileViewer.file = nil
+		return m.flashStatus(fmt.Sprintf("Error loading file: %v", msg.err), 3*time.Second)
+	}
+	m.fileViewer.content = msg.content
+	if m.fileViewer.content.Type == simulator.FileTypeBinary {
+		m.fileViewer.contentOffset = int(m.fileViewer.content.BinaryOffset / simulator.HexBytesPerLine)
+	}
+	m.fileViewer.svgWarning = detectSVGWarning(m.fileViewer.file)
+	return m.updateViewport(), nil
+}
+
+// detectSVGWarning returns a non-empty warning string if the given file
+// is an SVG whose source references features (embedded raster images,
+// filters, foreign objects) that the rasterizer cannot render. Returns
+// "" for non-SVG files, missing files, or SVGs with no such features.
+func detectSVGWarning(file *simulator.FileInfo) string {
+	if file == nil || strings.ToLower(filepath.Ext(file.Path)) != ".svg" {
+		return ""
+	}
+	data, err := os.ReadFile(file.Path)
+	if err != nil {
+		return ""
+	}
+	svg := string(data)
+	var features []string
+	if strings.Contains(svg, "data:image/") ||
+		strings.Contains(svg, "xlink:href=\"data:") ||
+		strings.Contains(svg, "xlink:href=\"http") {
+		features = append(features, "embedded images")
+	}
+	if strings.Contains(svg, "<filter") || strings.Contains(svg, "filter=") {
+		features = append(features, "filters")
+	}
+	if strings.Contains(svg, "<foreignObject") {
+		features = append(features, "foreign objects")
+	}
+	if len(features) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("Warning: SVG contains unsupported features (%s). Preview may be incomplete.",
+		strings.Join(features, ", "))
 }
 
 // handleKeyPress processes keyboard input

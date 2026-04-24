@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-04-24
+
+### Fixed
+- Files dominated by non-ASCII UTF-8 content (CJK, accented Latin, emoji) were classified as binary and rendered as hex dumps. `isTextContent` now iterates at the rune level with `unicode.IsPrint` so any valid UTF-8 text file is recognized as text.
+
+### Changed
+- `initChromaStyle` no longer silently swallows config load errors or unknown theme names. Both paths still fall back to `github-dark` for rendering, but the underlying cause is now logged to the tea debug log (`$XDG_CACHE_HOME/simtool/debug.log` or OS equivalent) so users can discover why their chosen theme didn't load.
+
+### Internal
+- Removed three layers of unreachable defensive fallbacks in `initChromaStyle` (dead `terminal256`/`terminal` formatter fallbacks, a lowercased style re-lookup redundant with chroma's case-insensitive registry, and a hardcoded `github-dark` assignment on config error that discarded the valid defaults returned by `config.Load`).
+- Split the ~200-line `Update()` message dispatcher in `internal/tui/update.go` into ten per-message-type handlers. Extracted the inline SVG unsupported-features scan into a free `detectSVGWarning` helper. Zero behavior change.
+- Test coverage push: `internal/simulator` 62.6% → 83.7%, `internal/config` 28.0% → 62.0%. New tests cover `readArchiveInfo`, `readBinaryFile`, `readImageInfo`, `readTextFile`, `detectContentLanguage`, `getAppsFromDataDir`, `FetchSimulators`, `Boot`, `getAppCountFromDataDir`, `initChromaStyle` branches, `DefaultKeys`/`NewKeyMap`/`FormatKeys`, `GenerateStyles`, `parseOSC11Response`, and `SaveExample`/`getConfigDir`/`getConfigPath`.
+- Tightened a pre-existing SVG test that asserted an error message the production code never emits. It now exercises the real contract (malformed XML → parse-error message stored in `info.Preview.Rows`).
+
 ## [1.1.0] - 2026-04-10
 
 ### Added
