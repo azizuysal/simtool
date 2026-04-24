@@ -112,30 +112,45 @@ func TestReadSVGInfo(t *testing.T) {
 	}
 }
 
-func TestReadSVGInfo_InvalidSVG(t *testing.T) {
-	// Create a temporary file with invalid SVG content
+func TestReadSVGInfo_MalformedXMLSurfacesErrorInPreview(t *testing.T) {
+	// readSVGInfo's contract: it always returns (info, nil) and surfaces
+	// parse/render failures inside info.Preview.Rows so the TUI can show
+	// a user-visible error message instead of aborting the file view.
+	//
+	// oksvg is extremely lenient — arbitrary prose or non-svg XML parses
+	// into an empty (but valid) icon, so to exercise the error branch
+	// we need genuinely malformed XML.
 	tmpDir, err := os.MkdirTemp("", "svg_test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	invalidSVG := "This is not valid SVG content"
-	svgPath := filepath.Join(tmpDir, "invalid.svg")
-	if err := os.WriteFile(svgPath, []byte(invalidSVG), 0644); err != nil {
+	malformed := `<svg><<<`
+	svgPath := filepath.Join(tmpDir, "malformed.svg")
+	if err := os.WriteFile(svgPath, []byte(malformed), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	info, err := readSVGInfo(svgPath, int64(len(invalidSVG)), 30, 80)
-	if err == nil {
-		// Some SVG parsers might be lenient, check if dimensions are set to defaults
-		if info != nil && info.Width == 256 && info.Height == 256 {
-			// This is acceptable behavior - parser was lenient and used defaults
-			return
-		}
-		t.Error("Expected error for invalid SVG, got nil")
-	} else if !strings.Contains(err.Error(), "failed to parse SVG") {
-		t.Errorf("Expected 'failed to parse SVG' error, got: %v", err)
+	info, err := readSVGInfo(svgPath, int64(len(malformed)), 30, 80)
+	if err != nil {
+		t.Fatalf("readSVGInfo returned error %v, want nil (failures go in the preview)", err)
+	}
+	if info == nil {
+		t.Fatal("info is nil, want non-nil with error message in preview")
+	}
+	if info.Width != defaultSVGDimension || info.Height != defaultSVGDimension {
+		t.Errorf("dimensions = %dx%d, want %[3]dx%[3]d (defaults)", info.Width, info.Height, defaultSVGDimension)
+	}
+	if info.Preview == nil {
+		t.Fatal("Preview is nil, want a preview carrying the error message")
+	}
+	if len(info.Preview.Rows) != 1 {
+		t.Fatalf("len(Preview.Rows) = %d, want 1 (single error line), got rows=%v", len(info.Preview.Rows), info.Preview.Rows)
+	}
+	row := info.Preview.Rows[0]
+	if !strings.Contains(row, "SVG parsing error") && !strings.Contains(row, "SVG rendering error") {
+		t.Errorf("Preview.Rows[0] = %q, want it to contain 'SVG parsing error' or 'SVG rendering error'", row)
 	}
 }
 
