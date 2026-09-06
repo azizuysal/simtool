@@ -1,0 +1,32 @@
+name: Check Homebrew authentication
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: macos-latest
+    steps:
+      - name: Check stored token
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN"
+          gh api repos/azizuysal/homebrew-tap --jq '{repository: .full_name, permissions: .permissions}'
+
+      - uses: actions/checkout@v6
+
+      - name: Check out Homebrew tap
+        uses: actions/checkout@v6
+        with:
+          repository: azizuysal/homebrew-tap
+          ref: main
+          path: homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - name: Check push authentication without changing the tap
+        working-directory: homebrew-tap
+        run: git push --dry-run origin HEAD:refs/heads/main
