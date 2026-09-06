@@ -22,6 +22,12 @@ type DatabaseTableList struct {
 
 // NewDatabaseTableList creates a new database table list renderer
 func NewDatabaseTableList(width, height int) *DatabaseTableList {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
 	return &DatabaseTableList{
 		Width:  width,
 		Height: height,
@@ -176,7 +182,10 @@ func (dtl *DatabaseTableList) buildHeader() string {
 // renderWithHeader renders the table list with header
 func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx int) string {
 	var s strings.Builder
-	innerWidth := dtl.Width - 4 // Account for padding
+	innerWidth := dtl.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 
 	s.WriteString(renderHeaderPrefix(header, innerWidth))
 
@@ -210,8 +219,11 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 
 				// Truncate colInfo to fit within the line, accounting for prefix
 				maxColInfoLen := innerWidth - len(line2Prefix)
+				if maxColInfoLen < 0 {
+					maxColInfoLen = 0
+				}
 				if len(colInfo) > maxColInfoLen {
-					colInfo = colInfo[:maxColInfoLen-3] + "..."
+					colInfo = truncateDisplay(colInfo, maxColInfoLen)
 				}
 				line2 := fmt.Sprintf("%s%s", line2Prefix, colInfo)
 
@@ -226,7 +238,7 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 				// Non-selected item
 				// Truncate colInfo to fit within innerWidth
 				if len(colInfo) > innerWidth {
-					colInfo = colInfo[:innerWidth-3] + "..."
+					colInfo = truncateDisplay(colInfo, innerWidth)
 				}
 
 				s.WriteString(ui.ListItemStyle().Inherit(ui.NameStyle()).Render(tableName))
@@ -237,4 +249,18 @@ func (dtl *DatabaseTableList) renderWithHeader(header string, startIdx, endIdx i
 	}
 
 	return s.String()
+}
+
+func truncateDisplay(value string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= width {
+		return value
+	}
+	if width <= 3 {
+		return string(runes[:width])
+	}
+	return string(runes[:width-3]) + "..."
 }

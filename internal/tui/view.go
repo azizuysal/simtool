@@ -3,21 +3,25 @@ package tui
 import (
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
+
 	"github.com/azizuysal/simtool/internal/tui/components"
 	"github.com/azizuysal/simtool/internal/tui/components/file_viewer"
 	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // View renders the UI using the component system
-func (m Model) View() string {
+func (m Model) View() tea.View {
+	var content string
 	// Handle errors
 	if m.err != nil && m.viewState != AllAppsView {
-		return ui.ErrorStyle().Render("Error: " + m.err.Error())
+		content = ui.ErrorStyle().Render("Error: " + m.err.Error())
+		return newView(content)
 	}
 
 	// Special handling for AllAppsView which returns complete layout
 	if m.viewState == AllAppsView {
-		return components.AllAppsListView(
+		content = components.AllAppsListView(
 			m.allApps.apps,
 			m.allApps.cursor,
 			m.allApps.viewport,
@@ -28,34 +32,43 @@ func (m Model) View() string {
 			m.allApps.loading,
 			m.err,
 			&m.config.Keys,
+			m.statusMessage,
 		)
+		return newView(content)
 	}
 
 	// Create layout
 	layout := components.NewLayout(m.width, m.height)
 
 	// Get view-specific content
-	var title, content, footer, status string
+	var title, body, footer, status string
 
 	switch m.viewState {
 	case SimulatorListView:
-		title, content, footer, status = m.renderSimulatorListView()
+		title, body, footer, status = m.renderSimulatorListView()
 	case AppListView:
-		title, content, footer, status = m.renderAppListView()
+		title, body, footer, status = m.renderAppListView()
 	case FileListView:
-		title, content, footer, status = m.renderFileListView()
+		title, body, footer, status = m.renderFileListView()
 	case FileViewerView:
-		title, content, footer, status = m.renderFileViewerView()
+		title, body, footer, status = m.renderFileViewerView()
 	case DatabaseTableListView:
-		title, content, footer, status = m.renderDatabaseTableListView()
+		title, body, footer, status = m.renderDatabaseTableListView()
 	case DatabaseTableContentView:
-		title, content, footer, status = m.renderDatabaseTableContentView()
+		title, body, footer, status = m.renderDatabaseTableContentView()
 	default:
-		title, content, footer, status = m.renderSimulatorListView()
+		title, body, footer, status = m.renderSimulatorListView()
 	}
 
 	// Render with layout
-	return layout.Render(title, content, footer, status)
+	content = layout.Render(title, body, footer, status)
+	return newView(content)
+}
+
+func newView(content string) tea.View {
+	view := tea.NewView(content)
+	view.AltScreen = true
+	return view
 }
 
 // renderSimulatorListView renders the simulator list using components
@@ -66,8 +79,7 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 	// Calculate available space for content
 	// Title takes ~4 lines (padding + title + padding)
 	// Footer takes ~4 lines (padding + status + footer + padding)
-	contentHeight := m.height - 8
-	contentWidth := m.width - 6 // Account for side margins
+	contentWidth, contentHeight := m.contentDimensions()
 
 	// Create simulator list component
 	simList := components.NewSimulatorList(contentWidth, contentHeight)
@@ -115,8 +127,7 @@ func (m Model) renderAppListView() (title, content, footer, status string) {
 	filteredApps := m.getFilteredAndSearchedApps()
 
 	// Calculate available space
-	contentHeight := m.height - 8
-	contentWidth := m.width - 6
+	contentWidth, contentHeight := m.contentDimensions()
 
 	// Create app list component
 	appList := components.NewAppList(contentWidth, contentHeight)
@@ -162,8 +173,7 @@ func (m Model) renderAppListView() (title, content, footer, status string) {
 // renderFileListView renders the file list using components
 func (m Model) renderFileListView() (title, content, footer, status string) {
 	// Calculate available space
-	contentHeight := m.height - 8
-	contentWidth := m.width - 6
+	contentWidth, contentHeight := m.contentDimensions()
 
 	// Create file list component
 	fileList := components.NewFileList(contentWidth, contentHeight)
@@ -202,8 +212,7 @@ func (m Model) renderFileListView() (title, content, footer, status string) {
 // renderFileViewerView renders the file viewer using components
 func (m Model) renderFileViewerView() (title, content, footer, status string) {
 	// Calculate available space for content
-	contentHeight := m.height - 8
-	contentWidth := m.width - 6
+	contentWidth, contentHeight := m.contentDimensions()
 
 	// Create file viewer component with content dimensions
 	viewer := file_viewer.NewFileViewer(contentWidth, contentHeight)
@@ -245,8 +254,7 @@ func (m Model) renderFileViewerView() (title, content, footer, status string) {
 // renderDatabaseTableListView renders the database table list using components
 func (m Model) renderDatabaseTableListView() (title, content, footer, status string) {
 	// Calculate available space
-	contentHeight := m.height - 8
-	contentWidth := m.width - 6
+	contentWidth, contentHeight := m.contentDimensions()
 
 	// Create database table list component
 	tableList := components.NewDatabaseTableList(contentWidth, contentHeight)
@@ -285,8 +293,7 @@ func (m Model) renderDatabaseTableListView() (title, content, footer, status str
 // renderDatabaseTableContentView renders individual table content using components
 func (m Model) renderDatabaseTableContentView() (title, content, footer, status string) {
 	// Calculate available space
-	contentHeight := m.height - 8
-	contentWidth := m.width - 6
+	contentWidth, contentHeight := m.contentDimensions()
 
 	// Create database table content component
 	tableContent := components.NewDatabaseTableContent(contentWidth, contentHeight)
@@ -320,4 +327,16 @@ func (m Model) renderDatabaseTableContentView() (title, content, footer, status 
 	}
 
 	return
+}
+
+func (m Model) contentDimensions() (width, height int) {
+	width = m.width - 6
+	if width < 1 {
+		width = 1
+	}
+	height = m.height - 10
+	if height < 1 {
+		height = 1
+	}
+	return width, height
 }

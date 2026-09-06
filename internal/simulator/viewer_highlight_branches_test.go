@@ -88,9 +88,8 @@ func TestInitChromaStyle_BrokenConfigLogsErrorAndUsesDefaults(t *testing.T) {
 	}
 }
 
-func TestInitChromaStyle_UnknownThemeFallsBackToGithubDark(t *testing.T) {
-	// A valid config selecting a theme name chroma does not recognize
-	// must trigger the logged fallback to github-dark.
+func TestInitChromaStyle_ReportsInvalidTheme(t *testing.T) {
+	t.Setenv("SIMTOOL_THEME_MODE", "dark")
 	body := `
 [theme]
 mode = "dark"
@@ -110,7 +109,7 @@ dark_theme = "does-not-exist-theme-xyz"
 		t.Errorf("chromaStyle = %v, want github-dark fallback %v", chromaStyle, githubDark)
 	}
 	out := buf.String()
-	if !strings.Contains(out, `theme "does-not-exist-theme-xyz" not found`) {
+	if !strings.Contains(out, `theme.dark_theme: "does-not-exist-theme-xyz"`) || !strings.Contains(out, "invalid config") {
 		t.Errorf("log output = %q, want it to mention the missing theme name", out)
 	}
 }
@@ -135,5 +134,26 @@ dark_theme = "monokai"
 	}
 	if termFormatter == nil {
 		t.Error("termFormatter is nil after init")
+	}
+}
+
+func TestInitChromaStyle_SwapOffThemeDoesNotLogFallback(t *testing.T) {
+	t.Setenv("SIMTOOL_THEME_MODE", "dark")
+	writeConfig(t, `
+[theme]
+mode = "dark"
+dark_theme = "swapoff"
+`)
+	resetChromaInit(t)
+	buf := captureLog(t)
+
+	GetSyntaxHighlightedLine("package main", ".go")
+
+	want := styles.Get("swapoff")
+	if chromaStyle != want {
+		t.Errorf("chromaStyle = %v, want swapoff %v", chromaStyle, want)
+	}
+	if strings.Contains(buf.String(), "not found") {
+		t.Errorf("log output = %q, want no fallback warning", buf.String())
 	}
 }

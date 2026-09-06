@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
@@ -26,6 +26,12 @@ type SimulatorList struct {
 
 // NewSimulatorList creates a new simulator list renderer
 func NewSimulatorList(width, height int) *SimulatorList {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
 	return &SimulatorList{
 		Width:  width,
 		Height: height,
@@ -167,7 +173,10 @@ func (sl *SimulatorList) calculateItemsPerScreen() int {
 // renderList renders the visible simulators
 func (sl *SimulatorList) renderList(startIdx, endIdx int) string {
 	var s strings.Builder
-	innerWidth := sl.Width - 4 // Account for padding
+	innerWidth := sl.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 
 	for i := startIdx; i < endIdx; i++ {
 		sim := sl.Simulators[i]

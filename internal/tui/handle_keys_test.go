@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
@@ -1093,7 +1093,7 @@ func TestHandleKeyPress_Quit(t *testing.T) {
 	m := testModelWithKeyMap()
 	m.viewState = SimulatorListView
 
-	got, cmd := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	got, cmd := m.handleKeyPress(tea.KeyPressMsg{Code: 'q', Text: "q"})
 	if got == nil {
 		t.Fatal("model should be returned")
 	}
@@ -1111,7 +1111,7 @@ func TestHandleKeyPress_QuitIgnoredInSearchMode(t *testing.T) {
 	m.viewState = SimulatorListView
 	m.simList.searchMode = true
 
-	_, cmd := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	_, cmd := m.handleKeyPress(tea.KeyPressMsg{Code: 'q', Text: "q"})
 	// In search mode, "q" is typed into the query, so handleSimulatorSearchInput
 	// handles it — not the quit path.
 	_ = cmd
@@ -1124,7 +1124,7 @@ func TestHandleKeyPress_NavigationClearsStatus(t *testing.T) {
 	m.simList.cursor = 1
 	m.statusMessage = "previous status"
 
-	got, _ := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}) // j → down
+	got, _ := m.handleKeyPress(tea.KeyPressMsg{Code: 'j', Text: "j"}) // j → down
 	gm := asModel(t, got)
 
 	if gm.statusMessage != "" {
@@ -1142,7 +1142,7 @@ func TestHandleKeyPress_NonNavigationKeepsStatus(t *testing.T) {
 	m.simList.cursor = 0
 	m.statusMessage = "keep me"
 
-	got, _ := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}}) // f → filter
+	got, _ := m.handleKeyPress(tea.KeyPressMsg{Code: 'f', Text: "f"}) // f → filter
 	gm := asModel(t, got)
 
 	if gm.statusMessage != "keep me" {
@@ -1162,7 +1162,7 @@ func TestHandleKeyPress_DispatchesByViewState(t *testing.T) {
 	m.fileList.cursor = 0
 	m.simList.cursor = 0
 
-	got, _ := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	got, _ := m.handleKeyPress(tea.KeyPressMsg{Code: 'j', Text: "j"})
 	gm := asModel(t, got)
 
 	if gm.fileList.cursor != 1 {

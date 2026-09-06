@@ -22,15 +22,60 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - uses: sigstore/cosign-installer@v3
+      - name: Test release source
+        run: go test -race ./...
+
+      - name: Check vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+
+      - uses: sigstore/cosign-installer@v4
+        with:
+          cosign-release: v3.1.3
 
       - uses: anchore/sbom-action/download-syft@v0
+        with:
+          syft-version: v1.51.1
+
+      - name: Extract release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          awk -v version="${RELEASE_TAG#v}" '
+            index($0, "## [" version "]") == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.tmp
+          test -s release-notes.tmp
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
-          version: latest
-          args: release --clean
+          version: v2.18.0
+          args: release --clean --release-notes release-notes.tmp
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - name: Check out Homebrew tap
+        uses: actions/checkout@v6
+        with:
+          repository: azizuysal/homebrew-tap
+          ref: main
+          path: homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - name: Update Homebrew source formula
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          source_archive="dist/simtool_${RELEASE_TAG#v}_source.tar.gz"
+          source_sha=$(shasum -a 256 "$source_archive" | awk '{print $1}')
+          bash scripts/homebrew-formula.sh "$RELEASE_TAG" "$source_sha" > homebrew-tap/Formula/simtool.rb
+          ruby -c homebrew-tap/Formula/simtool.rb
+          cd homebrew-tap
+          git config user.name "goreleaserbot"
+          git config user.email "bot@goreleaser.com"
+          git add Formula/simtool.rb
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update simtool to $RELEASE_TAG"
+            git push origin main
+          fi

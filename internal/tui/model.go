@@ -5,10 +5,11 @@ import (
 	"os/exec"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
+	"github.com/azizuysal/simtool/internal/ui"
 )
 
 // textLinesPerChunk is how many lines of a text file are loaded at
@@ -143,12 +144,14 @@ type Model struct {
 }
 
 // New creates a new Model with the given fetcher
-func New(fetcher simulator.Fetcher, startWithApps bool) Model {
+func New(fetcher simulator.Fetcher, startWithApps bool) (Model, error) {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
-		// Use defaults if config fails to load
-		cfg = config.Default()
+		return Model{}, err
+	}
+	if err := ui.InitializeStyles(cfg); err != nil {
+		return Model{}, err
 	}
 
 	// Create key map from config
@@ -178,7 +181,7 @@ func New(fetcher simulator.Fetcher, startWithApps bool) Model {
 		m.allApps.loading = true
 	}
 
-	return m
+	return m, nil
 }
 
 // Init initializes the model
@@ -344,6 +347,9 @@ func (m Model) fetchFileContentCmd(path string, offset int) tea.Cmd {
 		// terminal dimensions instead.
 		maxLines := textLinesPerChunk
 		maxWidth := m.width - 6 // Same as contentWidth in view.go
+		if maxWidth < 1 {
+			maxWidth = 1
+		}
 		fileType := simulator.DetectFileType(path)
 		if fileType == simulator.FileTypeImage {
 			// Pass terminal height minus UI overhead

@@ -20,8 +20,15 @@ func AllAppsListView(
 	loading bool,
 	err error,
 	keys *config.KeysConfig,
+	statusMessages ...string,
 ) string {
-	contentHeight := height - 8 // Account for title, borders, and footer
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
+	contentHeight := height - 10 // Account for title, footer, border, and padding
 
 	// Handle loading state
 	if loading {
@@ -67,6 +74,9 @@ func AllAppsListView(
 		}
 		status = ui.SearchStyle().Render(searchStatus)
 	}
+	if len(statusMessages) > 0 && statusMessages[0] != "" {
+		status = ui.ErrorStyle().Render(statusMessages[0])
+	}
 
 	// Build content
 	var content string
@@ -103,7 +113,10 @@ func AllAppsListView(
 
 		// Build app list content
 		var listContent strings.Builder
-		innerWidth := width - 10 // Account for padding and borders
+		innerWidth := width - 12 // Account for the outer border and padding
+		if innerWidth < 0 {
+			innerWidth = 0
+		}
 
 		for i := startIdx; i < endIdx; i++ {
 			app := filteredApps[i]

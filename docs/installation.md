@@ -4,20 +4,15 @@ SimTool can be installed using several methods. Choose the one that works best f
 
 ## Prerequisites
 
-- **macOS** (required - SimTool uses iOS simulator functionality)
-- **Xcode** or **Xcode Command Line Tools** installed
-- **iOS Simulators** installed via Xcode
+- macOS 13.0 or later
+- Full Xcode with an iOS Simulator runtime. Xcode Command Line Tools alone do not include `simctl`.
 
 ## Installation Methods
 
 ### Homebrew (Recommended)
 
 ```bash
-# Add the tap
-brew tap azizuysal/simtool
-
-# Install simtool
-brew install simtool
+brew install azizuysal/tap/simtool
 ```
 
 To update:
@@ -38,16 +33,14 @@ Make sure `$GOPATH/bin` is in your PATH.
 ### Download Binary
 
 1. Go to the [Releases](https://github.com/azizuysal/simtool/releases) page
-2. Download the appropriate binary for your system:
-   - `simtool-darwin-amd64` for Intel Macs
-   - `simtool-darwin-arm64` for Apple Silicon Macs
-3. Make it executable:
+2. Download `simtool_<version>_darwin_all.tar.gz`.
+3. Extract it:
    ```bash
-   chmod +x simtool-darwin-*
+   tar -xzf simtool_<version>_darwin_all.tar.gz
    ```
 4. Move to your PATH:
    ```bash
-   sudo mv simtool-darwin-* /usr/local/bin/simtool
+   sudo mv simtool /usr/local/bin/simtool
    ```
 
 ### Build from Source
@@ -57,11 +50,11 @@ Make sure `$GOPATH/bin` is in your PATH.
 git clone https://github.com/azizuysal/simtool.git
 cd simtool
 
-# Build
-make build
+mise install
+mise exec -- make build
 
 # Install
-make install
+mise exec -- make install
 ```
 
 ## Verify Installation
@@ -86,9 +79,9 @@ simtool --apps
 
 ### "xcrun: error: unable to find utility 'simctl'"
 
-Install Xcode Command Line Tools:
+Install full Xcode, then select it:
 ```bash
-xcode-select --install
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 ```
 
 ### No simulators found
@@ -110,7 +103,7 @@ chmod +x $(which simtool)
 ### Homebrew
 ```bash
 brew uninstall simtool
-brew untap azizuysal/simtool
+brew untap azizuysal/tap
 ```
 
 ### Manual

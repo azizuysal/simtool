@@ -1,8 +1,8 @@
-# SimTool 🛠️
+# SimTool
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="macOS">
-  <img src="https://img.shields.io/badge/go-%3E%3D1.24.4-00ADD8?logo=go" alt="Go">
+  <img src="https://img.shields.io/badge/go-1.27.1-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/github/license/azizuysal/simtool" alt="License">
   <img src="https://img.shields.io/github/v/release/azizuysal/simtool" alt="Release">
   <a href="https://codecov.io/gh/azizuysal/simtool"><img src="https://codecov.io/gh/azizuysal/simtool/branch/main/graph/badge.svg" alt="codecov"></a>
@@ -94,18 +94,23 @@
 - **Responsive Design**: Adapts to any terminal size
 - **Lightning Fast**: Instant navigation and lazy loading
 
-## 📋 Requirements
+## Requirements
 
-- macOS 10.15 or later
-- Xcode Command Line Tools
-- Go 1.24.4 or later (for building from source)
+- macOS 13.0 or later
+- Full Xcode with an iOS Simulator runtime; the Command Line Tools alone do not include `simctl`
+- Go 1.27.1, installed through [mise](https://mise.jdx.dev/), for building from source
 
-## 🚀 Installation
+## Installation
 
 ### Homebrew (Recommended)
 ```bash
-brew tap azizuysal/tap
-brew install simtool
+brew install azizuysal/tap/simtool
+```
+
+To update:
+
+```bash
+brew upgrade simtool
 ```
 
 ### Go Install
@@ -114,36 +119,48 @@ go install github.com/azizuysal/simtool/cmd/simtool@latest
 ```
 
 ### Download Binary
-Download from [Releases](https://github.com/azizuysal/simtool/releases) page.
+Download `simtool_<version>_darwin_all.tar.gz` from [Releases](https://github.com/azizuysal/simtool/releases), extract it with `tar -xzf`, and move `simtool` to a directory on your `PATH`.
 
 ### Build from Source
 ```bash
 git clone https://github.com/azizuysal/simtool.git
 cd simtool
-make install
+mise install
+mise exec -- make install
 ```
 
-## 🔐 Verifying releases
+## Verifying releases
 
 Release artifacts are signed with [Cosign](https://github.com/sigstore/cosign) using Sigstore's keyless signing. There are no long-lived keys — each signature's identity is tied to the specific GitHub Actions workflow run that produced the release, recorded in the public [Sigstore transparency log](https://search.sigstore.dev/).
 
-Every release ships with `checksums.txt.sig` and `checksums.txt.pem` sidecars alongside the archives. Signing the checksums file protects every artifact transitively via SHA-256.
+New releases ship a `checksums.txt.sigstore.json` bundle alongside the archives. Signing the checksums file protects every artifact transitively via SHA-256.
 
-To verify a downloaded release:
+To verify a new release:
 
 ```bash
 # One-time: brew install cosign
 
-# From the release page, download: the archive, checksums.txt, checksums.txt.sig, checksums.txt.pem
+# From the release page, download: the archive, checksums.txt, checksums.txt.sigstore.json
+# Replace vX.Y.Z with the release tag you downloaded.
 cosign verify-blob \
-  --certificate checksums.txt.pem \
-  --signature checksums.txt.sig \
-  --certificate-identity-regexp '^https://github.com/azizuysal/simtool/' \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity 'https://github.com/azizuysal/simtool/.github/workflows/release.yml@refs/tags/vX.Y.Z' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   checksums.txt
 
 # If verification succeeds, confirm the archive matches:
-shasum -a 256 -c checksums.txt
+shasum -a 256 -c checksums.txt --ignore-missing
+```
+
+For the older v1.1.1 release, use its legacy `checksums.txt.pem` and `checksums.txt.sig` sidecars:
+
+```bash
+cosign verify-blob \
+  --certificate checksums.txt.pem \
+  --signature checksums.txt.sig \
+  --certificate-identity 'https://github.com/azizuysal/simtool/.github/workflows/release.yml@refs/tags/v1.1.1' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  checksums.txt
 ```
 
 Homebrew installs don't need manual verification — the tap formula pins each release to a specific SHA-256, so any tampering after the fact is caught by `brew install` itself.
@@ -217,16 +234,16 @@ simtool --list-themes
 ```
 
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and development process.
+Contributions are welcome! Please read the [Contributing Guide](.github/CONTRIBUTING.md) for details on the development process.
 
 ### Development Setup
 ```bash
 git clone https://github.com/azizuysal/simtool.git
 cd simtool
-go mod download
-make build
+mise install
+mise exec -- make build
 ```
 
 See [Development Guide](docs/development.md) for architecture details.

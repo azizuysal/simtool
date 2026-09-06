@@ -1,12 +1,19 @@
 package ui
 
 import (
+	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
+
+	"github.com/azizuysal/simtool/internal/config"
 )
 
 func TestStyleFunctions(t *testing.T) {
+	if err := InitializeStyles(config.Default()); err != nil {
+		t.Fatalf("InitializeStyles: %v", err)
+	}
 	// Test that all style functions return valid styles
 	tests := []struct {
 		name  string
@@ -40,10 +47,38 @@ func TestStyleFunctions(t *testing.T) {
 }
 
 func TestSuccessColor(t *testing.T) {
+	if err := InitializeStyles(config.Default()); err != nil {
+		t.Fatalf("InitializeStyles: %v", err)
+	}
 	// Test that SuccessColor returns a valid color
 	color := SuccessColor()
 	// The actual color will depend on the theme, but it should not be nil
 	_ = color // Use the color to avoid compiler warning
+}
+
+func TestInitializeStylesRejectsInvalidThemeWithoutReplacingStyles(t *testing.T) {
+	if err := InitializeStyles(config.Default()); err != nil {
+		t.Fatalf("InitializeStyles(default): %v", err)
+	}
+	previousStyles := styles
+	previousSuccessColor := successColor
+
+	invalid := config.Default()
+	invalid.Theme.Mode = "dark"
+	invalid.Theme.DarkTheme = "not-a-theme"
+	err := InitializeStyles(invalid)
+	if err == nil {
+		t.Fatal("InitializeStyles(invalid) returned nil error")
+	}
+	if !strings.Contains(err.Error(), "not-a-theme") {
+		t.Errorf("error = %q, want invalid theme name", err)
+	}
+	if styles != previousStyles {
+		t.Error("InitializeStyles replaced styles after a theme extraction error")
+	}
+	if !reflect.DeepEqual(successColor, previousSuccessColor) {
+		t.Error("InitializeStyles replaced success color after a theme extraction error")
+	}
 }
 
 func TestReloadStyles(t *testing.T) {
@@ -56,6 +91,9 @@ func TestReloadStyles(t *testing.T) {
 }
 
 func TestStylesInitialization(t *testing.T) {
+	if err := InitializeStyles(config.Default()); err != nil {
+		t.Fatalf("InitializeStyles: %v", err)
+	}
 	// Test that styles are initialized properly
 	// This is implicitly tested by the other tests, but we can be explicit
 

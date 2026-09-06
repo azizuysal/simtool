@@ -1,8 +1,39 @@
 package config
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/alecthomas/chroma/v2/styles"
 )
+
+func TestRegisteredThemesAreAcceptedAndExtractable(t *testing.T) {
+	for _, name := range styles.Names() {
+		if !themeExists(name) {
+			t.Errorf("themeExists(%q) = false, want true", name)
+		}
+		if _, err := ExtractThemeColors(name); err != nil {
+			t.Errorf("ExtractThemeColors(%q): %v", name, err)
+		}
+	}
+
+	if _, ok := ResolveTheme(strings.ToUpper("swapoff")); !ok {
+		t.Error("ResolveTheme accepts registered theme names case-insensitively")
+	}
+}
+
+func TestUnknownThemeIsRejected(t *testing.T) {
+	const unknown = "not-a-theme"
+	if themeExists(unknown) {
+		t.Errorf("themeExists(%q) = true, want false", unknown)
+	}
+	if _, ok := ResolveTheme(unknown); ok {
+		t.Errorf("ResolveTheme(%q) = found, want false", unknown)
+	}
+	if _, err := ExtractThemeColors(unknown); err == nil {
+		t.Errorf("ExtractThemeColors(%q) returned nil error", unknown)
+	}
+}
 
 func TestIsColorDark(t *testing.T) {
 	tests := []struct {

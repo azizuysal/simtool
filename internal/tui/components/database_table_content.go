@@ -24,6 +24,12 @@ type DatabaseTableContent struct {
 
 // NewDatabaseTableContent creates a new database table content renderer
 func NewDatabaseTableContent(width, height int) *DatabaseTableContent {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
 	return &DatabaseTableContent{
 		Width:  width,
 		Height: height,
@@ -146,7 +152,10 @@ func (dtc *DatabaseTableContent) buildHeader() string {
 // renderWithHeader renders the table content with header
 func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight int) string {
 	var s strings.Builder
-	innerWidth := dtc.Width - 4 // Account for padding
+	innerWidth := dtc.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 
 	s.WriteString(renderHeaderPrefix(header, innerWidth))
 
@@ -285,9 +294,12 @@ func (dtc *DatabaseTableContent) renderWithHeader(header string, availableHeight
 				if len(valStr) > columnWidths[j] {
 					// Use rune-aware truncation to handle multi-byte characters
 					runes := []rune(valStr)
-					if len(runes) > columnWidths[j]-3 {
+					switch {
+					case columnWidths[j] <= 3:
+						valStr = string(runes[:columnWidths[j]])
+					case len(runes) > columnWidths[j]-3:
 						valStr = string(runes[:columnWidths[j]-3]) + "..."
-					} else {
+					default:
 						valStr += "..."
 					}
 				}

@@ -112,6 +112,12 @@ func (c *Config) Validate() error {
 		errs = append(errs, fmt.Sprintf("theme.mode: %q is not one of %v",
 			c.Theme.Mode, validThemeModes))
 	}
+	if c.Theme.DarkTheme != "" && !themeExists(c.Theme.DarkTheme) {
+		errs = append(errs, fmt.Sprintf("theme.dark_theme: %q is not an available theme", c.Theme.DarkTheme))
+	}
+	if c.Theme.LightTheme != "" && !themeExists(c.Theme.LightTheme) {
+		errs = append(errs, fmt.Sprintf("theme.light_theme: %q is not an available theme", c.Theme.LightTheme))
+	}
 
 	if c.Startup.InitialView != "" && !stringInSlice(c.Startup.InitialView, validInitialViews) {
 		errs = append(errs, fmt.Sprintf("startup.initial_view: %q is not one of %v",
@@ -122,6 +128,11 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("%s", strings.Join(errs, "; "))
 	}
 	return nil
+}
+
+func themeExists(name string) bool {
+	_, ok := ResolveTheme(name)
+	return ok
 }
 
 func stringInSlice(s string, set []string) bool {

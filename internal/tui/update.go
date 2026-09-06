@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/azizuysal/simtool/internal/simulator"
 	"github.com/azizuysal/simtool/internal/ui"
@@ -49,7 +49,7 @@ func (m Model) flashStatus(msg string, d time.Duration) (Model, tea.Cmd) {
 // which handler to call for which message type.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
@@ -90,8 +90,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // handleFetchSimulators processes the result of a simulator list fetch,
 // clamping the cursor into the new range and refreshing the viewport.
 func (m Model) handleFetchSimulators(msg fetchSimulatorsMsg) (Model, tea.Cmd) {
+	if msg.err != nil {
+		m.simList.loading = false
+		if m.viewState == SimulatorListView {
+			m.err = msg.err
+		} else {
+			m, cmd := m.flashStatus(fmt.Sprintf("Simulator refresh failed: %v", msg.err), 3*time.Second)
+			return m, cmd
+		}
+		return m, nil
+	}
 	m.simList.simulators = msg.simulators
-	m.err = msg.err
+	m.err = nil
 	m.simList.loading = false
 	if m.simList.cursor >= len(m.simList.simulators) {
 		m.simList.cursor = len(m.simList.simulators) - 1
@@ -288,7 +298,7 @@ func detectSVGWarning(file *simulator.FileInfo) string {
 }
 
 // handleKeyPress processes keyboard input
-func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// Handle search mode input first
 	if m.simList.searchMode && m.viewState == SimulatorListView {
 		return m.handleSimulatorSearchInput(msg)
@@ -300,7 +310,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleAllAppsSearchInput(msg)
 	}
 
-	action := m.keyMap.GetAction(msg.String())
+	action := m.keyMap.GetAction(keyForAction(msg))
 
 	// Global quit (ignored in search mode)
 	if action == "quit" {
@@ -459,6 +469,12 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 // handleAllAppsKey handles key actions in the combined all-apps view.
 func (m Model) handleAllAppsKey(action string) (tea.Model, tea.Cmd) {
 	switch action {
+	case "home":
+		m.allApps.cursor = 0
+		m.allApps.viewport = 0
+	case "end":
+		m.allApps.cursor = max(0, len(m.getFilteredAndSearchedAllApps())-1)
+		m = m.updateViewport()
 	case "right":
 		filteredApps := m.getFilteredAndSearchedAllApps()
 		if len(filteredApps) > 0 && m.allApps.cursor < len(filteredApps) {
@@ -647,7 +663,7 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 		}
 		switch m.fileViewer.content.Type {
 		case simulator.FileTypeText:
-			itemsPerScreen := CalculateItemsPerScreen(m.height) - 5 // Account for header
+			itemsPerScreen := textViewerRows(m.height)
 			maxViewport := len(m.fileViewer.content.Lines) - itemsPerScreen
 			if maxViewport < 0 {
 				maxViewport = 0
@@ -716,6 +732,14 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+func textViewerRows(terminalHeight int) int {
+	rows := terminalHeight - 15
+	if rows < 1 {
+		return 1
+	}
+	return rows
 }
 
 // handleDatabaseTableListKey handles key actions in the database table list view.
@@ -800,8 +824,8 @@ func (m Model) getFilteredSimulators() []simulator.Item {
 }
 
 // handleSimulatorSearchInput handles keyboard input when in simulator search mode
-func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	key := msg.String()
+func (m Model) handleSimulatorSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	key := keyForAction(msg)
 	action := m.keyMap.GetAction(key)
 
 	switch action {
@@ -817,8 +841,8 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "backspace":
 		// Remove last character from search query
-		if len(m.simList.searchQuery) > 0 {
-			m.simList.searchQuery = m.simList.searchQuery[:len(m.simList.searchQuery)-1]
+		if m.simList.searchQuery != "" {
+			m.simList.searchQuery = removeLastRune(m.simList.searchQuery)
 			m.simList.cursor = 0
 			m.simList.viewport = 0
 			m = m.updateViewport()
@@ -868,8 +892,8 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	default:
 		// Add any single character to search query (including h, j, k, l, q, etc.)
-		if len(msg.String()) == 1 {
-			m.simList.searchQuery += msg.String()
+		if msg.Text != "" {
+			m.simList.searchQuery += msg.Text
 			m.simList.cursor = 0
 			m.simList.viewport = 0
 			m = m.updateViewport()
@@ -879,8 +903,8 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // handleAppSearchInput handles keyboard input when in app search mode
-func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	key := msg.String()
+func (m Model) handleAppSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	key := keyForAction(msg)
 	action := m.keyMap.GetAction(key)
 
 	switch action {
@@ -896,8 +920,8 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "backspace":
 		// Remove last character from search query
-		if len(m.appList.searchQuery) > 0 {
-			m.appList.searchQuery = m.appList.searchQuery[:len(m.appList.searchQuery)-1]
+		if m.appList.searchQuery != "" {
+			m.appList.searchQuery = removeLastRune(m.appList.searchQuery)
 			m.appList.cursor = 0
 			m.appList.viewport = 0
 			m = m.updateViewport()
@@ -952,8 +976,8 @@ func (m Model) handleAppSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	default:
 		// Add any single character to search query (including h, j, k, l, q, etc.)
-		if len(msg.String()) == 1 {
-			m.appList.searchQuery += msg.String()
+		if msg.Text != "" {
+			m.appList.searchQuery += msg.Text
 			m.appList.cursor = 0
 			m.appList.viewport = 0
 			m = m.updateViewport()
@@ -1012,8 +1036,8 @@ func (m Model) getFilteredAndSearchedApps() []simulator.App {
 }
 
 // handleAllAppsSearchInput handles keyboard input when in all apps search mode
-func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	key := msg.String()
+func (m Model) handleAllAppsSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	key := keyForAction(msg)
 	action := m.keyMap.GetAction(key)
 
 	switch action {
@@ -1029,8 +1053,8 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "backspace":
 		// Remove last character from search query
-		if len(m.allApps.searchQuery) > 0 {
-			m.allApps.searchQuery = m.allApps.searchQuery[:len(m.allApps.searchQuery)-1]
+		if m.allApps.searchQuery != "" {
+			m.allApps.searchQuery = removeLastRune(m.allApps.searchQuery)
 			m.allApps.cursor = 0
 			m.allApps.viewport = 0
 			m = m.updateViewport()
@@ -1077,14 +1101,26 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	default:
 		// Add any single character to search query (including h, j, k, l, q, etc.)
-		if len(msg.String()) == 1 {
-			m.allApps.searchQuery += msg.String()
+		if msg.Text != "" {
+			m.allApps.searchQuery += msg.Text
 			m.allApps.cursor = 0
 			m.allApps.viewport = 0
 			m = m.updateViewport()
 		}
 		return m, nil
 	}
+}
+
+func keyForAction(msg tea.KeyPressMsg) string {
+	if msg.Code == ' ' && msg.Text == " " {
+		return " "
+	}
+	return msg.String()
+}
+
+func removeLastRune(value string) string {
+	runes := []rune(value)
+	return string(runes[:len(runes)-1])
 }
 
 // getFilteredAndSearchedAllApps returns all apps based on search query

@@ -3,12 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/alecthomas/chroma/v2/styles"
-	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
@@ -124,58 +126,21 @@ func main() {
 	}
 
 	if listThemes {
-		fmt.Println("Available syntax highlighting themes:")
-		fmt.Println()
-
-		themes := styles.Names()
-		categories := map[string][]string{
-			"Dark themes": {
-				"monokai", "dracula", "github-dark", "nord", "onedark",
-				"solarized-dark", "gruvbox", "vim", "paraiso-dark",
-			},
-			"Light themes": {
-				"github", "solarized-light", "gruvbox-light", "tango",
-				"monokailight", "paraiso-light", "pygments",
-			},
-			"High contrast": {
-				"contrast", "fruity", "native",
-			},
+		if err := printThemes(os.Stdout); err != nil {
+			log.Printf("failed to print themes: %s", err)
+			os.Exit(1)
 		}
-
-		// Print categorized themes
-		for category, themeList := range categories {
-			fmt.Printf("%s:\n", category)
-			for _, theme := range themeList {
-				// Check if theme exists
-				for _, available := range themes {
-					if available == theme {
-						fmt.Printf("  - %s\n", theme)
-						break
-					}
-				}
-			}
-			fmt.Println()
-		}
-
-		// Print all other themes
-		fmt.Println("Other themes:")
-		printed := make(map[string]bool)
-		for _, category := range categories {
-			for _, theme := range category {
-				printed[theme] = true
-			}
-		}
-
-		for _, theme := range themes {
-			if !printed[theme] {
-				fmt.Printf("  - %s\n", theme)
-			}
-		}
-
-		fmt.Println("\nTo use a theme, add it to your config file:")
-		fmt.Println("[syntax]")
-		fmt.Println("theme = \"theme-name\"")
 		return
+	}
+
+	// Create simulator fetcher
+	fetcher := simulator.NewFetcher()
+
+	// Validate configuration and construct the TUI before creating the debug log.
+	model, err := tui.New(fetcher, startWithApps)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Set up debug logging. The file goes under the user cache directory
@@ -191,12 +156,8 @@ func main() {
 		log.Fatalf("failed to create debug log: %s", err)
 	}
 
-	// Create simulator fetcher
-	fetcher := simulator.NewFetcher()
-
-	// Create and run the TUI application
-	model := tui.New(fetcher, startWithApps)
-	p := tea.NewProgram(model, tea.WithAltScreen())
+	// Run the TUI application.
+	p := tea.NewProgram(model)
 
 	_, runErr := p.Run()
 	_ = f.Close()
@@ -204,6 +165,52 @@ func main() {
 		log.Printf("Error running program: %s", runErr)
 		os.Exit(1)
 	}
+}
+
+func printThemes(w io.Writer) error {
+	available := make(map[string]struct{}, len(styles.Names()))
+	for _, theme := range styles.Names() {
+		available[theme] = struct{}{}
+	}
+
+	categories := []struct {
+		name   string
+		themes []string
+	}{
+		{"Dark themes", []string{"monokai", "dracula", "github-dark", "nord", "onedark", "solarized-dark", "gruvbox", "vim", "paraiso-dark"}},
+		{"Light themes", []string{"github", "solarized-light", "gruvbox-light", "tango", "monokailight", "paraiso-light", "pygments"}},
+		{"High contrast", []string{"contrast", "fruity", "native"}},
+	}
+
+	lines := []string{"Available syntax highlighting themes:", ""}
+	printed := make(map[string]struct{})
+	for _, category := range categories {
+		lines = append(lines, category.name+":")
+		for _, theme := range category.themes {
+			if _, ok := available[theme]; ok {
+				lines = append(lines, "  - "+theme)
+				printed[theme] = struct{}{}
+			}
+		}
+		lines = append(lines, "")
+	}
+
+	lines = append(lines, "Other themes:")
+	for _, theme := range styles.Names() {
+		if _, ok := printed[theme]; !ok {
+			lines = append(lines, "  - "+theme)
+		}
+	}
+
+	lines = append(lines,
+		"",
+		"To use a theme, add it to your config file:",
+		"[theme]",
+		"dark_theme = \"theme-name\"",
+		"light_theme = \"theme-name\"",
+	)
+	_, err := io.WriteString(w, strings.Join(lines, "\n")+"\n")
+	return err
 }
 
 // debugLogPath returns the path for simtool's debug log file, ensuring

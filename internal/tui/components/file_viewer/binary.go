@@ -11,7 +11,10 @@ import (
 // renderBinary renders binary file content as hex dump
 func (fv *FileViewer) renderBinary() string {
 	var s strings.Builder
-	innerWidth := fv.Width - 4 // Account for padding
+	innerWidth := fv.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 
 	// File info header
 	info := fmt.Sprintf("Binary file • %s", simulator.FormatSize(fv.File.Size))

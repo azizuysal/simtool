@@ -6,8 +6,8 @@ This guide covers setting up a development environment for SimTool and explains 
 
 ### Prerequisites
 
-- Go 1.21 or later
-- macOS with Xcode
+- [mise](https://mise.jdx.dev/) with the project's Go 1.27.1 toolchain
+- macOS 13.0 or later with full Xcode and an iOS Simulator runtime
 - Git
 - Make (optional but recommended)
 
@@ -15,27 +15,27 @@ This guide covers setting up a development environment for SimTool and explains 
 
 1. **Fork and Clone**
    ```bash
-   git clone https://github.com/yourusername/simtool.git
+   git clone https://github.com/azizuysal/simtool.git
    cd simtool
-   go mod download
+   mise install
    ```
 
 2. **Build and Run**
    ```bash
-   make build
+   mise exec -- make build
    ./simtool
    
    # Or directly:
-   go run ./cmd/simtool
+   mise exec -- go run ./cmd/simtool
    ```
 
 3. **Run Tests**
    ```bash
-   make test
+   mise exec -- make test
    
    # With coverage:
-   go test -coverprofile=coverage.out ./...
-   go tool cover -html=coverage.out
+   mise exec -- go test -coverprofile=coverage.out ./...
+   mise exec -- go tool cover -html=coverage.out
    ```
 
 ## Project Structure
@@ -82,7 +82,7 @@ SimTool follows clean architecture principles:
 
 ### Bubble Tea Framework
 
-SimTool uses [Bubble Tea](https://github.com/charmbracelet/bubbletea) for the TUI:
+SimTool uses [Bubble Tea v2](https://github.com/charmbracelet/bubbletea) for the TUI:
 
 - **Model**: Contains application state
 - **Update**: Handles messages and updates state
@@ -99,15 +99,17 @@ type Model struct {
 // Update
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     switch msg := msg.(type) {
-    case tea.KeyMsg:
+    case tea.KeyPressMsg:
         // Handle key press
     }
     return m, nil
 }
 
 // View
-func (m Model) View() string {
-    // Render UI
+func (m Model) View() tea.View {
+    view := tea.NewView("...")
+    view.AltScreen = true
+    return view
 }
 ```
 
@@ -197,11 +199,6 @@ type MockFetcher struct {
    dlv debug ./cmd/simtool
    ```
 
-3. **Bubble Tea Debug Mode**
-   ```go
-   p := tea.NewProgram(model, tea.WithAltScreen())
-   ```
-
 ## Common Tasks
 
 ### Adding a New View
@@ -245,19 +242,16 @@ type MockFetcher struct {
 
 ```bash
 # Clean and rebuild
-make clean
-go mod tidy
-make build
+mise exec -- make clean
+mise exec -- go mod tidy
+mise exec -- make build
 ```
 
 ### Test Failures
 
 ```bash
 # Run specific test
-go test -v -run TestName ./internal/simulator
-
-# Update golden files
-go test ./... -update
+mise exec -- go test -v -run TestName ./internal/simulator
 ```
 
 ### Terminal Issues

@@ -36,7 +36,10 @@ func TestNew(t *testing.T) {
 	fetcher := &mockFetcher{}
 
 	t.Run("default start with simulators", func(t *testing.T) {
-		model := New(fetcher, false)
+		model, err := New(fetcher, false)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if model.fetcher != fetcher {
 			t.Error("Expected fetcher to be set")
@@ -52,7 +55,10 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("start with all apps", func(t *testing.T) {
-		model := New(fetcher, true)
+		model, err := New(fetcher, true)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if model.fetcher != fetcher {
 			t.Error("Expected fetcher to be set")
@@ -70,7 +76,10 @@ func TestNew(t *testing.T) {
 
 func TestInit(t *testing.T) {
 	fetcher := &mockFetcher{}
-	model := New(fetcher, false)
+	model, err := New(fetcher, false)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	cmd := model.Init()
 
@@ -452,7 +461,10 @@ func TestCheckThemeChange(t *testing.T) {
 
 func TestNewModelThemeMode(t *testing.T) {
 	fetcher := &mockFetcher{}
-	model := New(fetcher, false)
+	model, err := New(fetcher, false)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Model should have a theme mode set
 	if model.currentThemeMode != "dark" && model.currentThemeMode != "light" {

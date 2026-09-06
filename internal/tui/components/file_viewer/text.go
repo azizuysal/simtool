@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
+
 	"github.com/azizuysal/simtool/internal/simulator"
 	"github.com/azizuysal/simtool/internal/ui"
 )
@@ -12,7 +14,10 @@ import (
 // renderText renders text file content with syntax highlighting
 func (fv *FileViewer) renderText() string {
 	var s strings.Builder
-	innerWidth := fv.Width - 4 // Account for content box padding
+	innerWidth := fv.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 
 	// File info header
 	fileType := "Text file"
@@ -31,10 +36,12 @@ func (fv *FileViewer) renderText() string {
 	s.WriteString(ui.DetailStyle().Render(strings.Repeat("─", innerWidth)))
 	s.WriteString("\n\n")
 
-	// Calculate visible lines
-	// Don't subtract border height as we're already in content dimensions
-	headerLines := 4 // Info + separator + padding
+	// ContentBox reserves two rows, and the rendered file header uses three.
+	headerLines := 5
 	visibleLines := fv.Height - headerLines
+	if visibleLines < 1 {
+		visibleLines = 1
+	}
 
 	startLine := fv.ContentViewport
 	endLine := startLine + visibleLines
@@ -57,14 +64,11 @@ func (fv *FileViewer) renderText() string {
 		lineNumStr := fmt.Sprintf("%*d", maxLineNumWidth, lineNum)
 		s.WriteString(ui.DetailStyle().Render(lineNumStr + " │ "))
 
-		// Line content with syntax highlighting. Truncate by rune count
-		// so multi-byte characters (emoji, CJK, accents) don't get cut
-		// mid-codepoint.
+		// Line content is truncated by terminal cell width so wide Unicode
+		// characters cannot wrap the outer layout.
 		line := fv.Content.Lines[i]
 		maxLineWidth := innerWidth - maxLineNumWidth - 4
-		if runes := []rune(line); len(runes) > maxLineWidth {
-			line = string(runes[:maxLineWidth-3]) + "..."
-		}
+		line = truncateTextLine(line, maxLineWidth)
 
 		// Use detected language if available
 		highlightedLine := ""
@@ -80,4 +84,15 @@ func (fv *FileViewer) renderText() string {
 	// Don't pad - ContentBox will handle filling the space
 
 	return s.String()
+}
+
+func truncateTextLine(value string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	ellipsis := "..."
+	if width <= len(ellipsis) {
+		ellipsis = ""
+	}
+	return ansi.Truncate(value, width, ellipsis)
 }

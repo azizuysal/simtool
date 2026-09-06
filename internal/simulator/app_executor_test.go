@@ -162,6 +162,54 @@ func TestReadAppInfo_PartialFields(t *testing.T) {
 
 // ---------- getAppsFromListApps ----------
 
+func TestGetAppsFromListAppsPreservesQuotedPathsAndNestedMetadata(t *testing.T) {
+	dir := t.TempDir()
+	appPath := filepath.Join(dir, "Example App.app")
+	if err := os.Mkdir(appPath, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(appPath, "data"), []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	output := fmt.Sprintf(`{
+    "com.example.app" = {
+        CFBundleDisplayName = "Example \"App\"";
+        CFBundleShortVersionString = "2.0";
+        EnvironmentVariables = {
+            "nested.key" = { value = nested; };
+        };
+        Path = %q;
+        DataContainer = "file:///tmp/Example%%20Container";
+    };
+}`, appPath)
+	withFakeExecutor(t, &fakeExecutor{responses: map[string]fakeResult{
+		"xcrun simctl listapps FIXTURE": {out: []byte(output)},
+	}})
+	apps, err := getAppsFromListApps("FIXTURE")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(apps) != 1 {
+		t.Fatalf("got %d apps, want 1", len(apps))
+	}
+	app := apps[0]
+	if app.Path != appPath || app.Name != `Example "App"` || app.Container != "file:///tmp/Example%20Container" {
+		t.Fatalf("app metadata changed during parsing: %+v", app)
+	}
+	if app.Size != 7 || app.ModTime.IsZero() {
+		t.Fatalf("quoted app path could not be inspected: %+v", app)
+	}
+}
+
+func TestGetAppsFromListAppsRejectsMalformedOutput(t *testing.T) {
+	withFakeExecutor(t, &fakeExecutor{responses: map[string]fakeResult{
+		"xcrun simctl listapps FIXTURE": {out: []byte("{ malformed")},
+	}})
+	if _, err := getAppsFromListApps("FIXTURE"); err == nil {
+		t.Fatal("malformed app list was accepted")
+	}
+}
+
 func TestGetAppsFromListApps_Success(t *testing.T) {
 	// Plist-style output as produced by `xcrun simctl listapps`.
 	plist := `{

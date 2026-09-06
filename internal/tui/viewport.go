@@ -16,39 +16,25 @@ func CalculateItemsPerScreen(height int) int {
 // same "m = m.foo()" pattern as the rest of the package. See the note
 // in model.go about receiver conventions.
 func (m Model) updateViewport() Model {
-	itemsPerScreen := CalculateItemsPerScreen(m.height)
+	_, contentHeight := m.contentDimensions()
+	itemsPerScreen := max(1, (contentHeight-2)/3)
 
 	switch m.viewState {
 	case SimulatorListView:
-		// Calculate items per screen the same way SimulatorList does
-		contentHeight := m.height - 8                // Same calculation as in view.go
-		simItemsPerScreen := (contentHeight - 2) / 3 // Same as SimulatorList.calculateItemsPerScreen
-		if simItemsPerScreen < 1 {
-			simItemsPerScreen = 1
-		}
-		updateViewportForList(&m.simList.cursor, &m.simList.viewport, len(m.simList.simulators), simItemsPerScreen)
+		updateViewportForList(&m.simList.cursor, &m.simList.viewport, len(m.simList.simulators), itemsPerScreen)
 	case AllAppsView:
-		// Each app entry takes 3 lines (name, bundle ID, simulator name)
-		contentHeight := m.height - 8
-		appItemsPerScreen := contentHeight / 3
-		if appItemsPerScreen < 1 {
-			appItemsPerScreen = 1
-		}
-		updateViewportForList(&m.allApps.cursor, &m.allApps.viewport, len(m.allApps.apps), appItemsPerScreen)
+		updateViewportForList(&m.allApps.cursor, &m.allApps.viewport, len(m.allApps.apps), itemsPerScreen)
 	case AppListView:
 		updateViewportForList(&m.appList.cursor, &m.appList.viewport, len(m.appList.apps), itemsPerScreen)
 	case FileListView:
-		// Calculate available height for content box
-		contentHeight := m.height - 8 // Title (4) + Footer (4)
-
 		// Account for header inside content box
-		headerLines := 6 // App name (1) + app details (1) + spacing (2) + separator (2)
+		headerLines := 5 // App name, details, separator, and two blank lines
 		if len(m.fileList.breadcrumbs) > 0 {
 			headerLines += 2 // Breadcrumb line + spacing
 		}
 
 		// Available height for file items
-		availableHeight := contentHeight - headerLines
+		availableHeight := contentHeight - 2 - headerLines
 
 		// Each file item takes 3 lines (name + details + spacing)
 		// But we need to ensure we don't count partial items

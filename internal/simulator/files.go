@@ -108,7 +108,7 @@ func FormatFileDate(t time.Time) string {
 func IsImageFile(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
-	case ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg":
+	case ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg", ".tif", ".tiff":
 		return true
 	default:
 		return false

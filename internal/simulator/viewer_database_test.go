@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"os"
@@ -10,6 +11,54 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 )
+
+func TestDatabaseFilenamesCannotChangeTheReadOnlyConnection(t *testing.T) {
+	for _, name := range []string{"state?mode=rwc&ignored=.db", "state#copy.db", "state%23copy.db", "café.db"} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			original := filepath.Join(dir, "original.db")
+			createTestDB(t, original,
+				"CREATE TABLE expected (id INTEGER)",
+				"INSERT INTO expected VALUES (42)",
+			)
+			path := filepath.Join(dir, name)
+			if err := os.Rename(original, path); err != nil {
+				t.Fatal(err)
+			}
+			before, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			info, err := ReadDatabaseContent(path)
+			if err != nil || info.Error != "" || len(info.Tables) != 1 {
+				t.Fatalf("reading selected database: info=%+v, err=%v", info, err)
+			}
+			rows, err := ReadTableData(path, "expected", 0, 10)
+			if err != nil || len(rows) != 1 || rows[0]["id"] != int64(42) {
+				t.Fatalf("reading selected table: rows=%v, err=%v", rows, err)
+			}
+			db, err := openReadOnlyDB(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, writeErr := db.Exec("INSERT INTO expected VALUES (99)")
+			if err := db.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if writeErr == nil {
+				t.Fatal("viewer connection allowed a write")
+			}
+			after, err := os.ReadFile(path)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatalf("database changed during viewing: %v", err)
+			}
+			entries, err := os.ReadDir(dir)
+			if err != nil || len(entries) != 1 {
+				t.Fatalf("viewer created another file: entries=%v, err=%v", entries, err)
+			}
+		})
+	}
+}
 
 // createTestDB creates a SQLite database file at path and populates it
 // with a known schema and data. Any statement failure is fatal for the

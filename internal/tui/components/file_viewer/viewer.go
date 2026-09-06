@@ -32,6 +32,12 @@ type FileViewer struct {
 
 // NewFileViewer creates a new file viewer
 func NewFileViewer(width, height int) *FileViewer {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
 	return &FileViewer{
 		Width:  width,
 		Height: height,
@@ -155,7 +161,15 @@ func (fv *FileViewer) getScrollInfo() string {
 		if fv.Content.TotalLines > 0 {
 			hasContent = true
 			startLine = fv.ContentOffset + fv.ContentViewport + 1
-			endLine = fv.ContentOffset + fv.ContentViewport + len(fv.Content.Lines)
+			visibleLines := fv.Height - 5
+			if visibleLines < 1 {
+				visibleLines = 1
+			}
+			endLine = startLine + visibleLines - 1
+			chunkEndLine := fv.ContentOffset + len(fv.Content.Lines)
+			if endLine > chunkEndLine {
+				endLine = chunkEndLine
+			}
 			totalLines = fv.Content.TotalLines
 		}
 	case simulator.FileTypeImage:

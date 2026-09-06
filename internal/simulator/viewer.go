@@ -121,6 +121,7 @@ func DetectFileType(path string) FileType {
 	imageExts := map[string]bool{
 		".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
 		".bmp": true, ".webp": true, ".ico": true, ".svg": true,
+		".tif": true, ".tiff": true,
 	}
 
 	if imageExts[ext] {
@@ -177,6 +178,22 @@ func DetectFileType(path string) FileType {
 	n, err := file.Read(buffer)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return FileTypeBinary
+	}
+	// Complete a UTF-8 character cut off by the sample boundary. Invalid
+	// characters inside the sample still classify the content as binary.
+	if n == len(buffer) {
+		start := n - 1
+		for start > n-utf8.UTFMax && !utf8.RuneStart(buffer[start]) {
+			start--
+		}
+		for !utf8.FullRune(buffer[start:]) && len(buffer)-start < utf8.UTFMax {
+			var next [1]byte
+			if _, err := io.ReadFull(file, next[:]); err != nil {
+				break
+			}
+			buffer = append(buffer, next[0])
+		}
+		n = len(buffer)
 	}
 
 	// Check for SQLite magic header "SQLite format 3\000"

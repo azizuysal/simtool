@@ -23,7 +23,10 @@ func (fv *FileViewer) renderArchive() string {
 	}
 
 	var s strings.Builder
-	innerWidth := fv.Width - 4 // Account for padding
+	innerWidth := fv.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 	archInfo := fv.Content.ArchiveInfo
 
 	// Archive info header

@@ -2,14 +2,15 @@ package config
 
 import (
 	"fmt"
+	"image/color"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/styles"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // ThemeColors holds all colors derived from a chroma theme
@@ -38,10 +39,16 @@ type ThemeColors struct {
 	Accent    string // Accent color (folders, special items)
 }
 
-// ExtractThemeColors extracts colors from a chroma theme
+// ResolveTheme returns a registered Chroma theme by name.
+func ResolveTheme(name string) (*chroma.Style, bool) {
+	theme, ok := styles.Registry[strings.ToLower(name)]
+	return theme, ok
+}
+
+// ExtractThemeColors extracts colors from a chroma theme.
 func ExtractThemeColors(themeName string) (*ThemeColors, error) {
-	theme := styles.Get(themeName)
-	if theme == nil || theme == styles.Fallback {
+	theme, ok := ResolveTheme(themeName)
+	if !ok {
 		return nil, fmt.Errorf("theme %q not found", themeName)
 	}
 
@@ -399,7 +406,7 @@ func ResetLiveModeCache() {
 	liveModeAt = time.Time{}
 }
 
-// ConvertToLipglossColor converts a hex color string to lipgloss.Color
-func ConvertToLipglossColor(hex string) lipgloss.Color {
+// ConvertToLipglossColor converts a hex color string to a color understood by Lip Gloss.
+func ConvertToLipglossColor(hex string) color.Color {
 	return lipgloss.Color(hex)
 }

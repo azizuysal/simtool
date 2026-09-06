@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"howett.net/plist"
 )
 
 // defaultExecutor is the CommandExecutor used by the package-level
@@ -49,58 +51,42 @@ func getAppsFromListApps(udid string) ([]App, error) {
 		return nil, fmt.Errorf("failed to list apps: %w", err)
 	}
 
-	// Parse the plist-style output
-	apps := make([]App, 0)
-	lines := strings.Split(string(output), "\n")
+	var installed map[string]struct {
+		DisplayName string `plist:"CFBundleDisplayName"`
+		Name        string `plist:"CFBundleName"`
+		Version     string `plist:"CFBundleShortVersionString"`
+		Path        string `plist:"Path"`
+		Container   string `plist:"DataContainer"`
+	}
+	if _, err := plist.Unmarshal(output, &installed); err != nil {
+		return nil, fmt.Errorf("failed to parse app list: %w", err)
+	}
 
-	var currentApp App
-	inApp := false
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-
-		// Start of a new app entry
-		if strings.HasPrefix(line, `"`) && strings.Contains(line, " = ") && strings.HasSuffix(line, "{") {
-			// Extract bundle ID from lines like: "com.example.app" =     {
-			parts := strings.SplitN(line, " = ", 2)
-			if len(parts) == 2 {
-				bundleID := strings.Trim(parts[0], `"`)
-				if !strings.HasPrefix(bundleID, "com.apple.") {
-					currentApp = App{BundleID: bundleID}
-					inApp = true
-				} else {
-					inApp = false
-				}
-			}
-		} else if inApp {
-			switch {
-			case strings.HasPrefix(line, "CFBundleDisplayName = "):
-				currentApp.Name = strings.Trim(strings.TrimPrefix(line, "CFBundleDisplayName = "), `";`)
-			case strings.HasPrefix(line, "CFBundleShortVersionString = "):
-				currentApp.Version = strings.Trim(strings.TrimPrefix(line, "CFBundleShortVersionString = "), `";`)
-			case strings.HasPrefix(line, "Path = "):
-				// Path values are not quoted in the output
-				currentApp.Path = strings.TrimSpace(strings.TrimPrefix(line, "Path = "))
-				currentApp.Path = strings.TrimSuffix(currentApp.Path, ";")
-			case strings.HasPrefix(line, "DataContainer = "):
-				currentApp.Container = strings.Trim(strings.TrimPrefix(line, "DataContainer = "), `";`)
-			case line == "};" && currentApp.BundleID != "":
-				// Calculate app size from path
-				if currentApp.Path != "" {
-					currentApp.Size = calculateDirSize(currentApp.Path)
-					// Get modification time
-					if info, err := os.Stat(currentApp.Path); err == nil {
-						currentApp.ModTime = info.ModTime()
-					}
-				}
-				// Use bundle ID as name if display name is empty
-				if currentApp.Name == "" {
-					currentApp.Name = currentApp.BundleID
-				}
-				apps = append(apps, currentApp)
-				inApp = false
+	apps := make([]App, 0, len(installed))
+	for bundleID, info := range installed {
+		if strings.HasPrefix(bundleID, "com.apple.") {
+			continue
+		}
+		app := App{
+			BundleID:  bundleID,
+			Name:      info.DisplayName,
+			Version:   info.Version,
+			Path:      info.Path,
+			Container: info.Container,
+		}
+		if app.Name == "" {
+			app.Name = info.Name
+		}
+		if app.Name == "" {
+			app.Name = bundleID
+		}
+		if app.Path != "" {
+			app.Size = calculateDirSize(app.Path)
+			if stat, err := os.Stat(app.Path); err == nil {
+				app.ModTime = stat.ModTime()
 			}
 		}
+		apps = append(apps, app)
 	}
 
 	// Sort apps by name

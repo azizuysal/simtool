@@ -23,6 +23,12 @@ type FileList struct {
 
 // NewFileList creates a new file list renderer
 func NewFileList(width, height int) *FileList {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
 	return &FileList{
 		Width:  width,
 		Height: height,
@@ -46,7 +52,7 @@ func (fl *FileList) Render() string {
 
 	// Calculate available space for file list
 	headerLines := strings.Count(header, "\n") + 4 // header + separator + padding
-	availableHeight := fl.Height - headerLines
+	availableHeight := fl.Height - 2 - headerLines
 
 	// Calculate how many complete items we can show (each item = 3 lines)
 	itemsPerScreen := availableHeight / 3
@@ -96,7 +102,7 @@ func (fl *FileList) GetFooter() string {
 		// Calculate actual header lines for this specific render
 		header := fl.buildHeader()
 		headerLines := strings.Count(header, "\n") + 4 // header + separator + padding
-		availableHeight := fl.Height - headerLines
+		availableHeight := fl.Height - 2 - headerLines
 		itemsPerScreen := availableHeight / 3
 		if itemsPerScreen < 1 {
 			itemsPerScreen = 1
@@ -143,7 +149,7 @@ func (fl *FileList) GetFooter() string {
 	// Calculate actual header lines for this specific render
 	header := fl.buildHeader()
 	headerLines := strings.Count(header, "\n") + 4 // header + separator + padding
-	availableHeight := fl.Height - headerLines
+	availableHeight := fl.Height - 2 - headerLines
 	itemsPerScreen := availableHeight / 3
 	if itemsPerScreen < 1 {
 		itemsPerScreen = 1
@@ -183,7 +189,10 @@ func (fl *FileList) buildHeader() string {
 // renderWithHeader renders the file list with header
 func (fl *FileList) renderWithHeader(header string, startIdx, endIdx int, availableHeight int) string {
 	var s strings.Builder
-	innerWidth := fl.Width - 4 // Account for padding
+	innerWidth := fl.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 
 	s.WriteString(renderHeaderPrefix(header, innerWidth))
 

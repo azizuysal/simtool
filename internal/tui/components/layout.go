@@ -3,7 +3,7 @@ package components
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	"github.com/azizuysal/simtool/internal/ui"
 )
@@ -79,8 +79,8 @@ func (l *Layout) renderTitle(title string) string {
 func (l *Layout) renderContent(content string, height int) string {
 	// Calculate content box width
 	contentWidth := l.Width - 6 // Leave some margin on sides
-	if contentWidth < 50 {
-		contentWidth = 50
+	if contentWidth < 1 {
+		contentWidth = 1
 	}
 
 	// Don't set explicit height on BorderStyle, let content determine it
@@ -88,8 +88,17 @@ func (l *Layout) renderContent(content string, height int) string {
 	contentLines := strings.Split(content, "\n")
 	currentLines := len(contentLines)
 
-	// Pad content to fill available height (accounting for border)
-	targetLines := height - 2 // -2 for top and bottom border
+	// The outer style contributes a border and one padding row above and
+	// below the body.
+	targetLines := height - 4
+	if targetLines < 0 {
+		targetLines = 0
+	}
+	if currentLines > targetLines {
+		content = strings.Join(contentLines[:targetLines], "\n")
+		contentLines = strings.Split(content, "\n")
+		currentLines = len(contentLines)
+	}
 	if currentLines < targetLines && targetLines > 0 {
 		for i := currentLines; i < targetLines; i++ {
 			content += "\n"
@@ -191,8 +200,14 @@ func NewContentBox(width, height int) *ContentBox {
 
 // Render renders content with optional header section
 func (cb *ContentBox) Render(header, content string, hasHeader bool) string {
-	innerWidth := cb.Width - 4   // Account for border padding
-	innerHeight := cb.Height - 2 // Account for border padding
+	innerWidth := cb.Width - 6   // Account for border and padding
+	innerHeight := cb.Height - 2 // The outer layout adds border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
+	if innerHeight < 0 {
+		innerHeight = 0
+	}
 
 	var s strings.Builder
 

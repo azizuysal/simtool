@@ -9,7 +9,6 @@ import (
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
-	"github.com/alecthomas/chroma/v2/styles"
 
 	"github.com/azizuysal/simtool/internal/config"
 )
@@ -47,10 +46,10 @@ func initChromaStyle() {
 		}
 
 		themeName := cfg.GetActiveTheme()
-		style := styles.Get(themeName)
-		if style == nil || style == styles.Fallback {
+		style, ok := config.ResolveTheme(themeName)
+		if !ok {
 			log.Printf("initChromaStyle: theme %q not found, falling back to github-dark", themeName)
-			style = styles.Get("github-dark")
+			style, _ = config.ResolveTheme("github-dark")
 		}
 
 		chromaStyle = style

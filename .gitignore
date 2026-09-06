@@ -39,8 +39,7 @@ simtool-*
 *~
 
 # Environment variables
-.env
-.env.local
+.env*
 
 # Secrets and credentials
 *.key

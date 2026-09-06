@@ -1,9 +1,9 @@
 package ui
 
 import (
-	"log"
+	"image/color"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	"github.com/azizuysal/simtool/internal/config"
 )
@@ -12,8 +12,7 @@ var (
 	// Global styles instance
 	styles *config.Styles
 
-	// Legacy color constants (for backward compatibility)
-	successColor lipgloss.Color
+	successColor color.Color
 )
 
 // Style getter functions that always return the current styles
@@ -124,35 +123,20 @@ func LoadingStyle() lipgloss.Style {
 	return lipgloss.NewStyle()
 }
 
-func init() {
-	// Load configuration
-	cfg, err := config.Load()
+func InitializeStyles(cfg *config.Config) error {
+	colors, err := config.ExtractThemeColors(cfg.GetActiveTheme())
 	if err != nil {
-		log.Printf("Warning: failed to load config, using defaults: %v", err)
-		cfg = config.Default()
+		return err
 	}
 
-	// Generate styles from config
-	styles = cfg.GenerateStyles()
-
-	// Map to legacy variables for backward compatibility
-	// Get colors from the extracted theme
-	colors, _ := config.ExtractThemeColors(cfg.GetActiveTheme())
-	if colors != nil {
-		successColor = config.ConvertToLipglossColor(colors.Success)
-	} else {
-		// Extract from github-dark as absolute fallback
-		githubDarkColors, _ := config.ExtractThemeColors("github-dark")
-		if githubDarkColors != nil {
-			successColor = config.ConvertToLipglossColor(githubDarkColors.Success)
-		} else {
-			successColor = lipgloss.Color("") // No color if all fails
-		}
-	}
+	generatedStyles := cfg.GenerateStyles()
+	styles = generatedStyles
+	successColor = config.ConvertToLipglossColor(colors.Success)
+	return nil
 }
 
-// SuccessColor returns the success color
-func SuccessColor() lipgloss.Color {
+// SuccessColor returns the configured success color.
+func SuccessColor() color.Color {
 	return successColor
 }
 
@@ -164,23 +148,5 @@ func ReloadStyles() error {
 		return err
 	}
 
-	// Regenerate styles
-	styles = cfg.GenerateStyles()
-
-	// Update legacy variables
-	// Get colors from the extracted theme
-	colors, _ := config.ExtractThemeColors(cfg.GetActiveTheme())
-	if colors != nil {
-		successColor = config.ConvertToLipglossColor(colors.Success)
-	} else {
-		// Extract from github-dark as absolute fallback
-		githubDarkColors, _ := config.ExtractThemeColors("github-dark")
-		if githubDarkColors != nil {
-			successColor = config.ConvertToLipglossColor(githubDarkColors.Success)
-		} else {
-			successColor = lipgloss.Color("") // No color if all fails
-		}
-	}
-
-	return nil
+	return InitializeStyles(cfg)
 }

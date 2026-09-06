@@ -1,4 +1,7 @@
-.PHONY: build run clean test lint install coverage coverage-html
+.PHONY: build run clean test lint install fmt deps build-all coverage coverage-html
+
+export MACOSX_DEPLOYMENT_TARGET = 13.0
+export CGO_ENABLED = 1
 
 # Binary name
 BINARY_NAME=simtool

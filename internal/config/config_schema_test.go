@@ -113,6 +113,20 @@ mode = "maybe"
 	}
 }
 
+func TestLoadFromPath_InvalidThemeName(t *testing.T) {
+	path := writeTOML(t, `
+[theme]
+dark_theme = "not-a-theme"
+`)
+	_, err := loadFromPath(path)
+	if err == nil {
+		t.Fatal("expected error for invalid theme.dark_theme")
+	}
+	if !strings.Contains(err.Error(), "theme.dark_theme") {
+		t.Errorf("error = %q, want to mention 'theme.dark_theme'", err.Error())
+	}
+}
+
 func TestLoadFromPath_InvalidInitialView(t *testing.T) {
 	path := writeTOML(t, `
 [startup]

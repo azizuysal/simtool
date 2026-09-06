@@ -15,7 +15,10 @@ func (fv *FileViewer) renderDatabase() string {
 	}
 
 	var s strings.Builder
-	innerWidth := fv.Width - 4 // Account for padding
+	innerWidth := fv.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 	dbInfo := fv.Content.DatabaseInfo
 
 	// Database info header
@@ -84,8 +87,11 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 	}
 
 	var s strings.Builder
-	innerWidth := fv.Width - 4 // Account for padding
-	headerLines := 4           // Info + separator + padding
+	innerWidth := fv.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
+	headerLines := 4 // Info + separator + padding
 	availableHeight := fv.Height - headerLines
 
 	// Calculate which tables to show based on viewport
@@ -104,8 +110,7 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 			}
 		}
 
-		// Table header with icon
-		tableHeader := fmt.Sprintf("🗃️  %s (%d rows)", table.Name, table.RowCount)
+		tableHeader := fmt.Sprintf("%s (%d rows)", table.Name, table.RowCount)
 		s.WriteString(ui.NameStyle().Render(tableHeader))
 		s.WriteString("\n")
 		linesUsed++
@@ -215,8 +220,11 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 
 			schemaPrefix := "Schema: "
 			remainingWidth := innerWidth - len(schemaPrefix)
+			if remainingWidth < 0 {
+				remainingWidth = 0
+			}
 			if len(schemaPreview) > remainingWidth {
-				schemaPreview = schemaPreview[:remainingWidth-3] + "..."
+				schemaPreview = truncateDatabaseText(schemaPreview, remainingWidth)
 			}
 
 			s.WriteString(ui.DetailStyle().Foreground(ui.DetailStyle().GetForeground()).Render(schemaPrefix + schemaPreview))
@@ -225,4 +233,18 @@ func (fv *FileViewer) renderDatabaseTables(dbInfo *simulator.DatabaseInfo) strin
 	}
 
 	return s.String()
+}
+
+func truncateDatabaseText(value string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= width {
+		return value
+	}
+	if width <= 3 {
+		return string(runes[:width])
+	}
+	return string(runes[:width-3]) + "..."
 }

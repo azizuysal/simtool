@@ -24,6 +24,12 @@ type AppList struct {
 
 // NewAppList creates a new app list renderer
 func NewAppList(width, height int) *AppList {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
 	return &AppList{
 		Width:  width,
 		Height: height,
@@ -166,7 +172,10 @@ func (al *AppList) calculateItemsPerScreen() int {
 // renderList renders the visible apps
 func (al *AppList) renderList(startIdx, endIdx int) string {
 	var s strings.Builder
-	innerWidth := al.Width - 4 // Account for padding
+	innerWidth := al.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 
 	for i := startIdx; i < endIdx; i++ {
 		app := al.Apps[i]

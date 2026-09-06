@@ -3,7 +3,7 @@ package config
 import (
 	"log"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // Styles holds all the application styles generated from config

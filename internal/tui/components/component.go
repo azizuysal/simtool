@@ -38,6 +38,9 @@ func renderHeaderPrefix(header string, innerWidth int) string {
 	if header == "" {
 		return ""
 	}
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 	var s strings.Builder
 	s.WriteString(header)
 	s.WriteString("\n\n")

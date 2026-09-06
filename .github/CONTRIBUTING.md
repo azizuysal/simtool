@@ -5,8 +5,8 @@ Thank you for your interest in contributing to SimTool! This document provides g
 ## Development Setup
 
 1. **Prerequisites**
-   - Go 1.21 or later
-   - macOS with Xcode installed (for iOS simulator functionality)
+   - [mise](https://mise.jdx.dev/) with the project's Go 1.27.1 toolchain
+   - macOS 13.0 or later with full Xcode and an iOS Simulator runtime
    - Git
 
 2. **Fork and Clone**
@@ -15,29 +15,29 @@ Thank you for your interest in contributing to SimTool! This document provides g
    cd simtool
    ```
 
-3. **Install Dependencies**
+3. **Install Tooling**
    ```bash
-   go mod download
+   mise install
    ```
 
 4. **Build and Run**
    ```bash
-   make build
+   mise exec -- make build
    ./simtool
    ```
 
 ## Code Style
 
 - Follow standard Go conventions
-- Run `gofmt` before committing: `make fmt`
-- Ensure code passes linting: `golangci-lint run`
+- Run `gofmt` before committing: `mise exec -- make fmt`
+- Ensure code passes linting: `mise exec -- golangci-lint run`
 - Keep line length reasonable (around 100 characters)
 - Add comments for exported functions and types
 
 ## Testing
 
 - Write tests for new functionality
-- Ensure all tests pass: `make test`
+- Ensure all tests pass: `mise exec -- make test`
 - Maintain or improve code coverage
 - Test on different terminal emulators when possible
 
@@ -86,8 +86,8 @@ Closes #123
 
 3. **Test Your Changes**
    ```bash
-   make test
-   make build
+   mise exec -- make test
+   mise exec -- make build
    ./simtool  # Manual testing
    ```
 
@@ -98,7 +98,7 @@ Closes #123
    - Link any related issues
 
 5. **PR Review Process**
-   - PRs require at least one review
+   - The maintainer reviews contributions before merging
    - Address feedback promptly
    - Keep PRs focused and reasonably sized
 

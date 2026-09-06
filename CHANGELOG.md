@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-06
+
+### Fixed
+- SQLite filenames containing URI characters can no longer override the viewer's read-only connection or open a different database.
+- App names, paths, sizes, and modification dates now use a structural parser for `simctl listapps` property lists, including quoted paths and nested metadata.
+- Narrow terminal windows no longer panic in list and file views; border and padding calculations keep file content and navigation controls on-screen.
+- List navigation keeps selected rows visible, and Home/End shortcuts work in the All Apps view.
+- Search backspace removes complete Unicode characters, and text detection handles UTF-8 characters crossing the preview sample boundary.
+- BMP and TIFF previews now have registered decoders.
+- Invalid configuration and unknown theme names fail visibly at startup; theme examples use the supported configuration schema and the registered `swapoff` theme is accepted.
+- Background simulator refresh failures preserve the active file view and display a status message.
+
+### Changed
+- Updated to Go 1.27.1, golangci-lint 2.13.2, Bubble Tea v2, Lip Gloss v2, and current stable dependencies, including fixes for vulnerable image decoders.
+- Set and verify a macOS 13.0 deployment target for release binaries. The published v1.1.1 binary requires macOS 15.0 despite its earlier documentation.
+- Replaced GoReleaser's deprecated Homebrew integration with a source-building formula; the Homebrew install command stays the same.
+- Updated release signing to Cosign v3 bundles and added source archives.
+- Added weekly vulnerability scans and grouped dependency update pull requests.
+- Vulnerabilities can be reported privately through GitHub; the security policy now describes the project's sole-maintainer support model.
+
 ## [1.1.1] - 2026-04-24
 
 ### Fixed

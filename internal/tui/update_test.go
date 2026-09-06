@@ -1,12 +1,14 @@
 package tui
 
 import (
+	"errors"
 	"os"
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
+	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/simulator"
 )
 
@@ -34,6 +36,81 @@ func TestUpdateThemeChange(t *testing.T) {
 	// cmd should be nil for theme change
 	if cmd != nil {
 		t.Error("Expected no command for theme change")
+	}
+}
+
+func TestSearchBackspaceRemovesWholeRune(t *testing.T) {
+	tests := []struct {
+		name  string
+		model Model
+	}{
+		{
+			name:  "simulators",
+			model: Model{viewState: SimulatorListView, simList: simListState{searchMode: true, searchQuery: "café"}},
+		},
+		{
+			name:  "apps",
+			model: Model{viewState: AppListView, appList: appListState{searchMode: true, searchQuery: "café"}},
+		},
+		{
+			name:  "all apps",
+			model: Model{viewState: AllAppsView, allApps: allAppsState{searchMode: true, searchQuery: "café"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.model.height = 24
+			tt.model.width = 80
+			tt.model.config = config.Default()
+			tt.model.keyMap = config.NewKeyMap(tt.model.config.Keys)
+			updated, _ := tt.model.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
+			model := updated.(Model)
+
+			switch model.viewState {
+			case SimulatorListView:
+				if model.simList.searchQuery != "caf" {
+					t.Errorf("searchQuery = %q, want caf", model.simList.searchQuery)
+				}
+			case AppListView:
+				if model.appList.searchQuery != "caf" {
+					t.Errorf("searchQuery = %q, want caf", model.appList.searchQuery)
+				}
+			case AllAppsView:
+				if model.allApps.searchQuery != "caf" {
+					t.Errorf("searchQuery = %q, want caf", model.allApps.searchQuery)
+				}
+			}
+		})
+	}
+}
+
+func TestSimulatorRefreshFailurePreservesActiveFileViewer(t *testing.T) {
+	model := Model{
+		viewState: FileViewerView,
+		width:     80,
+		height:    24,
+		fileViewer: fileViewerState{
+			file:    &simulator.FileInfo{Name: "notes.txt", Path: "/tmp/notes.txt"},
+			content: &simulator.FileContent{Type: simulator.FileTypeText, Lines: []string{"keep this open"}},
+		},
+	}
+
+	updated, cmd := model.handleFetchSimulators(fetchSimulatorsMsg{err: errors.New("simctl unavailable")})
+	if cmd == nil {
+		t.Fatal("expected status clear command")
+	}
+	if updated.viewState != FileViewerView {
+		t.Errorf("viewState = %v, want FileViewerView", updated.viewState)
+	}
+	if updated.fileViewer.file == nil || updated.fileViewer.file.Name != "notes.txt" {
+		t.Fatal("file viewer content was cleared")
+	}
+	if updated.err != nil {
+		t.Errorf("err = %v, want nil for a background refresh failure", updated.err)
+	}
+	if updated.statusMessage != "Simulator refresh failed: simctl unavailable" {
+		t.Errorf("statusMessage = %q", updated.statusMessage)
 	}
 }
 

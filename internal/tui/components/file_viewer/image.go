@@ -20,7 +20,10 @@ func (fv *FileViewer) renderImage() string {
 // renderImageContent renders the image content for the content box
 func (fv *FileViewer) renderImageContent() string {
 	var s strings.Builder
-	innerWidth := fv.Width - 4 // Account for content box padding
+	innerWidth := fv.Width - 6 // Account for the outer border and padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
 
 	// Image info header (similar to text and binary files)
 	info := fmt.Sprintf("Image file • %s • %d × %d • %s",

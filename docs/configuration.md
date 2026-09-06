@@ -24,11 +24,11 @@ This creates a well-commented example config at `~/.config/simtool/config.exampl
 ```toml
 [startup]
 # Initial view when starting SimTool
-# Options: "simulators" (default) or "all_apps"
-initial_view = "simulators"
+# Options: "simulator_list" (default) or "all_apps"
+initial_view = "simulator_list"
 ```
 
-- `simulators`: Start with the simulator list (default)
+- `simulator_list`: Start with the simulator list (default)
 - `all_apps`: Start with all apps from all simulators
 
 ### Theme Configuration
@@ -76,10 +76,10 @@ All keyboard shortcuts are customizable. Each action can have multiple keys assi
 up = ["up", "k"]
 down = ["down", "j"] 
 left = ["left", "h"]
-right = ["right", "l", "enter"]
+right = ["right", "l"]
 
 # Quick navigation
-home = ["home", "g"]
+home = ["home"]
 end = ["end", "G"]
 
 # Actions
@@ -90,12 +90,10 @@ escape = ["esc"]
 backspace = ["backspace"]
 
 # Simulator/App actions
-boot = ["space"]  # Boot simulator
-open = ["space"]  # Open in Finder
+boot = [" "]  # Space: boot simulator
+open = [" "]  # Space: open in Finder
 
-# View navigation
 enter = ["enter"]
-back = ["left", "h"]
 ```
 
 To disable a shortcut, set it to an empty array:
@@ -133,7 +131,7 @@ up = ["k"]
 down = ["j"]
 left = ["h"]
 right = ["l"]
-home = ["g", "g"]  # gg to go to top
+home = ["g"]
 end = ["G"]
 quit = ["q"]
 search = ["/"]
@@ -196,25 +194,8 @@ mode = "auto"  # Will detect theme changes instantly
 ### Config not loading
 
 1. Verify file location: `simtool --show-config-path`
-2. Check TOML syntax (no trailing commas)
+2. Check TOML syntax, section names, and theme names
 3. Look for error messages when starting SimTool
-
-## Advanced Configuration
-
-### Custom Config Location
-
-```bash
-# Not yet implemented, but planned
-SIMTOOL_CONFIG=/path/to/config.toml simtool
-```
-
-### Multiple Configurations
-
-Create aliases for different configs:
-```bash
-alias simtool-dark='SIMTOOL_THEME_MODE=dark simtool'
-alias simtool-light='SIMTOOL_THEME_MODE=light simtool'
-```
 
 ## Configuration Best Practices
 

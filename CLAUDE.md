@@ -4,7 +4,7 @@ This file provides guidance to AI assistants when working with the SimTool codeb
 
 ## Project Overview
 
-This is a Go project called `simtool` that uses the Bubble Tea framework to create a terminal UI application. The application displays a list of iOS simulators installed on the system and allows navigation with arrow keys or vim-style j/k keys.
+This is a Go 1.27.1 project managed with mise and targeting macOS 13.0 or later. It uses Bubble Tea v2 to create a terminal UI application for iOS simulators, with arrow-key or vim-style j/k navigation.
 
 ## Project Structure
 
@@ -83,18 +83,18 @@ simtool/
 
 ### Building the Application
 ```bash
-make build
+mise exec -- make build
 
 # Or directly
-go build -o simtool ./cmd/simtool
+mise exec -- go build -o simtool ./cmd/simtool
 ```
 
 ### Running the Application
 ```bash
-make run
+mise exec -- make run
 
 # Or directly
-go run ./cmd/simtool
+mise exec -- go run ./cmd/simtool
 
 # Or after building
 ./simtool
@@ -109,25 +109,25 @@ Note: This is a TUI application that requires a proper terminal environment. It 
 
 ### Testing
 ```bash
-make test
+mise exec -- make test
 ```
 
 ### Other Commands
 ```bash
 # Format code
-make fmt
+mise exec -- make fmt
 
 # Clean build artifacts
-make clean
+mise exec -- make clean
 
 # Install to $GOPATH/bin
-make install
+mise exec -- make install
 
 # Download dependencies
-make deps
+mise exec -- make deps
 
 # Build for multiple platforms
-make build-all
+mise exec -- make build-all
 ```
 
 ### Build System
@@ -157,7 +157,7 @@ The application follows clean architecture principles with clear separation of c
    - Merges user settings with defaults
    - Extracts colors from syntax highlighting themes to create cohesive UI
    - Detects terminal dark/light mode using OSC queries and system settings
-   - Generates lipgloss styles dynamically from theme colors
+   - Generates Lip Gloss v2 styles dynamically from theme colors
    - Supports TOML format for human-friendly editing
 
 2. **internal/simulator**: Core business logic
@@ -177,10 +177,10 @@ The application follows clean architecture principles with clear separation of c
    - Provides SQLite database browsing with table navigation and data viewing
    - Handles binary plist conversion automatically
 
-2. **internal/tui**: Terminal UI logic (Bubble Tea MVU pattern)
+2. **internal/tui**: Terminal UI logic (Bubble Tea v2 MVU pattern)
    - Model: Application state (simulators, apps, files, cursor, viewport)
    - Update: Handles messages and state updates
-   - View: Main view orchestrator using component system
+   - View: Returns `tea.View` and declares terminal settings such as alternate-screen mode
    - Components: Reusable UI components with consistent layout
      - Layout: Base responsive layout with title, content box, and footer
      - Views: Separated simulator list, app list, all apps list, file list, database table list, and database table content components
@@ -336,23 +336,20 @@ The application supports extensive customization through TOML configuration:
 
 ## Key Dependencies
 
-- `github.com/charmbracelet/bubbletea` - Terminal UI framework
-- `github.com/charmbracelet/lipgloss` - Terminal styling
+- `charm.land/bubbletea/v2` - Terminal UI framework
+- `charm.land/lipgloss/v2` - Terminal styling
 - `github.com/alecthomas/chroma/v2` - Syntax highlighting library
 - `github.com/mattn/go-sqlite3` - SQLite database driver for database file viewing
 - `github.com/BurntSushi/toml` - TOML configuration parsing
 
 ## Project Status
 
-**Current Version**: v1.0.2 (Released July 4, 2025)  
-**Status**: Fully deployed and operational  
-**Go Version**: 1.24.4
+**Current release**: v1.2.0
+**Source and release baseline**: macOS 13.0 and Go 1.27.1
 
 ### Release Information
-- Initial release v1.0.0 completed with all planned features
-- Automated release process via GoReleaser
-- Homebrew tap with automatic formula updates
-- Multiple installation methods verified and working
+- Releases are built with GoReleaser.
+- Releases publish a Homebrew formula.
 
 ### Distribution
 - **Homebrew**: `brew install azizuysal/tap/simtool`
