@@ -344,7 +344,7 @@ The application supports extensive customization through TOML configuration:
 
 ## Project Status
 
-**Current release**: v1.2.0
+**Current release**: v1.2.1
 **Source and release baseline**: macOS 13.0 and Go 1.27.1
 
 ### Release Information

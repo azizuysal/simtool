@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2026-09-06
+## [1.2.1] - 2026-09-06
 
 ### Fixed
 - SQLite filenames containing URI characters can no longer override the viewer's read-only connection or open a different database.
@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Set and verify a macOS 13.0 deployment target for release binaries. The published v1.1.1 binary requires macOS 15.0 despite its earlier documentation.
 - Replaced GoReleaser's deprecated Homebrew integration with a source-building formula; the Homebrew install command stays the same.
 - Updated release signing to Cosign v3 bundles and added source archives.
+- Pinned the Cosign installer to its published v4.1.2 tag. The v1.2.0 tag did not produce a release because the `v4` installer alias does not exist.
 - Added weekly vulnerability scans and grouped dependency update pull requests.
 - Vulnerabilities can be reported privately through GitHub; the security policy now describes the project's sole-maintainer support model.
 
