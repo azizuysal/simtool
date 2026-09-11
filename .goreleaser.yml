@@ -97,7 +97,7 @@ release:
   header: |
     ## SimTool {{ .Tag }}
     
-    Terminal UI for iOS Simulator management with powerful app browsing and file viewing capabilities.
+    Terminal UI for browsing iOS simulators and Android emulators, apps, and files on macOS.
     
   footer: |
     ## Installation

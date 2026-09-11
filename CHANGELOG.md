@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.3.0] - 2026-09-11
+
+### Added
+- Android emulator discovery, headless startup, app metadata, private-data browsing, APK previews, and the existing file viewers on macOS.
+- Platform filters in the device and All Apps views, plus `--platform all|ios|android`.
+- Read-only Android Finder browsing through a private loopback WebDAV mount.
+- Managed cleanup of emulators started by SimTool, Finder mounts, and temporary previews on exit, cancellation, and startup failure. Pre-existing emulators remain running.
+
+### Fixed
+- Selecting a searched device or app now opens the displayed result, and stale background file loads cannot replace a newer selection.
+- Ctrl+C exits from search mode and runs session cleanup.
+- Navigating during file preparation keeps the file list usable and prevents an old preview from replacing the parent directory.
+
 ## [1.2.1] - 2026-09-06
 
 ### Fixed

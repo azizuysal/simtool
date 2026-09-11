@@ -11,12 +11,20 @@ import (
 
 // FileInfo represents information about a file or directory
 type FileInfo struct {
+	LocalPath   string
 	Name        string
 	Path        string
 	Size        int64
 	IsDirectory bool
 	CreatedAt   time.Time
 	ModifiedAt  time.Time
+}
+
+func (f FileInfo) PreviewPath() string {
+	if f.LocalPath != "" {
+		return f.LocalPath
+	}
+	return f.Path
 }
 
 // GetFilesForContainer returns all files and directories in the app's data container
@@ -82,6 +90,9 @@ func GetFilesForContainer(containerPath string) ([]FileInfo, error) {
 
 // FormatFileDate formats a date for display in the file list
 func FormatFileDate(t time.Time) string {
+	if t.IsZero() {
+		return "unknown"
+	}
 	now := time.Now()
 	diff := now.Sub(t)
 

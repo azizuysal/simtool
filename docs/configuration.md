@@ -92,6 +92,7 @@ backspace = ["backspace"]
 # Simulator/App actions
 boot = [" "]  # Space: boot simulator
 open = [" "]  # Space: open in Finder
+platform = ["p"]  # Cycle all, iOS, Android in Devices and All Apps
 
 enter = ["enter"]
 ```
@@ -100,6 +101,8 @@ To disable a shortcut, set it to an empty array:
 ```toml
 filter = []  # Disables the filter shortcut
 ```
+
+`platform` affects the Devices and All Apps views. It cycles all platforms, iOS, and Android; it does not change the `--platform` command-line selection used when SimTool starts.
 
 ## Environment Variables
 

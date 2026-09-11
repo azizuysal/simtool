@@ -91,6 +91,9 @@ func TestItemIsRunning(t *testing.T) {
 }
 
 func TestFormatSize(t *testing.T) {
+	if got := FormatSize(-1); got != "size unknown" {
+		t.Fatalf("unknown size = %q", got)
+	}
 	tests := []struct {
 		name     string
 		size     int64
@@ -139,6 +142,9 @@ func TestFormatSize(t *testing.T) {
 }
 
 func TestFormatFileDate(t *testing.T) {
+	if got := FormatFileDate(time.Time{}); got != "unknown" {
+		t.Fatalf("missing date = %q", got)
+	}
 	now := time.Now()
 	tests := []struct {
 		name     string

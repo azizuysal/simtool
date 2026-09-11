@@ -134,7 +134,7 @@ func TestSimulatorListGetTitle(t *testing.T) {
 			filterActive: false,
 			searchQuery:  "",
 			totalCount:   2,
-			expected:     "iOS Simulators (2)",
+			expected:     "Devices (2)",
 		},
 		{
 			name: "with filter active",
@@ -144,7 +144,7 @@ func TestSimulatorListGetTitle(t *testing.T) {
 			filterActive: true,
 			searchQuery:  "",
 			totalCount:   3,
-			expected:     "iOS Simulators (1 of 3)",
+			expected:     "Devices (1 of 3)",
 		},
 		{
 			name: "with search query",
@@ -154,7 +154,7 @@ func TestSimulatorListGetTitle(t *testing.T) {
 			filterActive: false,
 			searchQuery:  "iPhone",
 			totalCount:   5,
-			expected:     "iOS Simulators (1 of 5)",
+			expected:     "Devices (1 of 5)",
 		},
 	}
 
@@ -180,7 +180,7 @@ func TestSimulatorListGetFooter(t *testing.T) {
 		{
 			name:       "normal mode",
 			searchMode: false,
-			expected:   "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • /: search • q: quit",
+			expected:   "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • p: platform • /: search • q: quit",
 		},
 		{
 			name:       "search mode",

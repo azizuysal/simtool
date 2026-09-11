@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/alecthomas/chroma/v2/styles"
@@ -39,6 +43,7 @@ func main() {
 		showHelp       bool
 		showVersion    bool
 		startWithApps  bool
+		platform       string
 	)
 
 	flag.BoolVar(&generateConfig, "generate-config", false, "Generate example configuration file")
@@ -58,13 +63,15 @@ func main() {
 
 	flag.BoolVar(&startWithApps, "apps", false, "Start with all apps view instead of simulator list")
 	flag.BoolVar(&startWithApps, "a", false, "Start with all apps view instead of simulator list")
+	flag.StringVar(&platform, "platform", "all", "Devices to include: all, ios or android")
 
 	// Custom usage function
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n\n", appName)
-		fmt.Fprintf(os.Stderr, "A terminal UI application for managing iOS simulators on macOS.\n\n")
+		fmt.Fprintf(os.Stderr, "Browse iOS simulators and Android emulators on macOS.\n\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		fmt.Fprintf(os.Stderr, "  -a, --apps                Start with all apps view instead of simulator list\n")
+		fmt.Fprintf(os.Stderr, "      --platform PLATFORM   Include all, ios or android devices (default all)\n")
 		fmt.Fprintf(os.Stderr, "  -g, --generate-config     Generate example configuration file\n")
 		fmt.Fprintf(os.Stderr, "  -c, --show-config-path    Show configuration file path\n")
 		fmt.Fprintf(os.Stderr, "  -l, --list-themes         List available syntax highlighting themes\n")
@@ -133,14 +140,25 @@ func main() {
 		return
 	}
 
-	// Create simulator fetcher
-	fetcher := simulator.NewFetcher()
+	if err := runTUI(startWithApps, platform); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runTUI(startWithApps bool, platform string) (result error) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+	fetcher, err := simulator.NewBrowser(ctx, platform)
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, fetcher.Close()) }()
 
 	// Validate configuration and construct the TUI before creating the debug log.
 	model, err := tui.New(fetcher, startWithApps)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("loading configuration: %w", err)
 	}
 
 	// Set up debug logging. The file goes under the user cache directory
@@ -149,22 +167,22 @@ func main() {
 	// invoked simtool and leak TUI state into unrelated project trees.
 	logPath, err := debugLogPath()
 	if err != nil {
-		log.Fatalf("failed to resolve debug log path: %s", err)
+		return fmt.Errorf("resolve debug log path: %w", err)
 	}
 	f, err := tea.LogToFile(logPath, "debug")
 	if err != nil {
-		log.Fatalf("failed to create debug log: %s", err)
+		return fmt.Errorf("create debug log: %w", err)
 	}
 
 	// Run the TUI application.
-	p := tea.NewProgram(model)
+	p := tea.NewProgram(model, tea.WithContext(ctx), tea.WithoutSignalHandler())
 
 	_, runErr := p.Run()
-	_ = f.Close()
-	if runErr != nil {
-		log.Printf("Error running program: %s", runErr)
-		os.Exit(1)
+	closeErr := f.Close()
+	if ctx.Err() != nil && errors.Is(runErr, tea.ErrProgramKilled) {
+		runErr = nil
 	}
+	return errors.Join(runErr, closeErr)
 }
 
 func printThemes(w io.Writer) error {

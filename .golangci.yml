@@ -21,7 +21,7 @@ linters:
     - unconvert       # unnecessary type conversions
   settings:
     gosec:
-      # Rules that don't apply well to this codebase. CLAUDE.md forbids
+      # Rules that don't apply well to this codebase. AGENTS.md forbids
       # per-line #nosec pragmas, so we disable at config level with a
       # reason. Other gosec rules (G301 file perms, etc.) stay enabled.
       excludes:

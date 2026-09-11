@@ -136,11 +136,7 @@ func (l *Layout) renderFooter(footer, status string) string {
 	}
 
 	// Footer key legend
-	styledFooter := ui.FooterStyle().Render(footer)
-	if l.Width > lipgloss.Width(styledFooter) {
-		leftPadding := (l.Width - lipgloss.Width(styledFooter)) / 2
-		s.WriteString(strings.Repeat(" ", leftPadding))
-	}
+	styledFooter := ui.FooterStyle().Width(max(1, l.Width)).Align(lipgloss.Center).Render(footer)
 	s.WriteString(styledFooter)
 
 	// Bottom padding line

@@ -5,7 +5,10 @@ SimTool can be installed using several methods. Choose the one that works best f
 ## Prerequisites
 
 - macOS 13.0 or later
-- Full Xcode with an iOS Simulator runtime. Xcode Command Line Tools alone do not include `simctl`.
+- For iOS browsing: full Xcode with an iOS Simulator runtime. Xcode Command Line Tools alone do not include `simctl`.
+- For Android browsing: Android SDK `platform-tools` and `emulator`, configured Android Virtual Devices, and `ANDROID_HOME` when the SDK is not on the standard path. Android SDK build-tools `aapt2` is optional; package IDs are shown when it is unavailable.
+
+Install only the platform tooling you plan to browse.
 
 ## Installation Methods
 
@@ -73,7 +76,18 @@ simtool
 Or start with all apps view:
 ```bash
 simtool --apps
+
+# Restrict the initial device set; the default is all platforms
+simtool --platform android
 ```
+
+## Android browsing
+
+Android support works with Android Virtual Devices. Physical devices are outside the current scope. SimTool can start stopped AVDs headlessly to browse apps or load All Apps. An AVD that SimTool started is released after collecting All Apps metadata and is restarted if you browse it later. During normal browsing, owned emulators stay available until SimTool exits, receives Ctrl+C, SIGTERM, or SIGHUP, or booting fails. Emulators that were already running are left alone.
+
+Private app data requires a debuggable app with `run-as`, or an ADB session that already has root access. SimTool never roots or wipes devices, or force-stops Android apps. Android app size is installed APK bytes; directory size and created time are unavailable and shown as unknown. Android Finder access is an authenticated loopback, read-only WebDAV mount using macOS `mount_webdav` and live ADB access, with no macFUSE dependency. SimTool removes the mount and its private preview copies on exit.
+
+Previews transfer at most 256 MiB per Android file and refresh when reopened. SQLite copies include WAL or journal files, change detection, and `PRAGMA quick_check`; they are not [transactional live backups](https://www.sqlite.org/howtocorrupt.html#backup_or_restore_while_a_transaction_is_active). Stop app activity and retry if the database changes during copying.
 
 ## Troubleshooting
 

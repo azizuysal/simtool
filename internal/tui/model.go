@@ -2,7 +2,6 @@ package tui
 
 import (
 	"os"
-	"os/exec"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -48,6 +47,7 @@ type simListState struct {
 	filterActive bool
 	searchMode   bool
 	searchQuery  string
+	platform     string
 }
 
 // allAppsState holds the state for the combined "all apps" view.
@@ -58,6 +58,7 @@ type allAppsState struct {
 	loading     bool
 	searchMode  bool
 	searchQuery string
+	platform    string
 }
 
 // appListState holds the state for a single simulator's app list.
@@ -69,6 +70,7 @@ type appListState struct {
 	loading     bool
 	searchMode  bool
 	searchQuery string
+	platform    string
 }
 
 // fileListState holds the state for the file browser.
@@ -78,6 +80,7 @@ type fileListState struct {
 	cursor         int
 	viewport       int
 	loading        bool
+	preparing      bool
 	currentPath    string
 	basePath       string         // The app's container path
 	breadcrumbs    []string       // Path components from base to current
@@ -124,7 +127,7 @@ type Model struct {
 	height        int
 	width         int
 	statusMessage string
-	fetcher       simulator.Fetcher
+	fetcher       simulator.Browser
 
 	// Per-view substates
 	simList    simListState
@@ -144,7 +147,7 @@ type Model struct {
 }
 
 // New creates a new Model with the given fetcher
-func New(fetcher simulator.Fetcher, startWithApps bool) (Model, error) {
+func New(fetcher simulator.Browser, startWithApps bool) (Model, error) {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -209,7 +212,7 @@ type fetchSimulatorsMsg struct {
 }
 
 // fetchSimulatorsCmd fetches simulators asynchronously
-func fetchSimulatorsCmd(fetcher simulator.Fetcher) tea.Cmd {
+func fetchSimulatorsCmd(fetcher simulator.Browser) tea.Cmd {
 	return func() tea.Msg {
 		sims, err := fetcher.Fetch()
 		return fetchSimulatorsMsg{simulators: sims, err: err}
@@ -232,8 +235,9 @@ func (m Model) bootSimulatorCmd(udid string) tea.Cmd {
 
 // fetchAppsMsg is sent when apps are fetched
 type fetchAppsMsg struct {
-	apps []simulator.App
-	err  error
+	simUDID string
+	apps    []simulator.App
+	err     error
 }
 
 // fetchAllAppsMsg is sent when all apps are fetched
@@ -253,15 +257,15 @@ type themeChangedMsg struct {
 // fetchAppsCmd fetches apps for a simulator
 func (m Model) fetchAppsCmd(sim simulator.Item) tea.Cmd {
 	return func() tea.Msg {
-		apps, err := simulator.GetAppsForSimulator(sim.UDID, sim.IsRunning())
-		return fetchAppsMsg{apps: apps, err: err}
+		apps, err := m.fetcher.Apps(sim)
+		return fetchAppsMsg{simUDID: sim.UDID, apps: apps, err: err}
 	}
 }
 
 // fetchAllAppsCmd fetches apps from all simulators
-func fetchAllAppsCmd(fetcher simulator.Fetcher) tea.Cmd {
+func fetchAllAppsCmd(fetcher simulator.Browser) tea.Cmd {
 	return func() tea.Msg {
-		apps, err := simulator.GetAllApps(fetcher)
+		apps, err := fetcher.AllApps()
 		return fetchAllAppsMsg{apps: apps, err: err}
 	}
 }
@@ -300,6 +304,7 @@ func (m Model) checkThemeChange() tea.Cmd {
 
 // fetchFilesMsg is sent when files are fetched
 type fetchFilesMsg struct {
+	path  string
 	files []simulator.FileInfo
 	err   error
 }
@@ -307,8 +312,8 @@ type fetchFilesMsg struct {
 // fetchFilesCmd fetches files for an app container
 func (m Model) fetchFilesCmd(containerPath string) tea.Cmd {
 	return func() tea.Msg {
-		files, err := simulator.GetFilesForContainer(containerPath)
-		return fetchFilesMsg{files: files, err: err}
+		files, err := m.fetcher.Files(containerPath)
+		return fetchFilesMsg{path: containerPath, files: files, err: err}
 	}
 }
 
@@ -320,21 +325,28 @@ type openInFinderMsg struct {
 // openInFinderCmd opens a path in Finder
 func (m Model) openInFinderCmd(path string) tea.Cmd {
 	return func() tea.Msg {
-		// Remove file:// prefix if present
-		cleanPath := path
-		if len(path) > 7 && path[:7] == "file://" {
-			cleanPath = path[7:]
-		}
-
-		// Use open command to reveal in Finder
-		cmd := exec.Command("open", "-R", cleanPath)
-		err := cmd.Run()
+		err := m.fetcher.OpenInFinder(path)
 		return openInFinderMsg{err: err}
+	}
+}
+
+type prepareFileMsg struct {
+	file simulator.FileInfo
+	path string
+	err  error
+}
+
+func (m Model) prepareFileCmd(file simulator.FileInfo) tea.Cmd {
+	return func() tea.Msg {
+		path, err := m.fetcher.Prepare(file.Path)
+		return prepareFileMsg{file: file, path: path, err: err}
 	}
 }
 
 // fetchFileContentMsg is sent when file content is fetched
 type fetchFileContentMsg struct {
+	path    string
+	offset  int
 	content *simulator.FileContent
 	err     error
 }
@@ -360,12 +372,13 @@ func (m Model) fetchFileContentCmd(path string, offset int) tea.Cmd {
 			}
 		}
 		content, err := simulator.ReadFileContent(path, offset, maxLines, maxWidth)
-		return fetchFileContentMsg{content: content, err: err}
+		return fetchFileContentMsg{path: path, offset: offset, content: content, err: err}
 	}
 }
 
 // fetchDatabaseInfoMsg is sent when database info is fetched
 type fetchDatabaseInfoMsg struct {
+	path   string
 	dbInfo *simulator.DatabaseInfo
 	err    error
 }
@@ -374,12 +387,14 @@ type fetchDatabaseInfoMsg struct {
 func (m Model) fetchDatabaseInfoCmd(path string) tea.Cmd {
 	return func() tea.Msg {
 		dbInfo, err := simulator.ReadDatabaseContent(path)
-		return fetchDatabaseInfoMsg{dbInfo: dbInfo, err: err}
+		return fetchDatabaseInfoMsg{path: path, dbInfo: dbInfo, err: err}
 	}
 }
 
 // fetchTableDataMsg is sent when table data is fetched
 type fetchTableDataMsg struct {
+	dbPath string
+	table  string
 	data   []map[string]any
 	offset int
 	err    error
@@ -389,6 +404,6 @@ type fetchTableDataMsg struct {
 func (m Model) fetchTableDataCmd(dbPath, tableName string, offset, limit int) tea.Cmd {
 	return func() tea.Msg {
 		data, err := simulator.ReadTableData(dbPath, tableName, offset, limit)
-		return fetchTableDataMsg{data: data, offset: offset, err: err}
+		return fetchTableDataMsg{dbPath: dbPath, table: tableName, data: data, offset: offset, err: err}
 	}
 }

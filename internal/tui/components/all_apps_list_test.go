@@ -66,7 +66,7 @@ func TestAllAppsListView(t *testing.T) {
 			width:   80,
 			height:  24,
 			expectInView: []string{
-				"Loading all apps...",
+				"Loading all apps; stopped Android emulators may start headlessly",
 			},
 			notInView: []string{
 				"Test App 1",

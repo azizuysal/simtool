@@ -50,7 +50,7 @@ func TestView(t *testing.T) {
 				width:  80,
 				config: defaultConfig,
 			},
-			contains: []string{"iOS Simulators"},
+			contains: []string{"Devices"},
 		},
 		{
 			name: "app list view",
@@ -133,8 +133,8 @@ func TestViewStateIntegration(t *testing.T) {
 	// Test SimulatorListView
 	model.viewState = SimulatorListView
 	view := model.View().Content
-	if !strings.Contains(view, "iOS Simulators") {
-		t.Error("SimulatorListView should show iOS Simulators")
+	if !strings.Contains(view, "Devices") {
+		t.Error("SimulatorListView should show Devices")
 	}
 
 	// Test AppListView
@@ -256,6 +256,40 @@ func TestViewRendersAtNarrowDimensions(t *testing.T) {
 
 	if content := model.View().Content; content == "" {
 		t.Error("View() returned empty content")
+	}
+}
+
+func TestPlatformFooterFitsWithLastListItemVisible(t *testing.T) {
+	if err := ui.InitializeStyles(config.Default()); err != nil {
+		t.Fatal(err)
+	}
+	for _, state := range []ViewState{SimulatorListView, AllAppsView} {
+		for _, width := range []int{80, 120} {
+			for _, height := range []int{22, 24, 30} {
+				model := Model{viewState: state, width: width, height: height, config: config.Default(), keyMap: config.NewKeyMap(config.DefaultKeys())}
+				for range 20 {
+					model.simList.simulators = append(model.simList.simulators, simulator.Item{Simulator: simulator.Simulator{Name: "Device"}})
+					model.allApps.apps = append(model.allApps.apps, simulator.App{Name: "App"})
+				}
+				model.simList.simulators[19].Name = "LAST-ITEM"
+				model.allApps.apps[19].Name = "LAST-ITEM"
+				updated, _ := model.Update(tea.KeyPressMsg{Code: tea.KeyEnd})
+				content := updated.(Model).View().Content
+				for _, label := range []string{"p: platform", "quit", "LAST-ITEM"} {
+					if !strings.Contains(content, label) {
+						t.Errorf("view %d at %dx%d is missing %q", state, width, height, label)
+					}
+				}
+				if actual := lipgloss.Height(content); actual > height {
+					t.Errorf("view %d at %dx%d has %d rows", state, width, height, actual)
+				}
+				for _, line := range strings.Split(content, "\n") {
+					if actual := lipgloss.Width(line); actual > width {
+						t.Errorf("view %d at %dx%d has a %d-column line", state, width, height, actual)
+					}
+				}
+			}
+		}
 	}
 }
 
