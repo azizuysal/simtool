@@ -23,6 +23,7 @@ func TestDefaultKeys(t *testing.T) {
 		{"Boot", d.Boot, []string{" "}, 0},
 		{"Open", d.Open, []string{" "}, 0},
 		{"Filter", d.Filter, []string{"f"}, 0},
+		{"Platform", d.Platform, []string{"p"}, 0},
 		{"Search", d.Search, []string{"/"}, 0},
 		{"Escape", d.Escape, []string{"esc"}, 0},
 		{"Enter", d.Enter, []string{"enter"}, 0},
@@ -58,6 +59,7 @@ func TestNewKeyMap_ResolvesAllActions(t *testing.T) {
 		{"q", "quit"}, {"ctrl+c", "quit"},
 		{" ", "open"}, // Open is declared AFTER Boot in NewKeyMap, so "open" wins on collision
 		{"f", "filter"},
+		{"p", "platform"},
 		{"/", "search"},
 		{"esc", "escape"},
 		{"enter", "enter"},
@@ -149,6 +151,7 @@ func TestKeysConfig_FormatKeyAction(t *testing.T) {
 		{"boot", "boot", "space: boot"},
 		{"open", "open", "space: open"},
 		{"filter", "filter", "f: filter"},
+		{"platform", "platform", "p: platform"},
 		{"search", "search", "/: search"},
 		{"escape", "cancel", "ESC: cancel"},
 		{"enter", "select", "Enter: select"},

@@ -10,12 +10,17 @@ import (
 
 // mockFetcher implements simulator.Fetcher for testing
 type mockFetcher struct {
-	items      []simulator.Item
-	simulators []simulator.Simulator
-	fetchErr   error
-	bootErr    error
-	bootCalled bool
-	bootUDID   string
+	items       []simulator.Item
+	simulators  []simulator.Simulator
+	fetchErr    error
+	bootErr     error
+	bootCalled  bool
+	bootUDID    string
+	apps        []simulator.App
+	files       []simulator.FileInfo
+	preparePath string
+	prepareErr  error
+	openErr     error
 }
 
 func (m *mockFetcher) Fetch() ([]simulator.Item, error) {
@@ -30,6 +35,29 @@ func (m *mockFetcher) Boot(udid string) error {
 	m.bootCalled = true
 	m.bootUDID = udid
 	return m.bootErr
+}
+
+func (m *mockFetcher) Apps(simulator.Item) ([]simulator.App, error) {
+	return m.apps, m.fetchErr
+}
+
+func (m *mockFetcher) AllApps() ([]simulator.App, error) {
+	return m.apps, m.fetchErr
+}
+
+func (m *mockFetcher) Files(string) ([]simulator.FileInfo, error) {
+	return m.files, m.fetchErr
+}
+
+func (m *mockFetcher) Prepare(path string) (string, error) {
+	if m.preparePath == "" {
+		return path, m.prepareErr
+	}
+	return m.preparePath, m.prepareErr
+}
+
+func (m *mockFetcher) OpenInFinder(string) error {
+	return m.openErr
 }
 
 func TestNew(t *testing.T) {

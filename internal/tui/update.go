@@ -83,6 +83,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleFetchTableData(msg)
 	case fetchFileContentMsg:
 		return m.handleFetchFileContent(msg)
+	case prepareFileMsg:
+		return m.handlePrepareFile(msg)
 	}
 	return m, nil
 }
@@ -92,6 +94,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) handleFetchSimulators(msg fetchSimulatorsMsg) (Model, tea.Cmd) {
 	if msg.err != nil {
 		m.simList.loading = false
+		if m.simList.booting && len(m.simList.simulators) > 0 {
+			return m.flashStatus(fmt.Sprintf("Boot in progress: %v", msg.err), 3*time.Second)
+		}
+		if len(msg.simulators) > 0 {
+			m.simList.simulators = msg.simulators
+			m.err = nil
+			if m.simList.cursor >= len(msg.simulators) {
+				m.simList.cursor = len(msg.simulators) - 1
+			}
+			m = m.updateViewport()
+			return m.flashStatus(fmt.Sprintf("Simulator refresh warning: %v", msg.err), 3*time.Second)
+		}
 		if m.viewState == SimulatorListView {
 			m.err = msg.err
 		} else {
@@ -116,9 +130,17 @@ func (m Model) handleFetchSimulators(msg fetchSimulatorsMsg) (Model, tea.Cmd) {
 // fetch. Errors and empty results both return the user to the simulator
 // list with a flash message.
 func (m Model) handleFetchApps(msg fetchAppsMsg) (Model, tea.Cmd) {
+	if m.viewState != AppListView || m.appList.selectedSim == nil || m.appList.selectedSim.UDID != msg.simUDID {
+		return m, nil
+	}
 	m.appList.apps = msg.apps
 	m.appList.loading = false
 	if msg.err != nil {
+		if len(msg.apps) > 0 {
+			m.appList.cursor = 0
+			m.appList.viewport = 0
+			return m.flashStatus(fmt.Sprintf("App discovery warning: %v", msg.err), 3*time.Second)
+		}
 		m.viewState = SimulatorListView
 		m.appList.selectedSim = nil
 		return m.flashStatus(fmt.Sprintf("Error loading apps: %v", msg.err), 3*time.Second)
@@ -137,9 +159,18 @@ func (m Model) handleFetchApps(msg fetchAppsMsg) (Model, tea.Cmd) {
 // fetch. Errors are surfaced via m.err rather than a flash so the main
 // list view can render an error state.
 func (m Model) handleFetchAllApps(msg fetchAllAppsMsg) (Model, tea.Cmd) {
+	if m.viewState != AllAppsView {
+		return m, nil
+	}
 	m.allApps.apps = msg.apps
 	m.allApps.loading = false
 	if msg.err != nil {
+		if len(msg.apps) > 0 {
+			m.err = nil
+			m.allApps.cursor = 0
+			m.allApps.viewport = 0
+			return m.flashStatus(fmt.Sprintf("App discovery warning: %v", msg.err), 3*time.Second)
+		}
 		m.err = msg.err
 	} else {
 		m.allApps.cursor = 0
@@ -192,13 +223,32 @@ func (m Model) handleThemeChanged(msg themeChangedMsg) (Model, tea.Cmd) {
 // restoring cursor/viewport positions saved when the user drilled into
 // the directory so going back to a parent lands on the previous entry.
 func (m Model) handleFetchFiles(msg fetchFilesMsg) (Model, tea.Cmd) {
+	if m.viewState != FileListView || m.fileList.currentPath != msg.path {
+		return m, nil
+	}
 	m.fileList.files = msg.files
 	m.fileList.loading = false
+	m.fileList.preparing = false
 	if msg.err != nil {
-		m.viewState = AppListView
-		m.fileList.selectedApp = nil
-		m.fileList.currentPath = ""
-		return m.flashStatus(fmt.Sprintf("Error loading files: %v", msg.err), 3*time.Second)
+		message := fmt.Sprintf("Access restricted or unavailable: %v", msg.err)
+		if len(m.fileList.breadcrumbs) > 0 {
+			m.fileList.breadcrumbs = m.fileList.breadcrumbs[:len(m.fileList.breadcrumbs)-1]
+			parentPath := m.fileList.basePath
+			if len(m.fileList.breadcrumbs) > 0 {
+				parentPath = filepath.Join(append([]string{m.fileList.basePath}, m.fileList.breadcrumbs...)...)
+			}
+			m.fileList.currentPath = parentPath
+			m.fileList.loading = true
+			m, clearStatus := m.flashStatus(message, 3*time.Second)
+			return m, tea.Batch(m.fetchFilesCmd(parentPath), clearStatus)
+		}
+		nextView := AppListView
+		if m.fileList.selectedApp != nil && m.fileList.selectedApp.SimulatorUDID != "" {
+			nextView = AllAppsView
+		}
+		m.viewState = nextView
+		m.fileList = fileListState{}
+		return m.flashStatus(message, 3*time.Second)
 	}
 	if m.fileList.cursorMemory != nil {
 		if cursor, ok := m.fileList.cursorMemory[m.fileList.currentPath]; ok {
@@ -226,6 +276,9 @@ func (m Model) handleFetchFiles(msg fetchFilesMsg) (Model, tea.Cmd) {
 
 // handleFetchDatabaseInfo processes the result of a SQLite schema read.
 func (m Model) handleFetchDatabaseInfo(msg fetchDatabaseInfoMsg) (Model, tea.Cmd) {
+	if m.viewState != DatabaseTableListView || m.dbTables.file == nil || m.dbTables.file.PreviewPath() != msg.path {
+		return m, nil
+	}
 	m.dbTables.loading = false
 	if msg.err != nil {
 		m.viewState = FileListView
@@ -238,6 +291,9 @@ func (m Model) handleFetchDatabaseInfo(msg fetchDatabaseInfoMsg) (Model, tea.Cmd
 
 // handleFetchTableData processes a page of SQLite row data.
 func (m Model) handleFetchTableData(msg fetchTableDataMsg) (Model, tea.Cmd) {
+	if m.viewState != DatabaseTableContentView || m.dbTables.file == nil || m.dbTables.file.PreviewPath() != msg.dbPath || m.dbContent.table == nil || m.dbContent.table.Name != msg.table {
+		return m, nil
+	}
 	m.dbContent.loading = false
 	if msg.err != nil {
 		return m.flashStatus(fmt.Sprintf("Error loading table data: %v", msg.err), 3*time.Second)
@@ -251,6 +307,9 @@ func (m Model) handleFetchTableData(msg fetchTableDataMsg) (Model, tea.Cmd) {
 // viewer: re-syncs the hex-dump offset for binary files and scans SVG
 // source for features the rasterizer can't render.
 func (m Model) handleFetchFileContent(msg fetchFileContentMsg) (Model, tea.Cmd) {
+	if m.viewState != FileViewerView || m.fileViewer.file == nil || m.fileViewer.file.PreviewPath() != msg.path || m.fileViewer.contentOffset != msg.offset {
+		return m, nil
+	}
 	m.fileViewer.loading = false
 	if msg.err != nil {
 		m.viewState = FileListView
@@ -263,6 +322,34 @@ func (m Model) handleFetchFileContent(msg fetchFileContentMsg) (Model, tea.Cmd) 
 	}
 	m.fileViewer.svgWarning = detectSVGWarning(m.fileViewer.file)
 	return m.updateViewport(), nil
+}
+
+func (m Model) handlePrepareFile(msg prepareFileMsg) (Model, tea.Cmd) {
+	if m.viewState != FileListView || !m.fileList.loading || !m.fileList.preparing || m.fileList.cursor >= len(m.fileList.files) || m.fileList.files[m.fileList.cursor].Path != msg.file.Path {
+		return m, nil
+	}
+	m.fileList.loading = false
+	m.fileList.preparing = false
+	if msg.err != nil {
+		return m.flashStatus(fmt.Sprintf("Error preparing file: %v", msg.err), 3*time.Second)
+	}
+	file := msg.file
+	file.LocalPath = msg.path
+	m.fileViewer.file = &file
+	m.fileViewer.contentOffset = 0
+	m.fileViewer.contentViewport = 0
+	previewPath := file.PreviewPath()
+	if simulator.DetectFileType(previewPath) == simulator.FileTypeDatabase {
+		m.dbTables.file = &file
+		m.dbTables.loading = true
+		m.dbTables.cursor = 0
+		m.dbTables.viewport = 0
+		m.viewState = DatabaseTableListView
+		return m, m.fetchDatabaseInfoCmd(previewPath)
+	}
+	m.viewState = FileViewerView
+	m.fileViewer.loading = true
+	return m, m.fetchFileContentCmd(previewPath, 0)
 }
 
 // detectSVGWarning returns a non-empty warning string if the given file
@@ -300,6 +387,9 @@ func detectSVGWarning(file *simulator.FileInfo) string {
 // handleKeyPress processes keyboard input
 func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// Handle search mode input first
+	if msg.Keystroke() == "ctrl+c" {
+		return m, tea.Quit
+	}
 	if m.simList.searchMode && m.viewState == SimulatorListView {
 		return m.handleSimulatorSearchInput(msg)
 	}
@@ -348,7 +438,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleSimulatorListKey(action string) (tea.Model, tea.Cmd) {
 	switch action {
 	case "right":
-		filteredSims := m.getFilteredSimulators()
+		filteredSims := m.getFilteredAndSearchedSimulators()
 		if len(filteredSims) > 0 && m.simList.cursor < len(filteredSims) {
 			sim := filteredSims[m.simList.cursor]
 			m.appList.selectedSim = &sim
@@ -384,7 +474,7 @@ func (m Model) handleSimulatorListKey(action string) (tea.Model, tea.Cmd) {
 		m.simList.viewport = 0
 		m = m.updateViewport()
 	case "boot", "open":
-		filteredSims := m.getFilteredSimulators()
+		filteredSims := m.getFilteredAndSearchedSimulators()
 		if len(filteredSims) > 0 && m.simList.cursor < len(filteredSims) {
 			sim := filteredSims[m.simList.cursor]
 			if !sim.IsRunning() && !m.simList.booting {
@@ -402,6 +492,11 @@ func (m Model) handleSimulatorListKey(action string) (tea.Model, tea.Cmd) {
 		m.simList.cursor = 0
 		m.simList.viewport = 0
 		m = m.updateViewport()
+	case "platform":
+		m.simList.platform = nextPlatform(m.simList.platform)
+		m.simList.cursor = 0
+		m.simList.viewport = 0
+		m = m.updateViewport()
 	}
 	return m, nil
 }
@@ -414,8 +509,9 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 		m.appList = appListState{}
 		m = m.updateViewport()
 	case "right":
-		if len(m.appList.apps) > 0 {
-			app := m.appList.apps[m.appList.cursor]
+		filteredApps := m.getFilteredAndSearchedApps()
+		if len(filteredApps) > 0 && m.appList.cursor < len(filteredApps) {
+			app := filteredApps[m.appList.cursor]
 			m.fileList.selectedApp = &app
 			m.viewState = FileListView
 			m.fileList.loading = true
@@ -448,8 +544,9 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 		}
 		m = m.updateViewport()
 	case "boot", "open":
-		if len(m.appList.apps) > 0 {
-			app := m.appList.apps[m.appList.cursor]
+		filteredApps := m.getFilteredAndSearchedApps()
+		if len(filteredApps) > 0 && m.appList.cursor < len(filteredApps) {
+			app := filteredApps[m.appList.cursor]
 			if app.Container != "" {
 				// Open the app's container in Finder
 				return m, m.openInFinderCmd(app.Container)
@@ -469,6 +566,11 @@ func (m Model) handleAppListKey(action string) (tea.Model, tea.Cmd) {
 // handleAllAppsKey handles key actions in the combined all-apps view.
 func (m Model) handleAllAppsKey(action string) (tea.Model, tea.Cmd) {
 	switch action {
+	case "platform":
+		m.allApps.platform = nextPlatform(m.allApps.platform)
+		m.allApps.cursor = 0
+		m.allApps.viewport = 0
+		m = m.updateViewport()
 	case "home":
 		m.allApps.cursor = 0
 		m.allApps.viewport = 0
@@ -522,6 +624,13 @@ func (m Model) handleAllAppsKey(action string) (tea.Model, tea.Cmd) {
 
 // handleFileListKey handles key actions in the file list view.
 func (m Model) handleFileListKey(action string) (tea.Model, tea.Cmd) {
+	if m.fileList.preparing {
+		switch action {
+		case "left", "up", "down", "home", "end":
+			m.fileList.loading = false
+			m.fileList.preparing = false
+		}
+	}
 	switch action {
 	case "left":
 		if len(m.fileList.breadcrumbs) > 0 {
@@ -546,7 +655,7 @@ func (m Model) handleFileListKey(action string) (tea.Model, tea.Cmd) {
 		m.fileList = fileListState{}
 		m = m.updateViewport()
 	case "right":
-		if len(m.fileList.files) > 0 {
+		if !m.fileList.loading && len(m.fileList.files) > 0 {
 			file := m.fileList.files[m.fileList.cursor]
 			if file.IsDirectory {
 				// Save current cursor position before drilling in
@@ -563,24 +672,9 @@ func (m Model) handleFileListKey(action string) (tea.Model, tea.Cmd) {
 				m.fileList.loading = true
 				return m, m.fetchFilesCmd(file.Path)
 			}
-			// Check if it's a database file
-			fileType := simulator.DetectFileType(file.Path)
-			if fileType == simulator.FileTypeDatabase {
-				// View database tables
-				m.dbTables.file = &file
-				m.viewState = DatabaseTableListView
-				m.dbTables.loading = true
-				m.dbTables.cursor = 0
-				m.dbTables.viewport = 0
-				return m, m.fetchDatabaseInfoCmd(file.Path)
-			}
-			// View the file
-			m.fileViewer.file = &file
-			m.viewState = FileViewerView
-			m.fileViewer.loading = true
-			m.fileViewer.contentOffset = 0
-			m.fileViewer.contentViewport = 0
-			return m, m.fetchFileContentCmd(file.Path, 0)
+			m.fileList.loading = true
+			m.fileList.preparing = true
+			return m, m.prepareFileCmd(file)
 		}
 	case "up":
 		if m.fileList.cursor > 0 {
@@ -631,7 +725,7 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 				}
 				m.fileViewer.contentOffset = newOffset
 				m.fileViewer.loading = true
-				return m, m.fetchFileContentCmd(m.fileViewer.file.Path, newOffset)
+				return m, m.fetchFileContentCmd(m.fileViewer.file.PreviewPath(), newOffset)
 			}
 		case simulator.FileTypeImage:
 			if m.fileViewer.contentViewport > 0 {
@@ -649,7 +743,7 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 				m.fileViewer.contentOffset = newOffset
 				m.fileViewer.loading = true
 				// Convert line offset to hex-dump row offset
-				return m, m.fetchFileContentCmd(m.fileViewer.file.Path, newOffset/simulator.HexBytesPerLine)
+				return m, m.fetchFileContentCmd(m.fileViewer.file.PreviewPath(), newOffset/simulator.HexBytesPerLine)
 			}
 		case simulator.FileTypeArchive:
 			// Allow scrolling through archive entries
@@ -677,7 +771,7 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 				m.fileViewer.contentOffset = newOffset
 				m.fileViewer.contentViewport = 0 // Reset viewport for new chunk
 				m.fileViewer.loading = true
-				return m, m.fetchFileContentCmd(m.fileViewer.file.Path, newOffset)
+				return m, m.fetchFileContentCmd(m.fileViewer.file.PreviewPath(), newOffset)
 			}
 		case simulator.FileTypeImage:
 			// For images, calculate based on total content lines
@@ -714,7 +808,7 @@ func (m Model) handleFileViewerKey(action string) (tea.Model, tea.Cmd) {
 					m.fileViewer.contentViewport = 0 // Reset viewport for new chunk
 					m.fileViewer.loading = true
 					// Load with line offset (total lines from start)
-					return m, m.fetchFileContentCmd(m.fileViewer.file.Path, newOffset)
+					return m, m.fetchFileContentCmd(m.fileViewer.file.PreviewPath(), newOffset)
 				}
 			}
 		case simulator.FileTypeArchive:
@@ -758,7 +852,7 @@ func (m Model) handleDatabaseTableListKey(action string) (tea.Model, tea.Cmd) {
 			m.dbContent.offset = 0
 			m.dbContent.viewport = 0
 			// Load first page of table data (50 rows)
-			return m, m.fetchTableDataCmd(m.dbTables.file.Path, table.Name, 0, 50)
+			return m, m.fetchTableDataCmd(m.dbTables.file.PreviewPath(), table.Name, 0, 50)
 		}
 	case "up":
 		if m.dbTables.cursor > 0 {
@@ -801,7 +895,7 @@ func (m Model) handleDatabaseTableContentKey(action string) (tea.Model, tea.Cmd)
 			m.dbContent.offset = newOffset
 			m.dbContent.viewport = 0 // Reset viewport for new chunk
 			m.dbContent.loading = true
-			return m, m.fetchTableDataCmd(m.dbTables.file.Path, m.dbContent.table.Name, newOffset, 50)
+			return m, m.fetchTableDataCmd(m.dbTables.file.PreviewPath(), m.dbContent.table.Name, newOffset, 50)
 		}
 	}
 	return m, nil
@@ -809,18 +903,29 @@ func (m Model) handleDatabaseTableContentKey(action string) (tea.Model, tea.Cmd)
 
 // getFilteredSimulators returns simulators based on the current filter state
 func (m Model) getFilteredSimulators() []simulator.Item {
-	if !m.simList.filterActive {
-		return m.simList.simulators
-	}
-
-	// Filter to show only simulators with apps
-	var filtered []simulator.Item
-	for _, sim := range m.simList.simulators {
-		if sim.AppCount > 0 {
-			filtered = append(filtered, sim)
+	filtered := m.simList.simulators
+	if m.simList.filterActive {
+		filtered = make([]simulator.Item, 0, len(m.simList.simulators))
+		for _, sim := range m.simList.simulators {
+			if sim.AppCount != 0 {
+				filtered = append(filtered, sim)
+			}
 		}
 	}
-	return filtered
+	if m.simList.platform == "" {
+		return filtered
+	}
+	platformFiltered := make([]simulator.Item, 0, len(filtered))
+	for _, sim := range filtered {
+		platform := sim.Platform
+		if platform == "" {
+			platform = "ios"
+		}
+		if platform == m.simList.platform {
+			platformFiltered = append(platformFiltered, sim)
+		}
+	}
+	return platformFiltered
 }
 
 // handleSimulatorSearchInput handles keyboard input when in simulator search mode
@@ -1004,7 +1109,8 @@ func (m Model) getFilteredAndSearchedSimulators() []simulator.Item {
 		// Search in name, runtime, and state
 		if strings.Contains(strings.ToLower(sim.Name), query) ||
 			strings.Contains(strings.ToLower(sim.Runtime), query) ||
-			strings.Contains(strings.ToLower(sim.State), query) {
+			strings.Contains(strings.ToLower(sim.State), query) ||
+			strings.Contains(strings.ToLower(sim.Platform), query) {
 			searched = append(searched, sim)
 		}
 	}
@@ -1015,19 +1121,22 @@ func (m Model) getFilteredAndSearchedSimulators() []simulator.Item {
 // getFilteredAndSearchedApps returns apps based on search query
 func (m Model) getFilteredAndSearchedApps() []simulator.App {
 	// If no search query, return all apps
+	apps := filterAppsByPlatform(m.appList.apps, m.appList.platform)
 	if m.appList.searchQuery == "" {
-		return m.appList.apps
+		return apps
 	}
 
 	// Apply search filter
 	var searched []simulator.App
 	query := strings.ToLower(m.appList.searchQuery)
 
-	for _, app := range m.appList.apps {
+	for _, app := range apps {
 		// Search in name, bundle ID, and version
 		if strings.Contains(strings.ToLower(app.Name), query) ||
 			strings.Contains(strings.ToLower(app.BundleID), query) ||
-			strings.Contains(strings.ToLower(app.Version), query) {
+			strings.Contains(strings.ToLower(app.Version), query) ||
+			strings.Contains(strings.ToLower(app.Platform), query) ||
+			strings.Contains(strings.ToLower(app.Access), query) {
 			searched = append(searched, app)
 		}
 	}
@@ -1126,23 +1235,54 @@ func removeLastRune(value string) string {
 // getFilteredAndSearchedAllApps returns all apps based on search query
 func (m Model) getFilteredAndSearchedAllApps() []simulator.App {
 	// If no search query, return all apps
+	apps := filterAppsByPlatform(m.allApps.apps, m.allApps.platform)
 	if m.allApps.searchQuery == "" {
-		return m.allApps.apps
+		return apps
 	}
 
 	// Apply search filter
 	var searched []simulator.App
 	query := strings.ToLower(m.allApps.searchQuery)
 
-	for _, app := range m.allApps.apps {
+	for _, app := range apps {
 		// Search in name, bundle ID, version, and simulator name
 		if strings.Contains(strings.ToLower(app.Name), query) ||
 			strings.Contains(strings.ToLower(app.BundleID), query) ||
 			strings.Contains(strings.ToLower(app.Version), query) ||
-			strings.Contains(strings.ToLower(app.SimulatorName), query) {
+			strings.Contains(strings.ToLower(app.SimulatorName), query) ||
+			strings.Contains(strings.ToLower(app.Platform), query) ||
+			strings.Contains(strings.ToLower(app.Access), query) {
 			searched = append(searched, app)
 		}
 	}
 
 	return searched
+}
+
+func nextPlatform(platform string) string {
+	switch platform {
+	case "":
+		return "ios"
+	case "ios":
+		return "android"
+	default:
+		return ""
+	}
+}
+
+func filterAppsByPlatform(apps []simulator.App, platform string) []simulator.App {
+	if platform == "" {
+		return apps
+	}
+	filtered := make([]simulator.App, 0, len(apps))
+	for _, app := range apps {
+		appPlatform := app.Platform
+		if appPlatform == "" {
+			appPlatform = "ios"
+		}
+		if appPlatform == platform {
+			filtered = append(filtered, app)
+		}
+	}
+	return filtered
 }

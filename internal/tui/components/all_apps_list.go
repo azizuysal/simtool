@@ -38,7 +38,7 @@ func AllAppsListView(
 			"All Apps",
 			content,
 			"Press q to quit",
-			ui.LoadingStyle().Render("Loading all apps..."),
+			ui.LoadingStyle().Render("Loading all apps; stopped Android emulators may start headlessly and take a moment..."),
 		)
 	}
 
@@ -64,6 +64,7 @@ func AllAppsListView(
 	} else {
 		title += ")"
 	}
+	title += fmt.Sprintf(" [%s]", allAppsPlatform(statusMessages))
 
 	// Build status line
 	status := ""
@@ -124,8 +125,11 @@ func AllAppsListView(
 			// Format app details similar to regular app list
 			sizeText := simulator.FormatSize(app.Size)
 			modTimeText := simulator.FormatModTime(app.ModTime)
-			detailText := fmt.Sprintf("%s • v%s • %s • %s",
-				app.BundleID, app.Version, sizeText, app.SimulatorName)
+			detailText := fmt.Sprintf("%s • v%s • %s • %s • %s",
+				app.BundleID, app.Version, appPlatform(app.Platform), sizeText, app.SimulatorName)
+			if app.Access != "" {
+				detailText = fmt.Sprintf("%s • %s", detailText, app.Access)
+			}
 			if modTimeText != "" {
 				detailText = fmt.Sprintf("%s • %s", detailText, modTimeText)
 			}
@@ -170,6 +174,13 @@ func AllAppsListView(
 	)
 }
 
+func allAppsPlatform(statusMessages []string) string {
+	if len(statusMessages) < 2 {
+		return "All platforms"
+	}
+	return statusMessages[1]
+}
+
 // filterAllApps filters apps based on search query
 func filterAllApps(apps []simulator.App, query string) []simulator.App {
 	if query == "" {
@@ -183,7 +194,9 @@ func filterAllApps(apps []simulator.App, query string) []simulator.App {
 		if strings.Contains(strings.ToLower(app.Name), query) ||
 			strings.Contains(strings.ToLower(app.BundleID), query) ||
 			strings.Contains(strings.ToLower(app.Version), query) ||
-			strings.Contains(strings.ToLower(app.SimulatorName), query) {
+			strings.Contains(strings.ToLower(app.SimulatorName), query) ||
+			strings.Contains(strings.ToLower(app.Platform), query) ||
+			strings.Contains(strings.ToLower(app.Access), query) {
 			filtered = append(filtered, app)
 		}
 	}
@@ -194,7 +207,10 @@ func filterAllApps(apps []simulator.App, query string) []simulator.App {
 // buildAllAppsFooter builds the footer for all apps view
 func buildAllAppsFooter(searchMode bool, appCount int, keys *config.KeysConfig, viewport int, itemsPerScreen int) string {
 	if keys == nil {
-		return "↑/↓ navigate • enter select • / search • q quit"
+		if searchMode {
+			return "Type to search • ESC: cancel • ↑/↓ navigate • enter select"
+		}
+		return "↑/↓ navigate • enter select • p: platform • / search • q quit"
 	}
 
 	var parts []string
@@ -230,6 +246,9 @@ func buildAllAppsFooter(searchMode bool, appCount int, keys *config.KeysConfig, 
 		}
 		if open := keys.FormatKeyAction("open", "open in Finder"); open != "" {
 			parts = append(parts, open)
+		}
+		if platform := keys.FormatKeyAction("platform", "platform"); platform != "" {
+			parts = append(parts, platform)
 		}
 		if search := keys.FormatKeyAction("search", "search"); search != "" {
 			parts = append(parts, search)

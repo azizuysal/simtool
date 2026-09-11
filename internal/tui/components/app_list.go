@@ -183,9 +183,12 @@ func (al *AppList) renderList(startIdx, endIdx int) string {
 		// Format app details
 		sizeText := simulator.FormatSize(app.Size)
 		modTimeText := simulator.FormatModTime(app.ModTime)
-		detailText := fmt.Sprintf("%s • %s", app.BundleID, sizeText)
+		detailText := fmt.Sprintf("%s • %s • %s", app.BundleID, appPlatform(app.Platform), sizeText)
 		if app.Version != "" {
-			detailText = fmt.Sprintf("%s • v%s • %s", app.BundleID, app.Version, sizeText)
+			detailText = fmt.Sprintf("%s • v%s • %s • %s", app.BundleID, app.Version, appPlatform(app.Platform), sizeText)
+		}
+		if app.Access != "" {
+			detailText = fmt.Sprintf("%s • %s", detailText, app.Access)
 		}
 		if modTimeText != "" {
 			detailText = fmt.Sprintf("%s • %s", detailText, modTimeText)
@@ -216,4 +219,11 @@ func (al *AppList) renderList(startIdx, endIdx int) string {
 	}
 
 	return s.String()
+}
+
+func appPlatform(platform string) string {
+	if platform == "android" {
+		return "Android"
+	}
+	return "iOS"
 }

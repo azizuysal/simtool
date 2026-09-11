@@ -5,8 +5,9 @@ import (
 	"sort"
 )
 
-// Simulator represents an iOS simulator device
+// Simulator represents an iOS simulator or Android virtual device.
 type Simulator struct {
+	Platform             string `json:"platform,omitempty"`
 	UDID                 string `json:"udid"`
 	Name                 string `json:"name"`
 	State                string `json:"state"`
