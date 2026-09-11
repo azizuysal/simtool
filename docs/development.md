@@ -7,7 +7,9 @@ This guide covers setting up a development environment for SimTool and explains 
 ### Prerequisites
 
 - [mise](https://mise.jdx.dev/) with the project's Go 1.27.1 toolchain
-- macOS 13.0 or later with full Xcode and an iOS Simulator runtime
+- macOS 13.0 or later
+- Full Xcode and an iOS Simulator runtime when developing iOS support
+- Android SDK `platform-tools`, `emulator`, and configured AVDs when developing Android support; `aapt2` from build-tools is optional for human-readable app labels
 - Git
 - Make (optional but recommended)
 
@@ -50,7 +52,7 @@ simtool/
 │   │   ├── keys.go       # Keyboard shortcut mapping
 │   │   ├── theme.go      # Theme extraction and management
 │   │   └── detect.go     # Terminal theme detection
-│   ├── simulator/        # iOS simulator interaction
+│   ├── simulator/        # iOS simulator and Android emulator interaction
 │   │   ├── simulator.go  # Core types and interfaces
 │   │   ├── fetcher.go    # xcrun simctl wrapper
 │   │   ├── app.go        # App information and operations
@@ -121,7 +123,7 @@ func (m Model) View() tea.View {
    - Plan UI changes
 
 2. **Implement Business Logic**
-   - Add to simulator package if iOS-related
+   - Add to the simulator package for device-related behavior
    - Create interfaces for testability
 
 3. **Add UI Components**
@@ -231,10 +233,10 @@ type MockFetcher struct {
 
 ## Release Process
 
-1. Update version in Makefile
-2. Update CHANGELOG.md
-3. Create git tag
-4. Push tag (triggers CI release)
+1. Move the completed changes from `Unreleased` into a dated `CHANGELOG.md` section matching the release version, such as `## [1.3.0] - 2026-09-11`.
+2. Run the release checks documented in `AGENTS.md`, then commit and push the changes to both `origin` and `proxmox`. Verify CI passes for that commit.
+3. Create the matching Git tag, such as `v1.3.0`, and push it to both remotes. The Makefile and release workflow derive the version from Git.
+4. Verify the GitHub release workflow, published archives, and updated formula in `azizuysal/homebrew-tap`.
 
 ## Troubleshooting Development Issues
 
@@ -253,6 +255,16 @@ mise exec -- make build
 # Run specific test
 mise exec -- go test -v -run TestName ./internal/simulator
 ```
+
+Android integration tests require an explicitly configured disposable headless AVD; they skip unless their required environment is set. Do not make tests root, wipe, or force-stop an emulator.
+
+With a stopped AVD, JDK, SDK build-tools, and an SDK platform installed, run:
+
+```bash
+SIMTOOL_ANDROID_AVD=Medium_Tablet mise exec -- go test ./internal/simulator -run '^TestAndroidBrowserIntegration$' -count=1 -timeout=4m -v
+```
+
+The test generates a temporary APK and signing key, uses a read-only emulator overlay, checks app/file/SQLite/Finder access, and verifies cleanup while preserving pre-existing emulators. `SIMTOOL_TEST_NATIVE_WEBDAV=1` enables the independent macOS WebDAV mount test.
 
 ### Terminal Issues
 

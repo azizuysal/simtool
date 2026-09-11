@@ -11,37 +11,40 @@
 </p>
 
 <p align="center">
-  <strong>A beautiful and powerful TUI for managing iOS Simulators</strong>
+  <strong>A terminal UI for browsing iOS simulators and Android emulators</strong>
 </p>
 
 <p align="center">
-  Navigate your iOS simulators, browse apps, explore files, and preview content—all from your terminal.
+  Navigate simulators and emulators, browse apps, explore files, and preview content from your terminal.
 </p>
+
+Android support uses configured Android Virtual Devices. Physical devices are outside the current scope.
 
 ![SimTool Demo](demo.gif)
 
-## ✨ Features
+## Features
 
-### 🚀 Simulator Management
-- **List all iOS simulators** with status indicators (running/stopped)
-- **Boot simulators** directly from the TUI
+### Simulator Management
+- **List iOS simulators and Android emulators** with status indicators (running/stopped)
+- **Boot selected devices** directly from the TUI
 - **Smart filtering** to show only simulators with apps
-- **Real-time search** by name, runtime, or state
+- **Platform filtering** in Devices and All Apps (`p`: all, iOS, Android)
+- **Real-time search** by name, runtime, state, or platform
 
-### 📱 App Browsing  
+### App Browsing
 - **Browse installed apps** with detailed information
-- **View app metadata**: Bundle ID, version, size, last modified date
+- **View app metadata**: Bundle ID, version, size, and available timestamps
 - **All Apps view**: See apps from all simulators in one place
-- **Open in Finder**: Quick access to app containers
-- **Lightning-fast search** across all app properties
+- **Open in Finder**: Access to iOS containers and authenticated, read-only Android folders
+- **Search** across app metadata, simulator name, platform, and access status
 
-### 📁 File Explorer
+### File Explorer
 - **Navigate app containers** with an intuitive file browser
 - **Breadcrumb navigation** for easy orientation
 - **Smart file previews** based on content type
-- **Quick Finder access** for any file or folder
+- **Android private-data access** when the app is debuggable with `run-as`, or ADB already has root access
 
-### 🎨 Rich File Viewing
+### Rich File Viewing
 
 <table>
 <tr>
@@ -86,19 +89,22 @@
 </tr>
 </table>
 
-### ⚡ Additional Features
+### Additional Features
 - **Property List Support**: Automatic binary plist → XML conversion
 - **Binary File Viewer**: Hex dump with ASCII preview
 - **Dynamic Theming**: 60+ themes, auto dark/light mode switching
 - **Vim Navigation**: Full keyboard control with customizable shortcuts
 - **Responsive Design**: Adapts to any terminal size
-- **Lightning Fast**: Instant navigation and lazy loading
+- **Lazy loading** for large content
 
 ## Requirements
 
 - macOS 13.0 or later
-- Full Xcode with an iOS Simulator runtime; the Command Line Tools alone do not include `simctl`
+- For iOS: full Xcode with an iOS Simulator runtime; the Command Line Tools alone do not include `simctl`
+- For Android: Android SDK `platform-tools` and `emulator`, plus configured Android Virtual Devices. Set `ANDROID_HOME` when the SDK is not on the standard path. `aapt2` from Android SDK build-tools is optional; without it, apps are shown by package ID.
 - Go 1.27.1, installed through [mise](https://mise.jdx.dev/), for building from source
+
+You only need the platform tools for the platform you browse. iOS behavior is unchanged.
 
 ## Installation
 
@@ -176,6 +182,9 @@ simtool
 
 # Start with all apps view
 simtool --apps
+
+# Limit the initial device set to iOS or Android (default: all)
+simtool --platform android
 ```
 
 ### Keyboard Shortcuts
@@ -187,8 +196,9 @@ simtool --apps
 | `Space` | Boot simulator / Open in Finder |
 | `/` | Search mode |
 | `f` | Filter (simulators with apps only) |
+| `p` | Cycle platform filter: all, iOS, Android |
 | `q` | Quit |
-| `g/G` | Jump to top/bottom |
+| `Home/End` | Jump to top/bottom |
 
 All shortcuts are [customizable](#configuration).
 
@@ -212,7 +222,16 @@ light_theme = "github"
 up = ["up", "k"]
 down = ["down", "j"]
 quit = ["q", "ctrl+c"]
+platform = ["p"]
 ```
+
+### Android file access and previews
+
+SimTool never roots, wipes, or force-stops Android apps. Private files are available only through a debuggable app's `run-as` access or an ADB session that already has root access; otherwise the TUI reports the restriction. Android app size is the installed APK bytes; directory size and created time are unavailable and shown as unknown. Android file previews are private local copies, limited to 256 MiB per file, and reopening a file refreshes its copy.
+
+Finder access to Android folders uses an authenticated loopback, read-only WebDAV mount backed by live ADB access and provided by macOS. It does not use macFUSE. The mount and private previews are cleaned up when SimTool exits.
+
+SQLite previews copy the database together with WAL or journal files, detect changes, and run `PRAGMA quick_check`. They are not [transactional live backups](https://www.sqlite.org/howtocorrupt.html#backup_or_restore_while_a_transaction_is_active). Stop app activity and retry if a changing database cannot be copied consistently; SimTool does not force-stop apps.
 
 Generate an example configuration:
 ```bash

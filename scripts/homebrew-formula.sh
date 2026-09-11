@@ -8,7 +8,7 @@ fi
 
 cat <<EOF
 class Simtool < Formula
-  desc "Terminal UI for iOS Simulator management"
+  desc "Browse iOS simulators and Android emulators, apps, and files"
   homepage "https://github.com/azizuysal/simtool"
   url "https://github.com/azizuysal/simtool/releases/download/$1/simtool_${1#v}_source.tar.gz"
   version "${1#v}"

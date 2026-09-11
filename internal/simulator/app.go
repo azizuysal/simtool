@@ -25,6 +25,8 @@ var defaultExecutor CommandExecutor = &RealCommandExecutor{}
 
 // App represents an installed application
 type App struct {
+	Platform      string
+	Access        string
 	Name          string
 	BundleID      string
 	Version       string
@@ -259,6 +261,9 @@ func findDataContainer(dataPath string, bundleID string) string {
 
 // FormatSize formats bytes into human readable format
 func FormatSize(bytes int64) string {
+	if bytes < 0 {
+		return "size unknown"
+	}
 	const unit = 1024
 	if bytes < unit {
 		return fmt.Sprintf("%d B", bytes)

@@ -13,13 +13,14 @@ type KeysConfig struct {
 	End   []string `toml:"end"`
 
 	// Actions
-	Quit   []string `toml:"quit"`
-	Boot   []string `toml:"boot"`   // Boot simulator
-	Open   []string `toml:"open"`   // Open in Finder
-	Filter []string `toml:"filter"` // Toggle filter
-	Search []string `toml:"search"` // Start search
-	Escape []string `toml:"escape"` // Exit search/cancel
-	Enter  []string `toml:"enter"`  // Select/confirm
+	Quit     []string `toml:"quit"`
+	Boot     []string `toml:"boot"`     // Boot simulator
+	Open     []string `toml:"open"`     // Open in Finder
+	Filter   []string `toml:"filter"`   // Toggle filter
+	Platform []string `toml:"platform"` // Cycle platform filter
+	Search   []string `toml:"search"`   // Start search
+	Escape   []string `toml:"escape"`   // Exit search/cancel
+	Enter    []string `toml:"enter"`    // Select/confirm
 
 	// Search mode
 	Backspace []string `toml:"backspace"` // Delete character in search
@@ -37,13 +38,14 @@ func DefaultKeys() KeysConfig {
 		End:   []string{"end"},
 
 		// Actions
-		Quit:   []string{"q", "ctrl+c"},
-		Boot:   []string{" "}, // space
-		Open:   []string{" "}, // space (context-dependent)
-		Filter: []string{"f"},
-		Search: []string{"/"},
-		Escape: []string{"esc"},
-		Enter:  []string{"enter"},
+		Quit:     []string{"q", "ctrl+c"},
+		Boot:     []string{" "}, // space
+		Open:     []string{" "}, // space (context-dependent)
+		Filter:   []string{"f"},
+		Platform: []string{"p"},
+		Search:   []string{"/"},
+		Escape:   []string{"esc"},
+		Enter:    []string{"enter"},
 
 		// Search mode
 		Backspace: []string{"backspace"},
@@ -73,6 +75,7 @@ func NewKeyMap(keys KeysConfig) *KeyMap {
 	km.addBindings("boot", keys.Boot)
 	km.addBindings("open", keys.Open)
 	km.addBindings("filter", keys.Filter)
+	km.addBindings("platform", keys.Platform)
 	km.addBindings("search", keys.Search)
 	km.addBindings("escape", keys.Escape)
 	km.addBindings("enter", keys.Enter)
@@ -168,6 +171,8 @@ func (kc *KeysConfig) FormatKeyAction(action string, label string) string {
 		keys = kc.Open
 	case "filter":
 		keys = kc.Filter
+	case "platform":
+		keys = kc.Platform
 	case "search":
 		keys = kc.Search
 	case "escape":

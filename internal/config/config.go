@@ -225,6 +225,7 @@ quit = ["q", "ctrl+c"]     # Quit the application
 boot = [" "]               # Boot simulator (space key)
 open = [" "]               # Open in Finder (space key, context-dependent)
 filter = ["f"]             # Toggle filter (simulator list only)
+platform = ["p"]           # Cycle all, iOS, and Android in Devices and All Apps
 search = ["/"]             # Start search mode
 escape = ["esc"]           # Exit search mode / cancel
 enter = ["enter"]          # Select / confirm

@@ -69,7 +69,7 @@ func (sl *SimulatorList) Render() string {
 
 // GetTitle returns the title for the simulator list
 func (sl *SimulatorList) GetTitle(totalCount int) string {
-	title := fmt.Sprintf("iOS Simulators (%d", len(sl.Simulators))
+	title := fmt.Sprintf("Devices (%d", len(sl.Simulators))
 	if sl.FilterActive || sl.SearchQuery != "" {
 		title += fmt.Sprintf(" of %d)", totalCount)
 	} else {
@@ -86,7 +86,7 @@ func (sl *SimulatorList) GetFooter() string {
 		if sl.SearchMode {
 			footer = "ESC: exit search • ↑/↓: navigate • →/Enter: select"
 		} else {
-			footer = "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • /: search • q: quit"
+			footer = "↑/k: up • ↓/j: down • →/l: apps • space: run • f: filter • p: platform • /: search • q: quit"
 		}
 		// Add scroll info
 		itemsPerScreen := sl.calculateItemsPerScreen()
@@ -127,6 +127,9 @@ func (sl *SimulatorList) GetFooter() string {
 		}
 		if filter := sl.Keys.FormatKeyAction("filter", "filter"); filter != "" {
 			parts = append(parts, filter)
+		}
+		if platform := sl.Keys.FormatKeyAction("platform", "platform"); platform != "" {
+			parts = append(parts, platform)
 		}
 		if search := sl.Keys.FormatKeyAction("search", "search"); search != "" {
 			parts = append(parts, search)
@@ -183,19 +186,22 @@ func (sl *SimulatorList) renderList(startIdx, endIdx int) string {
 
 		// Format app count text
 		appCountText := ""
-		if sim.AppCount > 0 {
+		switch {
+		case sim.AppCount < 0:
+			appCountText = " • ? apps"
+		case sim.AppCount > 0:
 			appCountText = fmt.Sprintf(" • %d app", sim.AppCount)
 			if sim.AppCount > 1 {
 				appCountText += "s"
 			}
-		} else {
+		default:
 			appCountText = " • 0 apps"
 		}
 
 		if i == sl.Cursor {
 			// Selected item
 			line1 := fmt.Sprintf("▶ %s", sim.Name)
-			line2 := fmt.Sprintf("  %s • %s%s", sim.Runtime, sim.StateDisplay(), appCountText)
+			line2 := fmt.Sprintf("  %s • %s • %s%s", simulatorPlatform(sim.Platform), sim.Runtime, sim.StateDisplay(), appCountText)
 
 			// Pad to full width
 			line1 = ui.PadLine(line1, innerWidth)
@@ -217,7 +223,7 @@ func (sl *SimulatorList) renderList(startIdx, endIdx int) string {
 
 			s.WriteString(nameStyle.Render(sim.Name))
 			s.WriteString("\n")
-			s.WriteString(detailStyle.Render(sim.Runtime + " • " + sim.StateDisplay() + appCountText))
+			s.WriteString(detailStyle.Render(simulatorPlatform(sim.Platform) + " • " + sim.Runtime + " • " + sim.StateDisplay() + appCountText))
 		}
 
 		if i < endIdx-1 {
@@ -226,4 +232,11 @@ func (sl *SimulatorList) renderList(startIdx, endIdx int) string {
 	}
 
 	return s.String()
+}
+
+func simulatorPlatform(platform string) string {
+	if platform == "" {
+		return "iOS"
+	}
+	return strings.ToUpper(platform)
 }

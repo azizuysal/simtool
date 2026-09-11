@@ -505,23 +505,35 @@ func TestHandleFileListKey_Right_OnFile_OpensFileViewer(t *testing.T) {
 	files := fakeFiles()
 	m := Model{
 		viewState: FileListView,
+		fetcher:   &mockFetcher{},
 		fileList:  fileListState{files: files, cursor: 1}, // readme.txt
 		height:    30,
 	}
 	got, cmd := m.handleFileListKey("right")
 	gm := asModel(t, got)
 
-	if gm.viewState != FileViewerView {
-		t.Errorf("viewState = %v, want FileViewerView", gm.viewState)
+	if gm.viewState != FileListView {
+		t.Errorf("viewState = %v, want FileListView while preparation runs", gm.viewState)
 	}
-	if gm.fileViewer.file == nil || gm.fileViewer.file.Name != "readme.txt" {
-		t.Errorf("fileViewer.file wrong: %+v", gm.fileViewer.file)
-	}
-	if !gm.fileViewer.loading {
-		t.Error("fileViewer.loading should be true")
+	if !gm.fileList.loading || !gm.fileList.preparing {
+		t.Error("file selection should show a preparation state")
 	}
 	if cmd == nil {
-		t.Error("expected fetchFileContentCmd")
+		t.Fatal("expected prepareFileCmd")
+	}
+	prepared, ok := cmd().(prepareFileMsg)
+	if !ok {
+		t.Fatalf("prepare command returned %T", cmd())
+	}
+	updated, contentCmd := gm.handlePrepareFile(prepared)
+	if updated.viewState != FileViewerView {
+		t.Errorf("viewState = %v, want FileViewerView", updated.viewState)
+	}
+	if updated.fileViewer.file == nil || updated.fileViewer.file.Name != "readme.txt" {
+		t.Errorf("fileViewer.file wrong: %+v", updated.fileViewer.file)
+	}
+	if !updated.fileViewer.loading || contentCmd == nil {
+		t.Error("prepared text file should begin loading content")
 	}
 }
 
@@ -537,23 +549,29 @@ func TestHandleFileListKey_Right_OnDatabase_OpensDatabaseView(t *testing.T) {
 	}
 	m := Model{
 		viewState: FileListView,
+		fetcher:   &mockFetcher{},
 		fileList:  fileListState{files: files, cursor: 0},
 		height:    30,
 	}
 	got, cmd := m.handleFileListKey("right")
 	gm := asModel(t, got)
 
-	if gm.viewState != DatabaseTableListView {
-		t.Errorf("viewState = %v, want DatabaseTableListView", gm.viewState)
-	}
-	if gm.dbTables.file == nil {
-		t.Error("dbTables.file should be set")
-	}
-	if !gm.dbTables.loading {
-		t.Error("dbTables.loading should be true")
+	if gm.viewState != FileListView || !gm.fileList.preparing {
+		t.Errorf("file selection = view %v preparing %t, want FileListView preparing", gm.viewState, gm.fileList.preparing)
 	}
 	if cmd == nil {
-		t.Error("expected fetchDatabaseInfoCmd")
+		t.Fatal("expected prepareFileCmd")
+	}
+	prepared, ok := cmd().(prepareFileMsg)
+	if !ok {
+		t.Fatalf("prepare command returned %T", cmd())
+	}
+	updated, databaseCmd := gm.handlePrepareFile(prepared)
+	if updated.viewState != DatabaseTableListView {
+		t.Errorf("viewState = %v, want DatabaseTableListView", updated.viewState)
+	}
+	if updated.dbTables.file == nil || !updated.dbTables.loading || databaseCmd == nil {
+		t.Error("prepared database should begin loading schema")
 	}
 }
 

@@ -21,18 +21,20 @@ func (m Model) View() tea.View {
 
 	// Special handling for AllAppsView which returns complete layout
 	if m.viewState == AllAppsView {
+		apps := m.getFilteredAndSearchedAllApps()
 		content = components.AllAppsListView(
-			m.allApps.apps,
+			apps,
 			m.allApps.cursor,
 			m.allApps.viewport,
 			m.width,
 			m.height,
 			m.allApps.searchMode,
-			m.allApps.searchQuery,
+			"",
 			m.allApps.loading,
 			m.err,
 			&m.config.Keys,
 			m.statusMessage,
+			platformLabel(m.allApps.platform),
 		)
 		return newView(content)
 	}
@@ -86,7 +88,7 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 	simList.Update(filteredSims, m.simList.cursor, m.simList.viewport, m.simList.filterActive, m.simList.searchMode, m.simList.searchQuery, &m.config.Keys)
 
 	// Get title
-	title = simList.GetTitle(len(m.simList.simulators))
+	title = simList.GetTitle(len(m.simList.simulators)) + " [" + platformLabel(m.simList.platform) + "]"
 
 	// Get content
 	// Create content box
@@ -119,6 +121,17 @@ func (m Model) renderSimulatorListView() (title, content, footer, status string)
 	}
 
 	return
+}
+
+func platformLabel(platform string) string {
+	switch platform {
+	case "ios":
+		return "iOS"
+	case "android":
+		return "Android"
+	default:
+		return "All platforms"
+	}
 }
 
 // renderAppListView renders the app list using components
@@ -197,7 +210,11 @@ func (m Model) renderFileListView() (title, content, footer, status string) {
 
 	// Get status
 	if m.fileList.loading {
-		status = ui.LoadingStyle().Render("Loading files...")
+		message := "Loading files..."
+		if m.fileList.preparing {
+			message = "Preparing file..."
+		}
+		status = ui.LoadingStyle().Render(message)
 	} else if m.statusMessage != "" {
 		if strings.Contains(m.statusMessage, "Error") {
 			status = ui.ErrorStyle().Render(m.statusMessage)
