@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-04
+
 ### Fixed
 - Updated Go to 1.27.3 and `golang.org/x/net` to v0.62.0 to resolve vulnerability scan findings in the standard library and networking dependency.
 - Updated Bubble Tea to v2.1.1 to fix a vulnerability in terminal size reports.
