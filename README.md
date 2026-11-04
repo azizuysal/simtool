@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="macOS">
-  <img src="https://img.shields.io/badge/go-1.27.1-00ADD8?logo=go" alt="Go">
+  <img src="https://img.shields.io/badge/go-1.27.3-00ADD8?logo=go" alt="Go">
   <img src="https://img.shields.io/github/license/azizuysal/simtool" alt="License">
   <img src="https://img.shields.io/github/v/release/azizuysal/simtool" alt="Release">
   <a href="https://codecov.io/gh/azizuysal/simtool"><img src="https://codecov.io/gh/azizuysal/simtool/branch/main/graph/badge.svg" alt="codecov"></a>
@@ -102,7 +102,7 @@ Android support uses configured Android Virtual Devices. Physical devices are ou
 - macOS 13.0 or later
 - For iOS: full Xcode with an iOS Simulator runtime; the Command Line Tools alone do not include `simctl`
 - For Android: Android SDK `platform-tools` and `emulator`, plus configured Android Virtual Devices. Set `ANDROID_HOME` when the SDK is not on the standard path. `aapt2` from Android SDK build-tools is optional; without it, apps are shown by package ID.
-- Go 1.27.1, installed through [mise](https://mise.jdx.dev/), for building from source
+- Go 1.27.3, installed through [mise](https://mise.jdx.dev/), for building from source
 
 You only need the platform tools for the platform you browse. iOS behavior is unchanged.
 
@@ -201,6 +201,8 @@ simtool --platform android
 | `Home/End` | Jump to top/bottom |
 
 All shortcuts are [customizable](#configuration).
+
+In search mode, printable keys (including `j`, `k`, `l`, and Space) enter text. Use the arrow keys to navigate results, Enter or Right to select, and Esc to exit search.
 
 ## ⚙️ Configuration
 

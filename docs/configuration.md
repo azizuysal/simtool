@@ -102,7 +102,9 @@ To disable a shortcut, set it to an empty array:
 filter = []  # Disables the filter shortcut
 ```
 
-`platform` affects the Devices and All Apps views. It cycles all platforms, iOS, and Android; it does not change the `--platform` command-line selection used when SimTool starts.
+`platform` affects the Devices and All Apps views. Their initial filter matches `--platform` (all by default). The shortcut cycles all platforms, iOS, and Android; it does not change the backends enabled by the `--platform` command-line selection.
+
+In search mode, printable bindings enter text, including letters assigned to navigation or other actions. Configure non-text keys such as `up`, `down`, `enter`, `esc`, or `ctrl+n` for controls that should remain active while searching. The search footer shows these active controls.
 
 ## Environment Variables
 

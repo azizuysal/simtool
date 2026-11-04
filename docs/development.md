@@ -6,7 +6,7 @@ This guide covers setting up a development environment for SimTool and explains 
 
 ### Prerequisites
 
-- [mise](https://mise.jdx.dev/) with the project's Go 1.27.1 toolchain
+- [mise](https://mise.jdx.dev/) with the project's Go 1.27.3 toolchain
 - macOS 13.0 or later
 - Full Xcode and an iOS Simulator runtime when developing iOS support
 - Android SDK `platform-tools`, `emulator`, and configured AVDs when developing Android support; `aapt2` from build-tools is optional for human-readable app labels

@@ -21,7 +21,7 @@ func (m Model) View() tea.View {
 
 	// Special handling for AllAppsView which returns complete layout
 	if m.viewState == AllAppsView {
-		apps := m.getFilteredAndSearchedAllApps()
+		apps := filterAppsByPlatform(m.allApps.apps, m.allApps.platform)
 		content = components.AllAppsListView(
 			apps,
 			m.allApps.cursor,
@@ -29,7 +29,7 @@ func (m Model) View() tea.View {
 			m.width,
 			m.height,
 			m.allApps.searchMode,
-			"",
+			m.allApps.searchQuery,
 			m.allApps.loading,
 			m.err,
 			&m.config.Keys,

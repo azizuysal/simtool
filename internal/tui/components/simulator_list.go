@@ -98,19 +98,14 @@ func (sl *SimulatorList) GetFooter() string {
 	var parts []string
 
 	if sl.SearchMode {
-		if esc := sl.Keys.FormatKeyAction("escape", "exit search"); esc != "" {
+		if esc := formatSearchKeyAction("exit search", sl.Keys.Escape); esc != "" {
 			parts = append(parts, esc)
 		}
-		if up := sl.Keys.FormatKeyAction("up", "navigate"); up != "" {
-			parts = append(parts, config.FormatKeys(sl.Keys.Up)+"/"+config.FormatKeys(sl.Keys.Down)+": navigate")
+		if navigate := formatSearchKeyAction("navigate", sl.Keys.Up, sl.Keys.Down); navigate != "" {
+			parts = append(parts, navigate)
 		}
-		if right := sl.Keys.FormatKeyAction("right", "select"); right != "" {
-			enter := config.FormatKeys(sl.Keys.Enter)
-			if enter != "" {
-				parts = append(parts, config.FormatKeys(sl.Keys.Right)+"/"+enter+": select")
-			} else {
-				parts = append(parts, right)
-			}
+		if selectKey := formatSearchKeyAction("select", sl.Keys.Right, sl.Keys.Enter); selectKey != "" {
+			parts = append(parts, selectKey)
 		}
 	} else {
 		if up := sl.Keys.FormatKeyAction("up", "up"); up != "" {

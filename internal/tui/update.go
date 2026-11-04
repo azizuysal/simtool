@@ -930,8 +930,7 @@ func (m Model) getFilteredSimulators() []simulator.Item {
 
 // handleSimulatorSearchInput handles keyboard input when in simulator search mode
 func (m Model) handleSimulatorSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	key := keyForAction(msg)
-	action := m.keyMap.GetAction(key)
+	action := m.searchAction(msg)
 
 	switch action {
 	case "escape":
@@ -987,16 +986,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.C
 		}
 		return m, nil
 
-	case "boot", "open":
-		// Space is allowed in search
-		m.simList.searchQuery += " "
-		m.simList.cursor = 0
-		m.simList.viewport = 0
-		m = m.updateViewport()
-		return m, nil
-
 	default:
-		// Add any single character to search query (including h, j, k, l, q, etc.)
 		if msg.Text != "" {
 			m.simList.searchQuery += msg.Text
 			m.simList.cursor = 0
@@ -1009,8 +999,7 @@ func (m Model) handleSimulatorSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.C
 
 // handleAppSearchInput handles keyboard input when in app search mode
 func (m Model) handleAppSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	key := keyForAction(msg)
-	action := m.keyMap.GetAction(key)
+	action := m.searchAction(msg)
 
 	switch action {
 	case "escape":
@@ -1071,16 +1060,7 @@ func (m Model) handleAppSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case "boot", "open":
-		// Space is allowed in search
-		m.appList.searchQuery += " "
-		m.appList.cursor = 0
-		m.appList.viewport = 0
-		m = m.updateViewport()
-		return m, nil
-
 	default:
-		// Add any single character to search query (including h, j, k, l, q, etc.)
 		if msg.Text != "" {
 			m.appList.searchQuery += msg.Text
 			m.appList.cursor = 0
@@ -1146,8 +1126,7 @@ func (m Model) getFilteredAndSearchedApps() []simulator.App {
 
 // handleAllAppsSearchInput handles keyboard input when in all apps search mode
 func (m Model) handleAllAppsSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	key := keyForAction(msg)
-	action := m.keyMap.GetAction(key)
+	action := m.searchAction(msg)
 
 	switch action {
 	case "escape":
@@ -1209,7 +1188,6 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd
 		return m, nil
 
 	default:
-		// Add any single character to search query (including h, j, k, l, q, etc.)
 		if msg.Text != "" {
 			m.allApps.searchQuery += msg.Text
 			m.allApps.cursor = 0
@@ -1218,6 +1196,13 @@ func (m Model) handleAllAppsSearchInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd
 		}
 		return m, nil
 	}
+}
+
+func (m Model) searchAction(msg tea.KeyPressMsg) string {
+	if msg.Text != "" {
+		return ""
+	}
+	return m.keyMap.GetAction(keyForAction(msg))
 }
 
 func keyForAction(msg tea.KeyPressMsg) string {

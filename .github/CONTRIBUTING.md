@@ -5,7 +5,7 @@ Thank you for your interest in contributing to SimTool! This document provides g
 ## Development Setup
 
 1. **Prerequisites**
-   - [mise](https://mise.jdx.dev/) with the project's Go 1.27.1 toolchain
+   - [mise](https://mise.jdx.dev/) with the project's Go 1.27.3 toolchain
    - macOS 13.0 or later; full Xcode and an iOS runtime for iOS work, or Android SDK tools and an AVD for Android work
    - Git
 

@@ -29,13 +29,14 @@ func AllAppsListView(
 		height = 1
 	}
 	contentHeight := height - 10 // Account for title, footer, border, and padding
+	title := fmt.Sprintf("All Apps [%s]", allAppsPlatform(statusMessages))
 
 	// Handle loading state
 	if loading {
 		content := "" // Empty content during loading
 		layout := NewLayout(width, height)
 		return layout.Render(
-			"All Apps",
+			title,
 			content,
 			"Press q to quit",
 			ui.LoadingStyle().Render("Loading all apps; stopped Android emulators may start headlessly and take a moment..."),
@@ -47,7 +48,7 @@ func AllAppsListView(
 		content := fmt.Sprintf("Error loading apps: %v", err)
 		layout := NewLayout(width, height)
 		return layout.Render(
-			"All Apps",
+			title,
 			content,
 			"Press q to quit",
 			"",
@@ -58,7 +59,7 @@ func AllAppsListView(
 	filteredApps := filterAllApps(allApps, searchQuery)
 
 	// Build title with count
-	title := fmt.Sprintf("All Apps (%d", len(filteredApps))
+	title = fmt.Sprintf("All Apps (%d", len(filteredApps))
 	if searchQuery != "" {
 		title += fmt.Sprintf(" of %d)", len(allApps))
 	} else {
@@ -218,21 +219,14 @@ func buildAllAppsFooter(searchMode bool, appCount int, keys *config.KeysConfig, 
 	if searchMode {
 		// Show search mode shortcuts
 		parts = append(parts, "Type to search")
-		if esc := keys.FormatKeyAction("escape", "cancel"); esc != "" {
+		if esc := formatSearchKeyAction("cancel", keys.Escape); esc != "" {
 			parts = append(parts, esc)
 		}
-		if up := keys.FormatKeyAction("up", "prev"); up != "" {
-			if down := keys.FormatKeyAction("down", "next"); down != "" {
-				parts = append(parts, config.FormatKeys(keys.Up)+"/"+config.FormatKeys(keys.Down)+": navigate")
-			}
+		if navigate := formatSearchKeyAction("navigate", keys.Up, keys.Down); navigate != "" {
+			parts = append(parts, navigate)
 		}
-		if right := keys.FormatKeyAction("right", "select"); right != "" {
-			enter := config.FormatKeys(keys.Enter)
-			if enter != "" {
-				parts = append(parts, config.FormatKeys(keys.Right)+"/"+enter+": select")
-			} else {
-				parts = append(parts, right)
-			}
+		if selectKey := formatSearchKeyAction("select", keys.Right, keys.Enter); selectKey != "" {
+			parts = append(parts, selectKey)
 		}
 	} else {
 		if up := keys.FormatKeyAction("up", "up"); up != "" {

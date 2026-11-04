@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-04
+
+### Fixed
+- Updated Go to 1.27.3 and `golang.org/x/net` to v0.62.0 to resolve vulnerability scan findings in the standard library and networking dependency.
+- Updated Bubble Tea to v2.1.1 to fix a vulnerability in terminal size reports.
+- Updated golangci-lint to 2.15.0 so local and CI lint checks support the patched Go toolchain.
+- Preserve the original emulator exit error when startup reporting and cleanup both wait for the process to finish.
+- Treat printable key bindings as text during search in all three list views, show the query in All Apps, and advertise only active search controls.
+- Initialize the Devices and All Apps platform filters and headings from `--platform`.
+
 ## [1.3.0] - 2026-09-11
 
 ### Added

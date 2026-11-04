@@ -12,6 +12,34 @@ import (
 	"github.com/azizuysal/simtool/internal/ui"
 )
 
+func TestAllAppsSearchDisplaysQueryAndMatchingResults(t *testing.T) {
+	model := searchTestModel(AllAppsView, config.DefaultKeys())
+	model.width = 100
+	model.allApps.platform = "ios"
+	model.allApps.searchQuery = "kil"
+	model.allApps.apps = []simulator.App{
+		{Name: "Kilobyte", BundleID: "com.example.ios", Platform: "ios"},
+		{Name: "Other", Platform: "ios"},
+		{Name: "Kilobyte Android", Platform: "android"},
+	}
+	view := model.View().Content
+	for _, want := range []string{"Search: kil", "All Apps (1 of 2) [iOS]", "Kilobyte"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("search view does not contain %q: %s", want, view)
+		}
+	}
+	for _, hidden := range []string{"Other", "Kilobyte Android"} {
+		if strings.Contains(view, hidden) {
+			t.Errorf("search view contains filtered app %q", hidden)
+		}
+	}
+	updated, cmd := model.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	selected := updated.(Model).fileList.selectedApp
+	if cmd == nil || selected == nil || selected.BundleID != "com.example.ios" {
+		t.Fatalf("search selected %+v instead of the displayed iOS result", selected)
+	}
+}
+
 func TestView(t *testing.T) {
 	// Create a default config for all tests
 	defaultConfig := config.Default()

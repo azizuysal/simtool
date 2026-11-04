@@ -147,7 +147,7 @@ type Model struct {
 }
 
 // New creates a new Model with the given fetcher
-func New(fetcher simulator.Browser, startWithApps bool) (Model, error) {
+func New(fetcher simulator.Browser, startWithApps bool, platform string) (Model, error) {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -168,10 +168,14 @@ func New(fetcher simulator.Browser, startWithApps bool) (Model, error) {
 	}
 
 	// Determine initial view state and corresponding loading flag
+	if platform == "all" {
+		platform = ""
+	}
 	m := Model{
 		fetcher:          fetcher,
 		viewState:        SimulatorListView,
-		simList:          simListState{loading: true},
+		simList:          simListState{loading: true, platform: platform},
+		allApps:          allAppsState{platform: platform},
 		currentThemeMode: themeMode,
 		config:           cfg,
 		keyMap:           keyMap,

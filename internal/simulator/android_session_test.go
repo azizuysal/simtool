@@ -154,6 +154,41 @@ func TestAndroidSessionIncludesEmulatorOutputWhenBootExits(t *testing.T) {
 	}
 }
 
+func TestAndroidSessionPreservesStartupExitErrorAfterCleanup(t *testing.T) {
+	fake := &fakeAndroid{avds: []string{"Pixel"}, running: map[string]string{}}
+	session := newTestAndroidSession(fake, nil)
+	t.Cleanup(func() {
+		if err := session.Close(); err != nil {
+			t.Errorf("Close() error = %v", err)
+		}
+	})
+	session.deps.newCommand = func(_ string, _ ...string) *exec.Cmd {
+		cmd := exec.Command(os.Args[0], "-test.run=TestAndroidSessionHelperProcess", "--")
+		cmd.Env = append(os.Environ(), "SIMTOOL_ANDROID_HELPER=exit")
+		return cmd
+	}
+	owned, err := session.startHeadless("Pixel")
+	if err != nil {
+		t.Fatalf("startHeadless() error = %v", err)
+	}
+	select {
+	case <-owned.done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("emulator helper did not exit")
+	}
+	if err := session.stopOwned(owned); err != nil {
+		t.Fatalf("stopOwned() error = %v", err)
+	}
+	_, err = session.waitForBoot(context.Background(), "Pixel", "", owned)
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 17 {
+		t.Fatalf("waitForBoot() error = %v, want exit status 17", err)
+	}
+	if !strings.Contains(err.Error(), "simtool helper startup failed") {
+		t.Fatalf("waitForBoot() error omitted emulator output: %v", err)
+	}
+}
+
 func TestAndroidSessionConcurrentEnsureStartsOnce(t *testing.T) {
 	fake := &fakeAndroid{avds: []string{"Pixel"}, running: map[string]string{}, booted: true}
 	session := newTestAndroidSession(fake, func() { fake.setRunning("Pixel", "emulator-5554") })
