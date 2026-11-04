@@ -7,6 +7,7 @@ SimTool can be installed using several methods. Choose the one that works best f
 - macOS 13.0 or later
 - For iOS browsing: full Xcode with an iOS Simulator runtime. Xcode Command Line Tools alone do not include `simctl`.
 - For Android browsing: Android SDK `platform-tools` and `emulator`, configured Android Virtual Devices, and `ANDROID_HOME` when the SDK is not on the standard path. Android SDK build-tools `aapt2` is optional; package IDs are shown when it is unavailable.
+- For source installs: Go 1.27.3 and a C compiler from Xcode or the Xcode Command Line Tools; SQLite support requires `CGO_ENABLED=1`.
 
 Install only the platform tooling you plan to browse.
 
@@ -28,7 +29,7 @@ brew upgrade simtool
 If you have Go installed:
 
 ```bash
-go install github.com/azizuysal/simtool/cmd/simtool@latest
+CGO_ENABLED=1 go install github.com/azizuysal/simtool/cmd/simtool@latest
 ```
 
 Make sure `$GOPATH/bin` is in your PATH.
