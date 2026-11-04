@@ -156,7 +156,7 @@ func runTUI(startWithApps bool, platform string) (result error) {
 	defer func() { result = errors.Join(result, fetcher.Close()) }()
 
 	// Validate configuration and construct the TUI before creating the debug log.
-	model, err := tui.New(fetcher, startWithApps)
+	model, err := tui.New(fetcher, startWithApps, platform)
 	if err != nil {
 		return fmt.Errorf("loading configuration: %w", err)
 	}

@@ -202,6 +202,8 @@ simtool --platform android
 
 All shortcuts are [customizable](#configuration).
 
+In search mode, printable keys (including `j`, `k`, `l`, and Space) enter text. Use the arrow keys to navigate results, Enter or Right to select, and Esc to exit search.
+
 ## ⚙️ Configuration
 
 SimTool uses a TOML configuration file located at `~/.config/simtool/config.toml`.

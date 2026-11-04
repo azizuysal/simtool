@@ -2,9 +2,26 @@ package components
 
 import (
 	"strings"
+	"unicode/utf8"
 
+	"github.com/azizuysal/simtool/internal/config"
 	"github.com/azizuysal/simtool/internal/ui"
 )
+
+func formatSearchKeyAction(label string, groups ...[]string) string {
+	var keys []string
+	for _, group := range groups {
+		for _, key := range group {
+			if utf8.RuneCountInString(key) > 1 && key != "space" {
+				keys = append(keys, key)
+			}
+		}
+	}
+	if len(keys) == 0 {
+		return ""
+	}
+	return config.FormatKeys(keys) + ": " + label
+}
 
 // Component is implemented by view-state components (lists, viewers)
 // that produce a title, body, and footer for Layout to compose.

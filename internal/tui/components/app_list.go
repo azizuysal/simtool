@@ -99,19 +99,14 @@ func (al *AppList) GetFooter() string {
 	var parts []string
 
 	if al.SearchMode {
-		if esc := al.Keys.FormatKeyAction("escape", "exit search"); esc != "" {
+		if esc := formatSearchKeyAction("exit search", al.Keys.Escape); esc != "" {
 			parts = append(parts, esc)
 		}
-		if up := al.Keys.FormatKeyAction("up", "navigate"); up != "" {
-			parts = append(parts, config.FormatKeys(al.Keys.Up)+"/"+config.FormatKeys(al.Keys.Down)+": navigate")
+		if navigate := formatSearchKeyAction("navigate", al.Keys.Up, al.Keys.Down); navigate != "" {
+			parts = append(parts, navigate)
 		}
-		if right := al.Keys.FormatKeyAction("right", "select"); right != "" {
-			enter := config.FormatKeys(al.Keys.Enter)
-			if enter != "" {
-				parts = append(parts, config.FormatKeys(al.Keys.Right)+"/"+enter+": select")
-			} else {
-				parts = append(parts, right)
-			}
+		if selectKey := formatSearchKeyAction("select", al.Keys.Right, al.Keys.Enter); selectKey != "" {
+			parts = append(parts, selectKey)
 		}
 	} else {
 		if up := al.Keys.FormatKeyAction("up", "up"); up != "" {

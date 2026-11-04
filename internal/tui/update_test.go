@@ -2,6 +2,7 @@ package tui
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -83,6 +84,103 @@ func TestSearchBackspaceRemovesWholeRune(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestSearchTreatsPrintableBindingsAsText(t *testing.T) {
+	custom := config.DefaultKeys()
+	custom.Escape = []string{"esc", "e"}
+	custom.Backspace = []string{"backspace", "b"}
+	custom.Enter = []string{"enter", "n"}
+	custom.Boot = []string{"x"}
+	custom.Open = []string{"o"}
+	for _, keys := range []struct {
+		name string
+		keys config.KeysConfig
+	}{
+		{name: "default", keys: config.DefaultKeys()},
+		{name: "custom", keys: custom},
+	} {
+		for _, view := range []ViewState{SimulatorListView, AppListView, AllAppsView} {
+			t.Run(fmt.Sprintf("%s/view%d", keys.name, view), func(t *testing.T) {
+				model := searchTestModel(view, keys.keys)
+				model.simList.cursor, model.appList.cursor, model.allApps.cursor = 1, 1, 1
+				var want string
+				for _, char := range "kjlhqfp/ ebnxo café" {
+					updated, cmd := model.Update(tea.KeyPressMsg{Code: char, Text: string(char)})
+					model = updated.(Model)
+					want += string(char)
+					query, cursor, searching := searchStateForTest(model)
+					if model.viewState != view || cmd != nil || !searching || query != want || cursor != 0 {
+						t.Fatalf("after typing %q: view=%v query=%q cursor=%d searching=%v command=%v; want query=%q in the same search", char, model.viewState, query, cursor, searching, cmd != nil, want)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestSearchNavigationAndSelectionUseNonTextBindings(t *testing.T) {
+	for _, view := range []ViewState{SimulatorListView, AppListView, AllAppsView} {
+		t.Run(fmt.Sprintf("view%d", view), func(t *testing.T) {
+			keys := config.DefaultKeys()
+			keys.Down = []string{"ctrl+n"}
+			model := searchTestModel(view, keys)
+			for _, step := range []struct {
+				key    tea.KeyPressMsg
+				cursor int
+			}{
+				{key: tea.KeyPressMsg{Code: 'n', Mod: tea.ModCtrl}, cursor: 1},
+				{key: tea.KeyPressMsg{Code: tea.KeyUp}, cursor: 0},
+				{key: tea.KeyPressMsg{Code: tea.KeyDown}, cursor: 0}, // Disabled by the custom binding.
+			} {
+				updated, cmd := model.Update(step.key)
+				model = updated.(Model)
+				query, cursor, searching := searchStateForTest(model)
+				if query != "" || cursor != step.cursor || !searching || cmd != nil {
+					t.Fatalf("key %q: query=%q cursor=%d searching=%v command=%v", step.key.String(), query, cursor, searching, cmd != nil)
+				}
+			}
+			updated, cmd := model.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+			wantView := FileListView
+			if view == SimulatorListView {
+				wantView = AppListView
+			}
+			if updated.(Model).viewState != wantView || cmd == nil {
+				t.Fatal("Enter did not select the current search result")
+			}
+		})
+	}
+}
+
+func searchTestModel(view ViewState, keys config.KeysConfig) Model {
+	cfg := config.Default()
+	cfg.Keys = keys
+	apps := []simulator.App{{Name: "First", Container: "/first"}, {Name: "Second", Container: "/second"}}
+	return Model{
+		viewState: view,
+		width:     80,
+		height:    24,
+		config:    cfg,
+		keyMap:    config.NewKeyMap(keys),
+		fetcher:   &mockFetcher{},
+		simList: simListState{searchMode: true, simulators: []simulator.Item{
+			{Simulator: simulator.Simulator{Name: "First"}},
+			{Simulator: simulator.Simulator{Name: "Second"}},
+		}},
+		appList: appListState{searchMode: true, apps: apps},
+		allApps: allAppsState{searchMode: true, apps: apps},
+	}
+}
+
+func searchStateForTest(model Model) (string, int, bool) {
+	switch model.viewState {
+	case SimulatorListView:
+		return model.simList.searchQuery, model.simList.cursor, model.simList.searchMode
+	case AppListView:
+		return model.appList.searchQuery, model.appList.cursor, model.appList.searchMode
+	default:
+		return model.allApps.searchQuery, model.allApps.cursor, model.allApps.searchMode
 	}
 }
 

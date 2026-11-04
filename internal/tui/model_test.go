@@ -1,9 +1,14 @@
 package tui
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/azizuysal/simtool/internal/simulator"
 )
@@ -64,7 +69,7 @@ func TestNew(t *testing.T) {
 	fetcher := &mockFetcher{}
 
 	t.Run("default start with simulators", func(t *testing.T) {
-		model, err := New(fetcher, false)
+		model, err := New(fetcher, false, "all")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -83,7 +88,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("start with all apps", func(t *testing.T) {
-		model, err := New(fetcher, true)
+		model, err := New(fetcher, true, "all")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -102,9 +107,72 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func TestNewUsesCLIPlatformInBothInitialViews(t *testing.T) {
+	t.Setenv("SIMTOOL_THEME_MODE", "dark")
+	for _, start := range []struct {
+		name       string
+		apps       bool
+		configApps bool
+	}{
+		{name: "devices"},
+		{name: "apps flag", apps: true},
+		{name: "apps config", configApps: true},
+	} {
+		for _, platform := range []struct {
+			value string
+			label string
+			count int
+		}{
+			{value: "all", label: "All platforms", count: 2},
+			{value: "ios", label: "iOS", count: 1},
+			{value: "android", label: "Android", count: 1},
+		} {
+			t.Run(start.name+"/"+platform.value, func(t *testing.T) {
+				configHome := t.TempDir()
+				t.Setenv("XDG_CONFIG_HOME", configHome)
+				if start.configApps {
+					configDir := filepath.Join(configHome, "simtool")
+					if err := os.Mkdir(configDir, 0700); err != nil {
+						t.Fatal(err)
+					}
+					if err := os.WriteFile(filepath.Join(configDir, "config.toml"), []byte("[startup]\ninitial_view = 'all_apps'\n"), 0600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				model, err := New(&mockFetcher{}, start.apps, platform.value)
+				if err != nil {
+					t.Fatal(err)
+				}
+				model.width, model.height = 100, 30
+				label := "[" + platform.label + "]"
+				if view := model.View().Content; !strings.Contains(view, label) {
+					t.Fatalf("initial view does not show %s: %s", label, view)
+				}
+				var msg tea.Msg = fetchSimulatorsMsg{simulators: []simulator.Item{
+					{Simulator: simulator.Simulator{Name: "iPhone", Platform: "ios"}},
+					{Simulator: simulator.Simulator{Name: "Pixel", Platform: "android"}},
+				}}
+				title := "Devices"
+				if start.apps || start.configApps {
+					msg = fetchAllAppsMsg{apps: []simulator.App{
+						{Name: "iOS app", Platform: "ios"},
+						{Name: "Android app", Platform: "android"},
+					}}
+					title = "All Apps"
+				}
+				updated, _ := model.Update(msg)
+				want := fmt.Sprintf("%s (%d) %s", title, platform.count, label)
+				if view := updated.(Model).View().Content; !strings.Contains(view, want) {
+					t.Fatalf("loaded view does not show %q: %s", want, view)
+				}
+			})
+		}
+	}
+}
+
 func TestInit(t *testing.T) {
 	fetcher := &mockFetcher{}
-	model, err := New(fetcher, false)
+	model, err := New(fetcher, false, "all")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -489,7 +557,7 @@ func TestCheckThemeChange(t *testing.T) {
 
 func TestNewModelThemeMode(t *testing.T) {
 	fetcher := &mockFetcher{}
-	model, err := New(fetcher, false)
+	model, err := New(fetcher, false, "all")
 	if err != nil {
 		t.Fatal(err)
 	}
