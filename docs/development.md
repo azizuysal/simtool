@@ -8,6 +8,7 @@ This guide covers setting up a development environment for SimTool and explains 
 
 - [mise](https://mise.jdx.dev/) with the project's Go 1.27.3 toolchain
 - macOS 13.0 or later
+- A C compiler from Xcode or the Xcode Command Line Tools; SQLite support requires `CGO_ENABLED=1`, which the Makefile sets automatically
 - Full Xcode and an iOS Simulator runtime when developing iOS support
 - Android SDK `platform-tools`, `emulator`, and configured AVDs when developing Android support; `aapt2` from build-tools is optional for human-readable app labels
 - Git
@@ -28,7 +29,7 @@ This guide covers setting up a development environment for SimTool and explains 
    ./simtool
    
    # Or directly:
-   mise exec -- go run ./cmd/simtool
+   CGO_ENABLED=1 mise exec -- go run ./cmd/simtool
    ```
 
 3. **Run Tests**

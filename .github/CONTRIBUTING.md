@@ -7,6 +7,7 @@ Thank you for your interest in contributing to SimTool! This document provides g
 1. **Prerequisites**
    - [mise](https://mise.jdx.dev/) with the project's Go 1.27.3 toolchain
    - macOS 13.0 or later; full Xcode and an iOS runtime for iOS work, or Android SDK tools and an AVD for Android work
+   - A C compiler from Xcode or the Xcode Command Line Tools; SQLite support requires `CGO_ENABLED=1`, which the Makefile sets automatically
    - Git
 
 2. **Fork and Clone**

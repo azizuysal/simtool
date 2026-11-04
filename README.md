@@ -6,7 +6,9 @@
   <img src="https://img.shields.io/github/license/azizuysal/simtool" alt="License">
   <img src="https://img.shields.io/github/v/release/azizuysal/simtool" alt="Release">
   <a href="https://codecov.io/gh/azizuysal/simtool"><img src="https://codecov.io/gh/azizuysal/simtool/branch/main/graph/badge.svg" alt="codecov"></a>
-  <a href="https://sonarcloud.io/summary/new_code?id=azizuysal_simtool"><img src="https://sonarcloud.io/api/project_badges/measure?project=azizuysal_simtool&metric=alert_status" alt="Quality Gate Status"></a>
+  <a href="https://github.com/azizuysal/simtool/actions/workflows/test.yml"><img src="https://github.com/azizuysal/simtool/actions/workflows/test.yml/badge.svg?branch=main" alt="Test"></a>
+  <a href="https://github.com/azizuysal/simtool/actions/workflows/lint.yml"><img src="https://github.com/azizuysal/simtool/actions/workflows/lint.yml/badge.svg?branch=main" alt="Lint"></a>
+  <a href="https://github.com/azizuysal/simtool/actions/workflows/codeql.yml"><img src="https://github.com/azizuysal/simtool/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL"></a>
   <img src="https://img.shields.io/github/downloads/azizuysal/simtool/total" alt="Downloads">
 </p>
 
@@ -103,6 +105,7 @@ Android support uses configured Android Virtual Devices. Physical devices are ou
 - For iOS: full Xcode with an iOS Simulator runtime; the Command Line Tools alone do not include `simctl`
 - For Android: Android SDK `platform-tools` and `emulator`, plus configured Android Virtual Devices. Set `ANDROID_HOME` when the SDK is not on the standard path. `aapt2` from Android SDK build-tools is optional; without it, apps are shown by package ID.
 - Go 1.27.3, installed through [mise](https://mise.jdx.dev/), for building from source
+- A C compiler from Xcode or the Xcode Command Line Tools for source installs; SQLite support requires `CGO_ENABLED=1`
 
 You only need the platform tools for the platform you browse. iOS behavior is unchanged.
 
@@ -121,7 +124,7 @@ brew upgrade simtool
 
 ### Go Install
 ```bash
-go install github.com/azizuysal/simtool/cmd/simtool@latest
+CGO_ENABLED=1 go install github.com/azizuysal/simtool/cmd/simtool@latest
 ```
 
 ### Download Binary
@@ -191,7 +194,7 @@ simtool --platform android
 
 | Key | Action |
 |-----|--------|
-| `↑/↓` or `j/k` | Navigate up/down |
+| `↑/k` / `↓/j` | Navigate up/down |
 | `←/→` or `h/l` | Go back/enter |
 | `Space` | Boot simulator / Open in Finder |
 | `/` | Search mode |
