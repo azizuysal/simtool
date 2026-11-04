@@ -66,7 +66,8 @@ type androidStart struct {
 
 type ownedAndroidEmulator struct {
 	cmd      *exec.Cmd
-	done     chan error
+	done     chan struct{}
+	waitErr  error
 	serial   string
 	log      *rollingBuffer
 	stopOnce sync.Once
@@ -466,13 +467,12 @@ func (s *AndroidSession) startHeadless(avd string) (*ownedAndroidEmulator, error
 		s.mu.Unlock()
 		return nil, fmt.Errorf("start Android AVD %q: %w", avd, err)
 	}
-	owned := &ownedAndroidEmulator{cmd: cmd, done: make(chan error, 1), log: log}
+	owned := &ownedAndroidEmulator{cmd: cmd, done: make(chan struct{}), log: log}
 	s.owned[avd] = owned
 	s.mu.Unlock()
 
 	go func() {
-		err := cmd.Wait()
-		owned.done <- err
+		owned.waitErr = cmd.Wait()
 		close(owned.done)
 		s.mu.Lock()
 		if s.owned[avd] == owned {
@@ -489,7 +489,8 @@ func (s *AndroidSession) waitForBoot(ctx context.Context, avd, knownSerial strin
 	for {
 		if owned != nil {
 			select {
-			case err := <-owned.done:
+			case <-owned.done:
+				err := owned.waitErr
 				if err == nil {
 					err = errors.New("emulator exited")
 				}

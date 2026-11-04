@@ -1,6 +1,6 @@
 [tools]
-go = "1.27.1"
-golangci-lint = "2.13.2"
+go = "1.27.3"
+golangci-lint = "2.15.0"
 
 [env]
 MACOSX_DEPLOYMENT_TARGET = "13.0"
